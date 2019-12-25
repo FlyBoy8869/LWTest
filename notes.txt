@@ -1,0 +1,87 @@
+Command to build standalone executable:
+pyinstaller --name LWTest --windowed --add-binary C:\Users\charles\PycharmProjects\LWTest\LWTest\resources;LWTest\resources cli.py
+
+
+elements to search for on config page:
+
+serial number fields:
+find_element_by_name()
+"serial_num_A"
+"serial_num_B"
+"serial_num_C"
+"serial_num_D"
+"serial_num_E"
+"serial_num_F"
+
+correction angle fields:
+find_element_by_name()
+"correction_angle_A"
+"correction_angle_B"
+"correction_angle_C"
+"correction_angle_D"
+"correction_angle_E"
+"correction_angle_F"
+
+password field:
+find_element_by_name("password")
+
+save changes link:
+find_element_by_id("saveconfig")
+
+
+# Software Upgrade page elements
+
+# Sensor Upgrade
+//*[@id="maindiv"]/form/div[2]/div[3]/input
+//*[@id="maindiv"]/form/div[3]/div[3]/input
+//*[@id="maindiv"]/form/div[4]/div[3]/input
+//*[@id="maindiv"]/form/div[5]/div[3]/input
+//*[@id="maindiv"]/form/div[6]/div[3]/input
+//*[@id="maindiv"]/form/div[7]/div[3]/input
+
+# Choose File
+//*[@id="maindiv"]/form/p[1]/input
+
+# Admin Password
+//*[@id="maindiv"]/form/p[2]/input
+
+# Upgrade Selected Device "button"
+//*[@id="maindiv"]/form/input
+
+
+# Fault Current elements
+//*[@id="placeholder"]/div/div[2]/div[1]
+//*[@id="overview"]/div/div[2]/div[1]
+
+
+# Temperature Scale/Offset elements
+//*[@id="maindiv"]/form/input[1]  # Voltage Temperature Scale 1A
+//*[@id="maindiv"]/form/input[2]  # 1B
+//*[@id="maindiv"]/form/input[3]  # 1C
+//*[@id="maindiv"]/form/input[4]  # 2A
+//*[@id="maindiv"]/form/input[5]  # 2B
+//*[@id="maindiv"]/form/input[6]  # 2C
+
+//*[@id="maindiv"]/form/input[7]  # Voltage Temperature Offset 1A
+//*[@id="maindiv"]/form/input[8]  # 1B
+//*[@id="maindiv"]/form/input[9]  # 1C
+//*[@id="maindiv"]/form/input[10]  # 2A
+//*[@id="maindiv"]/form/input[11]  # 2B
+//*[@id="maindiv"]/form/input[12]  # 2C
+
+//*[@id="maindiv"]/form/input[13]  # currentTempScale1A
+//*[@id="maindiv"]/form/input[14]  # 1B
+//*[@id="maindiv"]/form/input[15]  # 1C
+//*[@id="maindiv"]/form/input[16]  # 2A
+//*[@id="maindiv"]/form/input[17]  # 2B
+//*[@id="maindiv"]/form/input[18]  # 2C
+
+//*[@id="maindiv"]/form/input[19]  # currentTempOffset1A
+//*[@id="maindiv"]/form/input[20]  # 1B
+//*[@id="maindiv"]/form/input[21]  # 1C
+//*[@id="maindiv"]/form/input[22]  # 2A
+//*[@id="maindiv"]/form/input[23]  # 2B
+//*[@id="maindiv"]/form/input[24]  # 2C
+
+//*[@id="maindiv"]/form/input[25]  # password
+//*[@id="maindiv"]/form/input[27]  # submit button

@@ -1,0 +1,3 @@
+24-Dec-19 18:59:06 : LWTest.spreadsheet.spreadsheet : INFO : spreadsheet._get_worksheet(), Line 70 - retrieved worksheet 'Sensor(s)' from workbook
+24-Dec-19 18:59:06 : LWTest.spreadsheet.spreadsheet : DEBUG : spreadsheet._extract_serial_numbers_from_worksheet(), Line 84 - Opened worksheet_name Sensor(s) from workbook C:/Users/charles/Desktop/Test Workbook -SN9802161.xlsm
+24-Dec-19 18:59:06 : LWTest.spreadsheet.spreadsheet : DEBUG : spreadsheet._extract_serial_numbers_from_worksheet(), Line 95 - Extracted serial numbers from spreadsheet: ['9802161', '0', '0', '0', '0', '0']

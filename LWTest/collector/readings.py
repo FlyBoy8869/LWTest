@@ -2,6 +2,7 @@ from time import sleep
 
 from PyQt5.QtWidgets import QTableWidget
 from selenium import webdriver
+from selenium.common.exceptions import NoSuchElementException
 
 from LWTest.config.dom import constants as dom
 from LWTest.signals import CollectorSignals, FirmwareSignals
@@ -26,6 +27,7 @@ class Data:
         self.signals = CollectorSignals()
 
     def read_data(self, voltage_level):
+        sensor_to_ignore = []
         self.browser.get(self.url_1)
 
         if voltage_level == "13800":
@@ -51,7 +53,8 @@ class Data:
         for index, element in enumerate(dom.phase_real_power[:self.count]):
             field = self.browser.find_element_by_xpath(element)
             content = field.get_attribute("textContent")
-            content = str(int(float(content.replace(",", "")) * 1000))
+            if content != 'NA':
+                content = str(int(float(content.replace(",", "")) * 1000))
             self.signals.data_reading.emit((index, data[3]), content)
 
         for index, element in enumerate(dom.phase_temperature[:self.count]):
@@ -136,3 +139,16 @@ class Persistence:
                 self.signals.data_persisted.emit("Yes", index, 17)
             else:
                 self.signals.data_persisted.emit("Fail", index, 17)
+
+
+def _is_data_available(browser: webdriver.Chrome, element):
+    try:
+        field = browser.find_element_by_xpath(element)
+        if field.get_attribute("textContent") == 'NA':
+            print("data = 'NA'")
+            return False
+    except NoSuchElementException:
+        print("caught NoSuchElementException")
+        return False
+
+    return True

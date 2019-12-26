@@ -2,7 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/.idea/LWTest.iml" filepath="$PROJECT_DIR$/.idea/QTTesting.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/LWTest.iml" filepath="$PROJECT_DIR$/.idea/LWTest.iml" />
     </modules>
   </component>
 </project>

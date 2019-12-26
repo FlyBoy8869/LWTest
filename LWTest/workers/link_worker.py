@@ -18,7 +18,7 @@ class LinkWorker(QRunnable):
 
         self.time_to_sleep = 2
         self.elapsed_time = 0
-        self.timeout = 60
+        self.timeout = 20
 
         self.link_indicator = indicator()
 

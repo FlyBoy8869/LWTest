@@ -3,5 +3,4 @@
 /dist/
 app.log
 .DS_Store
-/tests/webpages/
 *.log

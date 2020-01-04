@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<!-- saved from url=(0047)http://192.168.2.1/index.php/main/configuration -->
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+    <title>
+
+	LineWatch-M Website
+    </title>
+
+    
+
+    <!-- Import CSS styles -->
+
+    <link rel="stylesheet" type="text/css" href="./LineWatch-M Website configuration_files/reset.css">
+
+    <link rel="stylesheet" type="text/css" href="./LineWatch-M Website configuration_files/styles.css">
+
+    <link rel="stylesheet" type="text/css" href="./LineWatch-M Website configuration_files/WebResource.css">
+
+    <link type="text/css" href="./LineWatch-M Website configuration_files/jquery-ui-1.8.16.custom.css" rel="Stylesheet">	
+
+    
+
+    <!-- Import JavaScript -->
+
+    <!--[if lte IE 8]><script language="javascript" type="text/javascript" src="/javascript/flot/excanvas.min.js"></script><![endif]-->
+
+    <script language="javascript" type="text/javascript" src="./LineWatch-M Website configuration_files/jquery.min.js.download"></script>
+
+    <script language="javascript" type="text/javascript" src="./LineWatch-M Website configuration_files/jquery-ui-1.8.16.custom.min.js.download"></script>
+
+    <script language="javascript" type="text/javascript" src="./LineWatch-M Website configuration_files/javascript.js.download"></script>
+
+    <script language="javascript" type="text/javascript" src="./LineWatch-M Website configuration_files/jquery.flot.js.download"></script>
+
+    <script language="javascript" type="text/javascript" src="./LineWatch-M Website configuration_files/jquery.flot.selection.js.download"></script>
+
+    <script language="javascript" type="text/javascript" src="./LineWatch-M Website configuration_files/jquery.flot.downsample.js.download"></script>
+
+    <script language="javascript" type="text/javascript" src="./LineWatch-M Website configuration_files/plot.js.download"></script>
+
+    <script language="javascript" type="text/javascript" src="./LineWatch-M Website configuration_files/plotquality.js.download"></script>
+
+    <script language="javascript" type="text/javascript" src="./LineWatch-M Website configuration_files/plotfault.js.download"></script>
+
+	<script language="javascript" type="text/javascript" src="./LineWatch-M Website configuration_files/dnp3.js.download"></script>
+
+    
+    <script language="javascript" type="text/javascript" src="./LineWatch-M Website configuration_files/refresh.js.download"></script>
+
+    
+
+
+    <!-- Dynamic JavaScript -->
+
+    <script language="javascript"> 
+
+        var column_name =
+
+        0;
+
+        var display_name = 
+
+        0;
+
+        var fault_file = 
+
+        0;
+
+        var base_url = "http://192.168.2.1/"; 
+
+        
+
+        var samples_per_cycle = 68;var is_single_phase = false;
+        
+
+        var sensor_type = "Feeder";
+
+    </script>
+
+</head>
+
+
+
+<body>
+
+    <div id="container">
+
+        <div id="header">
+
+            <a id="logo" href="http://192.168.2.1/">
+
+				<img src="./LineWatch-M Website configuration_files/top_logo.gif" alt="Image of Qinetiq company logo" title="Qinetiq North America" border="0">
+
+			</a>
+
+                <div id="topNav">
+
+                    <ul>
+
+                        <li> <a href="http://192.168.2.1/index.php/main/sensordata">Sensor DataReader</a> </li> |
+
+                        <li> <a href="http://192.168.2.1/index.php/main/powerquality">Power Quality</a> </li> |   
+
+                        <li> <a href="http://192.168.2.1/index.php/fault_viewer">Events</a> </li> |
+
+                        <li> <a href="http://192.168.2.1/index.php/external_comms">Communications</a> </li> |
+
+                        <li> <a href="http://192.168.2.1/index.php/main/configuration">Configuration</a> </li> |
+
+						<li> <a href="http://192.168.2.1/index.php/dnp3">DNP3</a> </li> |
+
+                        <li> <a href="http://192.168.2.1/index.php/download">Download</a> </li>
+
+                    </ul>
+
+                </div>
+
+        </div>		        	
+
+        <div id="homeMain">
+
+            <div id="flash">
+
+                <h1>LineWatch-M™</h1><h2>Medium Voltage Collector Id# 9800060</h2>
+            </div>
+
+            <div id="maindiv">
+
+                <div id="test"></div>
+
+                <form action="http://192.168.2.1/index.php/main/main/saveconfig">
+
+    <div>
+        <h1>Sensor Configuration</h1>
+        <div class="trow">
+            <div class="tblank"></div>
+            <div class="tlabelTiny"></div>
+                            <div class="thead">Phase 1</div>
+                            <div class="thead">Phase 2</div>
+                            <div class="thead">Phase 3</div>
+                            <div class="thead">Phase 4</div>
+                            <div class="thead">Phase 5</div>
+                            <div class="thead">Phase 6</div>
+                    </div>
+        <div class="trow">
+            <div class="tblank"></div>
+            <div class="tlabelTiny odd">Serial Number</div>
+                            <div class="tcell odd"><input type="text" class="odd" name="serial_num_A" value="9802197"></div>
+                            <div class="tcell odd"><input type="text" class="odd" name="serial_num_B" value="0"></div>
+                            <div class="tcell odd"><input type="text" class="odd" name="serial_num_C" value="0"></div>
+                            <div class="tcell odd"><input type="text" class="odd" name="serial_num_D" value="0"></div>
+                            <div class="tcell odd"><input type="text" class="odd" name="serial_num_E" value="0"></div>
+                            <div class="tcell odd"><input type="text" class="odd" name="serial_num_F" value="0"></div>
+                    </div>
+        <div class="trow">
+            <div class="tblank"></div>
+            <div class="tlabelTiny">Voltage Calibration (Volts)</div>
+                            <div class="tcell"><input type="text" name="voltage_cal_A" value=""></div>
+                            <div class="tcell"><input type="text" name="voltage_cal_B" value=""></div>
+                            <div class="tcell"><input type="text" name="voltage_cal_C" value=""></div>
+                            <div class="tcell"><input type="text" name="voltage_cal_D" value=""></div>
+                            <div class="tcell"><input type="text" name="voltage_cal_E" value=""></div>
+                            <div class="tcell"><input type="text" name="voltage_cal_F" value=""></div>
+                    </div>
+        <div class="trow">
+            <div class="tblank"></div>
+            <div class="tlabelTiny odd">Correction Angle (Deg)</div>
+                            <div class="tcell odd"><input type="text" class="odd" name="correction_angle_A" value=""></div>
+                            <div class="tcell odd"><input type="text" class="odd" name="correction_angle_B" value=""></div>
+                            <div class="tcell odd"><input type="text" class="odd" name="correction_angle_C" value=""></div>
+                            <div class="tcell odd"><input type="text" class="odd" name="correction_angle_D" value=""></div>
+                            <div class="tcell odd"><input type="text" class="odd" name="correction_angle_E" value=""></div>
+                            <div class="tcell odd"><input type="text" class="odd" name="correction_angle_F" value=""></div>
+                    </div>
+        <h1>Collector Configuration</h1>
+        <div class="trow">
+            <div class="tblank"></div>
+            <div class="tlabel odd">RF Channel Setting</div>
+            <select class="tselect odd" id="rf_channel" style="padding-left:45px;">
+                <option value="0">0</option>
+                <option value="1">1</option>
+                <option value="2">2</option>
+                <option value="3" selected="selected">3</option>
+            </select>
+        </div>
+    </div>
+
+
+
+
+<div>
+    <h1>Display Configuration</h1>
+    <div class="trow">
+        <div class="tblank"></div>
+        <div class="tlabel">Parameter</div>
+        <div class="thead">Resolution</div>
+        <div class="thead">Decimals</div>
+    </div>
+    <div class="trow"> <div class="tblank"></div><div class="tlabel odd">Voltage<span style="float: right">(Vrms)</span></div><div class="tcell odd"><input type="text" class=" odd" name="49, resolution" value=""></div><div class="tcell odd"><input type="text" class=" odd" name="49, decimals" value="2"></div></div><div class="trow"> <div class="tblank"></div><div class="tlabel">Current<span style="float: right">(Arms)</span></div><div class="tcell"><input type="text" class="" name="10, resolution" value=""></div><div class="tcell"><input type="text" class="" name="10, decimals" value="2"></div></div><div class="trow"> <div class="tblank"></div><div class="tlabel odd">Power Factor</div><div class="tcell odd"><input type="text" class=" odd" name="8, resolution" value=""></div><div class="tcell odd"><input type="text" class=" odd" name="8, decimals" value="4"></div></div><div class="trow"> <div class="tblank"></div><div class="tlabel">Lead / Lag</div><div class="tcell"><input type="text" class="" name="20, resolution" value=""></div><div class="tcell"><input type="text" class="" name="20, decimals" value="0"></div></div><div class="trow"> <div class="tblank"></div><div class="tlabel odd">Real Power<span style="float: right">(kW)</span></div><div class="tcell odd"><input type="text" class=" odd" name="46, resolution" value="k"></div><div class="tcell odd"><input type="text" class=" odd" name="46, decimals" value="2"></div></div><div class="trow"> <div class="tblank"></div><div class="tlabel">Reactive Power<span style="float: right">(kVAr)</span></div><div class="tcell"><input type="text" class="" name="47, resolution" value="k"></div><div class="tcell"><input type="text" class="" name="47, decimals" value="2"></div></div><div class="trow"> <div class="tblank"></div><div class="tlabel odd">Apparent Power<span style="float: right">(kVA)</span></div><div class="tcell odd"><input type="text" class=" odd" name="48, resolution" value="k"></div><div class="tcell odd"><input type="text" class=" odd" name="48, decimals" value="2"></div></div><div class="trow"> <div class="tblank"></div><div class="tlabel">Volt Hours<span style="float: right">(kVh)</span></div><div class="tcell"><input type="text" class="" name="52, resolution" value="k"></div><div class="tcell"><input type="text" class="" name="52, decimals" value="2"></div></div><div class="trow"> <div class="tblank"></div><div class="tlabel odd">Amp Hours Dlvd<span style="float: right">(Ah)</span></div><div class="tcell odd"><input type="text" class=" odd" name="15, resolution" value=""></div><div class="tcell odd"><input type="text" class=" odd" name="15, decimals" value="2"></div></div><div class="trow"> <div class="tblank"></div><div class="tlabel">Amp Hours Rcvd<span style="float: right">(Ah)</span></div><div class="tcell"><input type="text" class="" name="16, resolution" value=""></div><div class="tcell"><input type="text" class="" name="16, decimals" value="2"></div></div><div class="trow"> <div class="tblank"></div><div class="tlabel odd">Real Energy Dlvd<span style="float: right">(kWh)</span></div><div class="tcell odd"><input type="text" class=" odd" name="54, resolution" value="k"></div><div class="tcell odd"><input type="text" class=" odd" name="54, decimals" value="2"></div></div><div class="trow"> <div class="tblank"></div><div class="tlabel">Real Energy Rcvd<span style="float: right">(kWh)</span></div><div class="tcell"><input type="text" class="" name="55, resolution" value="k"></div><div class="tcell"><input type="text" class="" name="55, decimals" value="2"></div></div><div class="trow"> <div class="tblank"></div><div class="tlabel odd">Reactive Energy Dlvd<span style="float: right">(kVARh)</span></div><div class="tcell odd"><input type="text" class=" odd" name="56, resolution" value="k"></div><div class="tcell odd"><input type="text" class=" odd" name="56, decimals" value="2"></div></div><div class="trow"> <div class="tblank"></div><div class="tlabel">Reactive Energy Rcvd<span style="float: right">(kVARh)</span></div><div class="tcell"><input type="text" class="" name="57, resolution" value="k"></div><div class="tcell"><input type="text" class="" name="57, decimals" value="2"></div></div><div class="trow"> <div class="tblank"></div><div class="tlabel odd">Temperature<span style="float: right">(°C)</span></div><div class="tcell odd"><input type="text" class=" odd" name="19, resolution" value=""></div><div class="tcell odd"><input type="text" class=" odd" name="19, decimals" value="1"></div></div></div>
+
+<div>
+	<h1>Frequency</h1>
+	<div class="trow">
+		<div class="tblank"></div>
+		<div class="tlabelTiny" style="width:130px">50Hz</div>
+		<div class="tlabelTiny" style="width:138px; text-align:center; padding-left:5px">
+			<input type="radio" name="frequency" value="50">
+		</div>
+	</div>
+	<div class="trow">
+		<div class="tblank"></div>
+		<div class="tlabelTiny odd" style="width:130px">60Hz</div>
+		<div class="tlabelTiny odd" style="width:138px; text-align:center; padding-left:5px">
+			<input type="radio" class="odd" name="frequency" value="60" checked="">
+		</div>
+	</div>
+	<div class="trow">
+		<div class="tblank"></div>
+		<div class="tlabelTiny" style="width:130px">AUTO</div>
+		<div class="tlabelTiny" style="width:138px; text-align:center; padding-left:5px">
+			<input type="radio" name="frequency" value="A60">
+		</div>
+	</div>
+</div>
+
+    <div>
+        <h1>Voltage Ride Through</h1>
+        <div class="trow">
+            <div class="tblank"></div>
+            <div class="tlabel">Parameter</div>
+            <div class="thead">Value</div>
+        </div>
+
+        <div class="trow">
+            <div class="tblank"></div>
+            <div class="tlabel odd">Enable Voltage Ride Through</div>
+            <div class="tcell odd"><input type="checkbox" class="odd" id="singlephase"></div>
+        </div>
+
+        <div class="trow">
+            <div class="tblank"></div>
+            <div class="tlabel">VRT Turn On Value (fraction of nominal)</div>
+            <div class="tcell"><input type="text" name="TurnOn" value="0.02"></div>
+        </div>
+
+        <div class="trow">
+            <div class="tblank"></div>
+            <div class="tlabel odd">VRT Turn Off Value (fraction of nominal)</div>
+            <div class="tcell odd"><input type="text" class="odd" name="TurnOff" value="0.015"></div>
+        </div>
+    </div>
+
+<div>
+    <h1> Reset Accumulating Values</h1>
+    <div class="trow">
+        <div class="tblank"></div>
+        <div class="thead">Reset?</div>
+    </div>
+    <div class="trow">
+        <div class="tblank"></div>
+        <div class="tcell"><input type="checkbox" id="reset"></div>
+    </div>
+</div>
+
+
+<br><br>
+
+<div>
+    <div id="password">
+        <div class="save">
+            Admin Password: <input type="password" name="password"><br><a href="http://192.168.2.1/index.php/main/saveconfig" id="saveconfig">Save Changes</a> | <a href="http://192.168.2.1/index.php/main/sensordata">Cancel</a>        </div>
+    </div>
+</div>
+
+</form>
+</div>
+            </div>
+
+        </div>
+
+
+
+        <div id="footer">
+
+            <ul>
+
+                <li>Version Release 1009-3.1.0: Factory Defaults
+</li>
+
+                <br>
+
+                <li><a href="http://192.168.2.1/index.php/upgrade">Software Upgrade</a> | <a href="http://192.168.2.1/index.php/upgrade/date_and_time">Date and Time</a> | <a href="http://192.168.2.1/index.php/main/changepassword/user">Change User Password</a> | <a href="http://192.168.2.1/index.php/main/changepassword/admin">Change Admin Password</a>
+                </li>
+
+                <br>
+
+                <li>
+
+                    <a href="http://192.168.2.1/index.php/main/reset">System Reset</a> | <a href="http://192.168.2.1/index.php/main/defaults">Restore Defaults</a> | <a href="http://192.168.2.1/index.php/main/modem_status">Modem Status</a> | <a href="http://192.168.2.1/index.php/log_viewer">Log Files</a>
+                </li>
+
+                <br>
+
+                <li>Copyright © 2012-2019 QinetiQ North America, All Rights Reserved</li>
+
+                <br>
+
+                <li><div id="dataloadtime" style="display:inline"></div></li>
+
+                <br>
+
+            </ul>
+
+        </div>
+
+    
+
+
+
+
+
+
+
+
+
+    
+
+    
+
+</body></html>

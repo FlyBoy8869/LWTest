@@ -1,0 +1,653 @@
+$(document).ready(function() {
+    // If the placeholder2 id does not exist, no chart to display
+    if (sensor_type == "Transformer") {
+        if ($("#placeholder2").length == 0)
+            return;
+    }
+    if (sensor_type == "Feeder") {
+        // If the placeholder2, 3 and 4 id does not exist, no chart to display
+        if ($("#placeholder2").length == 0 && $("#placeholder3").length == 0 && $("#placeholder4").length == 0)
+            return;
+    }
+
+    qualityfirstload = true;
+
+    load_quality_data();
+
+    qualityfirstload = false;
+
+    $("body").delegate(":radio", "click", function() {
+        load_quality_data();
+    });
+
+}); // end document ready
+
+var qualitytime;
+
+var pmode; // persistant mode, hack to get radio buttons checking to work
+
+var qualityfirstload; // flag indicating if it is the first time quality data is loaded on a page
+
+/**
+ * Transformer Meter chart options
+ */
+var optionsQualityA = {
+    legend: { show: true, container: null },
+    series: {
+        lines: { show: true },
+        points: { show: false }
+    },
+    yaxes: [{ position: "left", ticks: 10, color: "#FF1100", tickColor: "#000000" }, { position: "right", ticks: 10, color: "#0033FF" }],
+    xaxis: { ticks: 10, color: "#000000" }
+};
+var optionsQualityB = {
+    legend: { show: true, container: null },
+    series: {
+        lines: { show: true },
+        points: { show: false }
+    },
+    yaxis: { ticks: 10, color: "#000000" },
+    xaxis: { ticks: 10, color: "#000000" }
+};
+
+/**
+ * Feeder Meter chart options
+ */
+var optionsQ = {
+    legend: { show: true, container: null },
+    series: {
+        lines: { show: true },
+        points: { show: false }
+    },
+    yaxes: [{ position: "left", ticks: 10, color: "#FF1100", tickColor: "#000000" }, { position: "right", ticks: 10, color: "#0033FF" }],
+    xaxis: { ticks: 10, color: "#000000" },
+    select: { mode: null }
+};
+
+/**
+ * Placeholder variables used by flot to generate the charts
+ */
+var plot, plot1, plot2, plot3, plot4, plot5, plot6;
+
+/**
+ * Stored data
+ */
+var va_old, vb_old, vc_old, ia_old, ib_old, ic_old, freq_old;
+
+/**
+ * Load data for charts
+ */
+function load_quality_data() {
+    // Form the link to be used...
+    $url = base_url + 'index.php/main/getqualitydata/';
+
+    // Get a date and time if set...
+    var $timestamp = $("#date").val() + ' ' + $("#time").val();
+
+    $("#dataloadtime").html("DataReader Request Pending...");
+    qualitytime = new Date();
+
+
+    /**
+     * Not the most elegant solution, but time constraints
+     */
+    if (sensor_type == 'Transformer') {
+        // Send to server, handle json response    
+        $.post($url, { timestamp: $timestamp }, function(data) {
+
+            $("#dataloadtime").html("DataReader Request Received... Parsing...");
+
+            if (data == '')
+                $("#dataloadtime").html("DataReader Request Parse Error... No DataReader!");
+
+            var allData = jQuery.parseJSON(data);
+            var va, vb, vc, ia, ib, ic, freq;
+
+            if (allData == null) {
+                // use stored data
+                va = va_old;
+                vb = vb_old;
+                vc = vc_old;
+                ia = ia_old;
+                ib = ib_old;
+                ic = ic_old;
+				freq = freq_old;
+            } else {
+				freq = allData.freq;
+				if (freq == 50)
+				{
+					va = allData.voltsA;
+					vb = allData.voltsB;
+					vc = allData.voltsC;
+					ia = allData.ampsA;
+					ib = allData.ampsB;
+					ic = allData.ampsC;
+				}
+				else
+				{
+					va = allData.voltsA.slice(0, 69);
+					vb = allData.voltsB.slice(0, 69);
+					vc = allData.voltsC.slice(0, 69);
+					ia = allData.ampsA.slice(0, 69);
+					ib = allData.ampsB.slice(0, 69);
+					ic = allData.ampsC.slice(0, 69);
+				}
+            }
+						
+            // Handle timestamps
+			samples_per_cycle = (freq == 50 ? 83 : 69);
+            var timeStep = 1.0 / freq / samples_per_cycle * 1000.0; // ms
+
+            var vaa = [];
+            var vbb = [];
+            var vcc = [];
+            var iaa = [];
+            var ibb = [];
+            var icc = [];
+
+            // Convert data and build time index based on samples_per_cycle
+            for (x in va) {
+                vaa.push([x * timeStep, va[x].data]);
+            }
+            for (x in vb) {
+                vbb.push([x * timeStep, vb[x].data]);
+            }
+            for (x in vc) {
+                vcc.push([x * timeStep, vc[x].data]);
+            }
+            for (x in ia) {
+                iaa.push([x * timeStep, ia[x].data]);
+            }
+            for (x in ib) {
+                ibb.push([x * timeStep, ib[x].data]);
+            }
+            for (x in ic) {
+                icc.push([x * timeStep, ic[x].data]);
+            }
+
+            // Plot according to selected display option 
+            var mode = $(":checked").val();
+            if (mode == 'phase') {
+                optionsQualityA.legend.container = '#legendcontainer2';
+                plot = $.plot($("#placeholder2"), [
+                    { label: "Voltage", data: vaa, color: 2, yaxis: 1 },
+                    { label: "Current", data: iaa, color: "#0033FF", yaxis: 2 }
+                ], optionsQualityA);
+
+                optionsQualityA.legend.container = '#legendcontainer3';
+                plot2 = $.plot($("#placeholder3"), [
+                    { label: "Voltage", data: vbb, color: 2, yaxis: 1 },
+                    { label: "Current", data: ibb, color: "#0033FF", yaxis: 2 }
+                ], optionsQualityA);
+
+                if (!is_single_phase)
+                    optionsQualityA.legend.container = '#legendcontainer4';
+                plot3 = $.plot($("#placeholder4"), [
+                    { label: "Voltage", data: vcc, color: 2, yaxis: 1 },
+                    { label: "Current", data: icc, color: "#0033FF", yaxis: 2 }
+                ], optionsQualityA);
+
+                // Update labels    
+                if (!is_single_phase)
+                    $("#chart1").html("Phase A");
+                else
+                    $("#chart1").html("Line 1");
+                if (!is_single_phase)
+                    $("#chart2").html("Phase B");
+                else
+                    $("#chart2").html("Line 2");
+
+                if (!is_single_phase) {
+                    $("#chart3").show();
+                    $("#placeholder4").show();
+                    $("#legendcontainer4").show();
+                }
+                zoom3(vaa, vbb, vcc, iaa, ibb, icc);
+            } else {
+                if (!is_single_phase) {
+                    optionsQualityB.legend.container = '#legendcontainer2';
+                    plot4 = $.plot($("#placeholder2"), [
+                        { label: "Phase A", data: vaa, color: 2 },
+                        { label: "Phase B", data: vbb, color: "#0033FF" },
+                        { label: "Phase C", data: vcc, color: 3 }
+                    ], optionsQualityB);
+
+                    optionsQualityB.legend.container = '#legendcontainer3';
+                    plot5 = $.plot($("#placeholder3"), [
+                        { label: "Phase A", data: iaa, color: 2 },
+                        { label: "Phase B", data: ibb, color: "#0033FF" },
+                        { label: "Phase C", data: icc, color: 3 }
+                    ], optionsQualityB);
+                } else {
+                    optionsQualityB.legend.container = '#legendcontainer2';
+                    plot4 = $.plot($("#placeholder2"), [
+                        { label: "Line 1", data: vaa, color: 2 },
+                        { label: "Line 2", data: vbb, color: "#0033FF" }
+                    ], optionsQualityB);
+
+                    optionsQualityB.legend.container = '#legendcontainer3';
+                    plot5 = $.plot($("#placeholder3"), [
+                        { label: "Line 1", data: iaa, color: 2 },
+                        { label: "Line 2", data: ibb, color: "#0033FF" }
+                    ], optionsQualityB);
+                }
+
+                // Update labels    
+                $("#chart1").html("Voltage");
+                $("#chart2").html("Current");
+                if (!is_single_phase) {
+                    $("#chart3").hide();
+                    $("#placeholder4").hide();
+                    $("#legendcontainer4").hide();
+                }
+                zoom2();
+            }
+
+            var timedone = new Date();
+            timedone = timedone.getTime();
+            timestart = qualitytime.getTime();
+
+            $("#dataloadtime").html("DataReader Request Complete " + (timedone - timestart) / 1000 + " seconds.");
+            va_old = va;
+            vb_old = vb;
+            vc_old = vc;
+            ia_old = ia;
+            ib_old = ib;
+            ic_old = ic;
+			freq_old = freq;
+
+            // Append message if there is no data to display
+            try {
+                if (va.length == 0 && vb.length == 0 && vc.length == 0 &&
+                    ia.length == 0 && ib.length == 0 && ic.length == 0) {
+                    setErrorMsg();
+                }
+            }
+            catch (e) {
+            }
+
+        }); // end $.post
+    }
+    if (sensor_type == 'Feeder') {
+        // Send to server, handle json response    
+        $.post($url, { timestamp: $timestamp, firstload: qualityfirstload }, function(data) {
+
+            $("#dataloadtime").html("DataReader Request Received... Parsing...");
+
+            var allData = jQuery.parseJSON(data);
+
+            var v1 = allData.voltsA;
+            var v2 = allData.voltsB;
+            var v3 = allData.voltsC;
+            var v4 = allData.voltsD;
+            var v5 = allData.voltsE;
+            var v6 = allData.voltsF;
+
+            var i1 = allData.ampsA;
+            var i2 = allData.ampsB;
+            var i3 = allData.ampsC;
+            var i4 = allData.ampsD;
+            var i5 = allData.ampsE;
+            var i6 = allData.ampsF;
+
+            // QNA-978
+			freq = allData.freq;
+			samples_per_cycle = (freq == 50 ? 42 : 35);
+            var timeStep = 1.0 / freq / samples_per_cycle * 1000.0; // ms
+
+            var vaa = [];
+            var vbb = [];
+            var vcc = [];
+            var vdd = [];
+            var vee = [];
+            var vff = [];
+            var iaa = [];
+            var ibb = [];
+            var icc = [];
+            var idd = [];
+            var iee = [];
+            var iff = [];
+
+            // Convert data and build time index based on samples_per_cycle
+            for (x in v1) {
+                vaa.push([x * timeStep, v1[x].data]);
+            }
+            for (x in v2) {
+                vbb.push([x * timeStep, v2[x].data]);
+            }
+            for (x in v3) {
+                vcc.push([x * timeStep, v3[x].data]);
+            }
+            for (x in v4) {
+                vdd.push([x * timeStep, v4[x].data]);
+            }
+            for (x in v5) {
+                vee.push([x * timeStep, v5[x].data]);
+            }
+            for (x in v6) {
+                vff.push([x * timeStep, v6[x].data]);
+            }
+            for (x in i1) {
+                iaa.push([x * timeStep, i1[x].data]);
+            }
+            for (x in i2) {
+                ibb.push([x * timeStep, i2[x].data]);
+            }
+            for (x in i3) {
+                icc.push([x * timeStep, i3[x].data]);
+            }
+            for (x in i4) {
+                idd.push([x * timeStep, i4[x].data]);
+            }
+            for (x in i5) {
+                iee.push([x * timeStep, i5[x].data]);
+            }
+            for (x in i6) {
+                iff.push([x * timeStep, i6[x].data]);
+            }
+
+            if ($("#placeholder2").length != 0) {
+                optionsQ.legend.container = '#legendcontainer2';
+                plot = $.plot($("#placeholder2"), [
+                    { label: "Current", data: iaa, color: "#0033FF", yaxis: 2 },
+                    { label: "Voltage", data: vaa, color: 2, yaxis: 1 }
+                ], optionsQ);
+            }
+
+            if ($("#placeholder3").length != 0) {
+                optionsQ.legend.container = '#legendcontainer3';
+                plot2 = $.plot($("#placeholder3"), [
+                    { label: "Current", data: ibb, color: "#0033FF", yaxis: 2 },
+                    { label: "Voltage", data: vbb, color: 2, yaxis: 1 }
+                ], optionsQ);
+            }
+
+            if ($("#placeholder4").length != 0) {
+                optionsQ.legend.container = '#legendcontainer4';
+                plot3 = $.plot($("#placeholder4"), [
+                    { label: "Current", data: icc, color: "#0033FF", yaxis: 2 },
+                    { label: "Voltage", data: vcc, color: 2, yaxis: 1 }
+                ], optionsQ);
+            }
+
+            if ($("#placeholder5").length != 0) {
+                optionsQ.legend.container = '#legendcontainer5';
+                plot = $.plot($("#placeholder5"), [
+                    { label: "Current", data: idd, color: "#0033FF", yaxis: 2 },
+                    { label: "Voltage", data: vdd, color: 2, yaxis: 1 }
+                ], optionsQ);
+            }
+
+            if ($("#placeholder6").length != 0) {
+                optionsQ.legend.container = '#legendcontainer6';
+                plot2 = $.plot($("#placeholder6"), [
+                    { label: "Current", data: iee, color: "#0033FF", yaxis: 2 },
+                    { label: "Voltage", data: vee, color: 2, yaxis: 1 }
+                ], optionsQ);
+            }
+
+            if ($("#placeholder7").length != 0) {
+                optionsQ.legend.container = '#legendcontainer7';
+                plot3 = $.plot($("#placeholder7"), [
+                    { label: "Current", data: iff, color: "#0033FF", yaxis: 2 },
+                    { label: "Voltage", data: vff, color: 2, yaxis: 1 }
+                ], optionsQ);
+            }
+
+            var timedone = new Date();
+            timedone = timedone.getTime();
+            timestart = qualitytime.getTime();
+
+            $("#dataloadtime").html("DataReader Request Complete " + (timedone - timestart) / 1000 + " seconds.");
+
+            // Append message if there is no data to display
+
+            if (v1.length == 0 && v2.length == 0 && v3.length == 0 && v4.length == 0 && v5.length == 0 && v6.length == 0 &&
+                i1.length == 0 && i2.length == 0 && i3.length == 0 && i4.length == 0 && i5.length == 0 && i6.length == 0) {
+                setErrorMsg();
+            }
+        }); // end $.post
+    }
+}
+
+function setErrorMsg() {
+    $("#placeholder2").append(
+        '<div class="notice" style="text-align: center; position: relative; left: 10px; top: -200px; width: 91%"> \n\
+    No DataReader Available for Specified Time Period! \n\
+    </div>'
+    );
+
+    $("#placeholder3").append(
+        '<div class="notice" style="text-align: center; position: relative; left: 10px; top: -200px; width: 91%"> \n\
+    No DataReader Available for Specified Time Period! \n\
+    </div>'
+    );
+
+    $("#placeholder4").append(
+        '<div class="notice" style="text-align: center; position: relative; left: 10px; top: -200px; width: 91%"> \n\
+    No DataReader Available for Specified Time Period! \n\
+    </div>'
+    );
+    if (sensor_type == 'Feeder') {
+        $("#placeholder5").append(
+            '<div class="notice" style="text-align: center; position: relative; left: 10px; top: -200px; width: 91%"> \n\
+    No DataReader Available for Specified Time Period! \n\
+    </div>'
+        );
+
+        $("#placeholder6").append(
+            '<div class="notice" style="text-align: center; position: relative; left: 10px; top: -200px; width: 91%"> \n\
+    No DataReader Available for Specified Time Period! \n\
+    </div>'
+        );
+
+        $("#placeholder7").append(
+            '<div class="notice" style="text-align: center; position: relative; left: 10px; top: -200px; width: 91%"> \n\
+    No DataReader Available for Specified Time Period! \n\
+    </div>'
+        );
+    }
+}
+
+function zoom3(vaa, vbb, vcc, iaa, ibb, icc) {
+    $("#placeholder2").bind("plotselected", function(event, ranges) {
+        // clamp the zooming to prevent eternal zoom
+        if (ranges.xaxis.to - ranges.xaxis.from < 0.00001)
+            ranges.xaxis.to = ranges.xaxis.from + 0.00001;
+        if (ranges.yaxis.to - ranges.yaxis.from < 0.00001)
+            ranges.yaxis.to = ranges.yaxis.from + 0.00001;
+
+        // do the zooming
+        var data = getQualityData(ranges.xaxis.from, ranges.xaxis.to, vaa, vbb, vcc, iaa, ibb, icc);
+        var plot2data = new Array();
+        var plot3data = new Array();
+        var plot4data = new Array();
+        var mode = $(":checked").val();
+        if (mode == 'phase') {
+            plot2data[0] = data[0];
+            plot2data[1] = data[1];
+            optionsQualityA.legend.container = '#legendcontainer2';
+            plot2 = $.plot($("#placeholder2"), plot2data,
+                $.extend(true, {}, optionsQualityA, {
+                    xaxis: { min: ranges.xaxis.from, max: ranges.xaxis.to },
+                    yaxis: { min: ranges.yaxis.from, max: ranges.yaxis.to }
+                }));
+
+            plot3data[0] = data[2];
+            plot3data[1] = data[3];
+            optionsQualityA.legend.container = '#legendcontainer3';
+            plot3 = $.plot($("#placeholder3"), plot3data,
+                $.extend(true, {}, optionsQualityA, {
+                    xaxis: { min: ranges.xaxis.from, max: ranges.xaxis.to },
+                    yaxis: { min: ranges.yaxis.from, max: ranges.yaxis.to }
+                }));
+
+            plot4data[0] = data[4];
+            plot4data[1] = data[5];
+            if (!is_single_phase)
+                optionsQualityA.legend.container = '#legendcontainer4';
+            plot4 = $.plot($("#placeholder4"), plot4data,
+                $.extend(true, {}, optionsQualityA, {
+                    xaxis: { min: ranges.xaxis.from, max: ranges.xaxis.to },
+                    yaxis: { min: ranges.yaxis.from, max: ranges.yaxis.to }
+                }));
+        } else {
+            plot2data[0] = data[0];
+            plot2data[1] = data[1];
+            plot2data[2] = data[2];
+            optionsQualityB.legend.container = '#legendcontainer2';
+            plot2 = $.plot($("#placeholder2"), plot2data,
+                $.extend(true, {}, optionsQualityB, {
+                    xaxis: { min: ranges.xaxis.from, max: ranges.xaxis.to },
+                    yaxis: { min: ranges.yaxis.from, max: ranges.yaxis.to }
+                }));
+
+            plot3data[0] = data[3];
+            plot3data[1] = data[4];
+            plot3data[2] = data[5];
+            optionsQualityB.legend.container = '#legendcontainer3';
+            plot3 = $.plot($("#placeholder3"), plot3data,
+                $.extend(true, {}, optionsQualityB, {
+                    xaxis: { min: ranges.xaxis.from, max: ranges.xaxis.to },
+                    yaxis: { min: ranges.yaxis.from, max: ranges.yaxis.to }
+                }));
+        }
+
+    });
+    $("#placeholder3").bind("plotselected", function(event, ranges) {
+        // clamp the zooming to prevent eternal zoom
+        if (ranges.xaxis.to - ranges.xaxis.from < 0.00001)
+            ranges.xaxis.to = ranges.xaxis.from + 0.00001;
+        if (ranges.yaxis.to - ranges.yaxis.from < 0.00001)
+            ranges.yaxis.to = ranges.yaxis.from + 0.00001;
+
+        // do the zooming
+        var data = getQualityData(ranges.xaxis.from, ranges.xaxis.to, vaa, vbb, vcc, iaa, ibb, icc);
+        var plot2data = new Array();
+        var plot3data = new Array();
+        var plot4data = new Array();
+
+        var mode = $(":checked").val();
+        if (mode == 'phase') {
+            plot2data[0] = data[0];
+            plot2data[1] = data[1];
+            optionsQualityA.legend.container = '#legendcontainer2';
+            plot2 = $.plot($("#placeholder2"), plot2data,
+                $.extend(true, {}, optionsQualityA, {
+                    xaxis: { min: ranges.xaxis.from, max: ranges.xaxis.to },
+                    yaxis: { min: ranges.yaxis.from, max: ranges.yaxis.to }
+                }));
+
+            plot3data[0] = data[2];
+            plot3data[1] = data[3];
+            optionsQualityA.legend.container = '#legendcontainer3';
+            plot3 = $.plot($("#placeholder3"), plot3data,
+                $.extend(true, {}, optionsQualityA, {
+                    xaxis: { min: ranges.xaxis.from, max: ranges.xaxis.to },
+                    yaxis: { min: ranges.yaxis.from, max: ranges.yaxis.to }
+                }));
+
+            plot4data[0] = data[4];
+            plot4data[1] = data[5];
+            if (!is_single_phase)
+                optionsQualityA.legend.container = '#legendcontainer4';
+            plot4 = $.plot($("#placeholder4"), plot4data,
+                $.extend(true, {}, optionsQualityA, {
+                    xaxis: { min: ranges.xaxis.from, max: ranges.xaxis.to },
+                    yaxis: { min: ranges.yaxis.from, max: ranges.yaxis.to }
+                }));
+        } else {
+            plot2data[0] = data[0];
+            plot2data[1] = data[1];
+            plot2data[2] = data[2];
+            optionsQualityB.legend.container = '#legendcontainer2';
+            plot2 = $.plot($("#placeholder2"), plot2data,
+                $.extend(true, {}, optionsQualityB, {
+                    xaxis: { min: ranges.xaxis.from, max: ranges.xaxis.to },
+                    yaxis: { min: ranges.yaxis.from, max: ranges.yaxis.to }
+                }));
+
+            plot3data[0] = data[3];
+            plot3data[1] = data[4];
+            plot3data[2] = data[5];
+            optionsQualityB.legend.container = '#legendcontainer3';
+            plot3 = $.plot($("#placeholder3"), plot3data,
+                $.extend(true, {}, optionsQualityB, {
+                    xaxis: { min: ranges.xaxis.from, max: ranges.xaxis.to },
+                    yaxis: { min: ranges.yaxis.from, max: ranges.yaxis.to }
+                }));
+        }
+
+    });
+    $("#placeholder4").bind("plotselected", function(event, ranges) {
+        // clamp the zooming to prevent eternal zoom
+        if (ranges.xaxis.to - ranges.xaxis.from < 0.00001)
+            ranges.xaxis.to = ranges.xaxis.from + 0.00001;
+        if (ranges.yaxis.to - ranges.yaxis.from < 0.00001)
+            ranges.yaxis.to = ranges.yaxis.from + 0.00001;
+
+        // do the zooming
+        var data = getQualityData(ranges.xaxis.from, ranges.xaxis.to, vaa, vbb, vcc, iaa, ibb, icc);
+        var plot2data = new Array();
+        plot2data[0] = data[0];
+        plot2data[1] = data[1];
+        optionsQualityA.legend.container = '#legendcontainer2';
+        plot2 = $.plot($("#placeholder2"), plot2data,
+            $.extend(true, {}, optionsQualityA, {
+                xaxis: { min: ranges.xaxis.from, max: ranges.xaxis.to },
+                yaxis: { min: ranges.yaxis.from, max: ranges.yaxis.to }
+            }));
+        var plot3data = new Array();
+        plot3data[0] = data[2];
+        plot3data[1] = data[3];
+        optionsQualityA.legend.container = '#legendcontainer3';
+        plot3 = $.plot($("#placeholder3"), plot3data,
+            $.extend(true, {}, optionsQualityA, {
+                xaxis: { min: ranges.xaxis.from, max: ranges.xaxis.to },
+                yaxis: { min: ranges.yaxis.from, max: ranges.yaxis.to }
+            }));
+        var plot4data = new Array();
+        plot4data[0] = data[4];
+        plot4data[1] = data[5];
+        if (!is_single_phase)
+            optionsQualityA.legend.container = '#legendcontainer4';
+        plot4 = $.plot($("#placeholder4"), plot4data,
+            $.extend(true, {}, optionsQualityA, {
+                xaxis: { min: ranges.xaxis.from, max: ranges.xaxis.to },
+                yaxis: { min: ranges.yaxis.from, max: ranges.yaxis.to }
+            }));
+
+    });
+}
+
+function zoom2(vaa, vbb, vcc, iaa, ibb, icc) {
+    $("#placeholder5").bind("plotselected", function(event, ranges) {
+        // clamp the zooming to prevent eternal zoom
+        if (ranges.xaxis.to - ranges.xaxis.from < 0.00001)
+            ranges.xaxis.to = ranges.xaxis.from + 0.00001;
+        if (ranges.yaxis.to - ranges.yaxis.from < 0.00001)
+            ranges.yaxis.to = ranges.yaxis.from + 0.00001;
+
+        // do the zooming
+        var data = getQualityData(ranges.xaxis.from, ranges.xaxis.to, vaa, vbb, vcc, iaa, ibb, icc);
+        var plot2data = new Array();
+        plot2data[0] = data[0];
+        plot2data[1] = data[1];
+        optionsQualityA.legend.container = '#legendcontainer2';
+        plot2 = $.plot($("#placeholder2"), plot2data,
+            $.extend(true, {}, optionsQualityA, {
+                xaxis: { min: ranges.xaxis.from, max: ranges.xaxis.to },
+                yaxis: { min: ranges.yaxis.from, max: ranges.yaxis.to }
+            }));
+        var plot3data = new Array();
+        plot3data[0] = data[2];
+        plot3data[1] = data[3];
+        optionsQualityA.legend.container = '#legendcontainer3';
+        plot3 = $.plot($("#placeholder3"), plot3data,
+            $.extend(true, {}, optionsQualityA, {
+                xaxis: { min: ranges.xaxis.from, max: ranges.xaxis.to },
+                yaxis: { min: ranges.yaxis.from, max: ranges.yaxis.to }
+            }));
+
+    });
+}

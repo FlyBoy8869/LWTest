@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<!-- saved from url=(0046)http://192.168.2.1/index.php/main/viewdata/cbc -->
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+    <title>
+
+	LineWatch-M Website
+    </title>
+
+    
+
+    <!-- Import CSS styles -->
+
+    <link rel="stylesheet" type="text/css" href="./LineWatch-M Website fault_current_files/reset.css">
+
+    <link rel="stylesheet" type="text/css" href="./LineWatch-M Website fault_current_files/styles.css">
+
+    <link rel="stylesheet" type="text/css" href="./LineWatch-M Website fault_current_files/WebResource.css">
+
+    <link type="text/css" href="./LineWatch-M Website fault_current_files/jquery-ui-1.8.16.custom.css" rel="Stylesheet">	
+
+    
+
+    <!-- Import JavaScript -->
+
+    <!--[if lte IE 8]><script language="javascript" type="text/javascript" src="/javascript/flot/excanvas.min.js"></script><![endif]-->
+
+    <script language="javascript" type="text/javascript" src="./LineWatch-M Website fault_current_files/jquery.min.js.download"></script>
+
+    <script language="javascript" type="text/javascript" src="./LineWatch-M Website fault_current_files/jquery-ui-1.8.16.custom.min.js.download"></script>
+
+    <script language="javascript" type="text/javascript" src="./LineWatch-M Website fault_current_files/javascript.js.download"></script>
+
+    <script language="javascript" type="text/javascript" src="./LineWatch-M Website fault_current_files/jquery.flot.js.download"></script>
+
+    <script language="javascript" type="text/javascript" src="./LineWatch-M Website fault_current_files/jquery.flot.selection.js.download"></script>
+
+    <script language="javascript" type="text/javascript" src="./LineWatch-M Website fault_current_files/jquery.flot.downsample.js.download"></script>
+
+    <script language="javascript" type="text/javascript" src="./LineWatch-M Website fault_current_files/plot.js.download"></script>
+
+    <script language="javascript" type="text/javascript" src="./LineWatch-M Website fault_current_files/plotquality.js.download"></script>
+
+    <script language="javascript" type="text/javascript" src="./LineWatch-M Website fault_current_files/plotfault.js.download"></script>
+
+	<script language="javascript" type="text/javascript" src="./LineWatch-M Website fault_current_files/dnp3.js.download"></script>
+
+    
+    <script language="javascript" type="text/javascript" src="./LineWatch-M Website fault_current_files/refresh.js.download"></script>
+
+    
+
+
+    <!-- Dynamic JavaScript -->
+
+    <script language="javascript"> 
+
+        var column_name =
+
+        "current_rms";
+
+        var display_name = 
+
+        "Current";
+
+        var fault_file = 
+
+        0;
+
+        var base_url = "http://192.168.2.1/"; 
+
+        
+
+        var samples_per_cycle = 68;var is_single_phase = false;
+        
+
+        var sensor_type = "Feeder";
+
+    </script>
+
+</head>
+
+
+
+<body>
+
+    <div id="container">
+
+        <div id="header">
+
+            <a id="logo" href="http://192.168.2.1/">
+
+				<img src="./LineWatch-M Website fault_current_files/top_logo.gif" alt="Image of Qinetiq company logo" title="Qinetiq North America" border="0">
+
+			</a>
+
+                <div id="topNav">
+
+                    <ul>
+
+                        <li> <a href="http://192.168.2.1/index.php/main/sensordata">Sensor DataReader</a> </li> |
+
+                        <li> <a href="http://192.168.2.1/index.php/main/powerquality">Power Quality</a> </li> |   
+
+                        <li> <a href="http://192.168.2.1/index.php/fault_viewer">Events</a> </li> |
+
+                        <li> <a href="http://192.168.2.1/index.php/external_comms">Communications</a> </li> |
+
+                        <li> <a href="http://192.168.2.1/index.php/main/configuration">Configuration</a> </li> |
+
+						<li> <a href="http://192.168.2.1/index.php/dnp3">DNP3</a> </li> |
+
+                        <li> <a href="http://192.168.2.1/index.php/download">Download</a> </li>
+
+                    </ul>
+
+                </div>
+
+        </div>		        	
+
+        <div id="homeMain">
+
+            <div id="flash">
+
+                <h1>LineWatch-M™</h1><h2>Medium Voltage Collector Id# 9800060</h2>
+            </div>
+
+            <div id="maindiv">
+
+                <div id="test"></div>
+
+                <table>
+<tbody><tr><td>
+	<table>
+	<tbody><tr><td><h2 class="h2textfield">Start Date: &nbsp;</h2></td><td><input type="text" name="datestart" id="datestart" value="07/01/2019" class="hasDatepicker"></td></tr>
+	<tr><td><h2 class="h2textfield">End Date: </h2></td><td><input type="text" name="dateend" id="dateend" value="07/01/2019" class="hasDatepicker"></td></tr>
+	</tbody></table>
+</td><td>&nbsp;<h2 class="h2textfield"> <input type="submit" id="updatePlot" name="updatePlot" value="Update Plot"> </h2></td>
+<td> <div class="tblank"></div>	<div class="tblank"></div>	
+<select class="tselectMed" name="interval" id="selectData">
+<option value="cdf">Voltage</option>
+<option value="cbc" selected="selected">Current</option>
+<option value="211">Power Factor</option>
+<option value="9b8">Lead / Lag</option>
+<option value="c67">Real Power</option>
+<option value="6a8">Reactive Power</option>
+<option value="6de">Apparent Power</option>
+<option value="193">Volt Hours</option>
+<option value="7e6">Amp Hours Dlvd</option>
+<option value="267">Amp Hours Rcvd</option>
+<option value="2e1">Real Energy Dlvd</option>
+<option value="650">Real Energy Rcvd</option>
+<option value="28b">Reactive Energy Dlvd</option>
+<option value="d16">Reactive Energy Rcvd</option>
+<option value="029">Temperature</option>
+</select></td></tr></tbody></table>
+
+<script type="text/javascript">
+	function post(path, params, method) {
+		method = method || "post"; // Set method to post by default if not specified.
+
+		// The rest of this code assumes you are not using a library.
+		// It can be made less wordy if you use one.
+		var form = document.createElement("form");
+		form.setAttribute("method", method);
+		form.setAttribute("action", path);
+
+		for(var key in params) {
+			if(params.hasOwnProperty(key)) {
+				var hiddenField = document.createElement("input");
+				hiddenField.setAttribute("type", "hidden");
+				hiddenField.setAttribute("name", key);
+				hiddenField.setAttribute("value", params[key]);
+
+				form.appendChild(hiddenField);
+			 }
+		}
+
+		document.body.appendChild(form);
+		form.submit();
+	}
+
+	document.getElementById('selectData').onchange = function(){
+		var e = document.getElementById("selectData");
+		post("/index.php/main/viewdata/" + e.options[e.selectedIndex].value,{datestart:$("#datestart").val(), dateend:$("#dateend").val()});
+	}
+</script>
+
+<div id="dataloadtime" style="width">DataReader Request Complete 0.486 seconds.</div>
+<h1>Current (Arms) </h1>
+<div class="tblank"></div><div class="tblank"></div><div id="legendcontainer"><table style="font-size:smaller;color:#545454"><tbody><tr><td class="legendColorBox"><div style="border:1px solid #ccc;padding:1px"><div style="width:4px;height:0;border:5px solid rgb(203,75,75);overflow:hidden"></div></div></td><td class="legendLabel">Phase 1</td><td class="legendColorBox"><div style="border:1px solid #ccc;padding:1px"><div style="width:4px;height:0;border:5px solid #0033FF;overflow:hidden"></div></div></td><td class="legendLabel">Phase 2</td><td class="legendColorBox"><div style="border:1px solid #ccc;padding:1px"><div style="width:4px;height:0;border:5px solid rgb(77,167,77);overflow:hidden"></div></div></td><td class="legendLabel">Phase 3</td></tr></tbody></table></div>
+<div id="placeholder" style="width: 850px; height: 300px; display: block; padding: 0px; position: relative;"><canvas class="base" width="850" height="300"></canvas><canvas class="overlay" width="850" height="300" style="position: absolute; left: 0px; top: 0px;"></canvas><div class="tickLabels" style="font-size:smaller"><div class="xAxis x1Axis" style="color:#000000"><div class="tickLabel" style="position:absolute;text-align:center;left:67px;top:290px;width:94px">07/01 11:40:00</div><div class="tickLabel" style="position:absolute;text-align:center;left:182px;top:290px;width:94px">07/01 11:45:00</div><div class="tickLabel" style="position:absolute;text-align:center;left:296px;top:290px;width:94px">07/01 11:50:00</div><div class="tickLabel" style="position:absolute;text-align:center;left:410px;top:290px;width:94px">07/01 11:55:00</div><div class="tickLabel" style="position:absolute;text-align:center;left:525px;top:290px;width:94px">07/01 12:00:00</div><div class="tickLabel" style="position:absolute;text-align:center;left:639px;top:290px;width:94px">07/01 12:05:00</div><div class="tickLabel" style="position:absolute;text-align:center;left:753px;top:290px;width:94px">07/01 12:10:00</div></div><div class="yAxis y1Axis" style="color:#000000"><div class="tickLabel" style="position:absolute;text-align:right;top:278px;right:834px;width:16px">55</div><div class="tickLabel" style="position:absolute;text-align:right;top:258px;right:834px;width:16px">60</div><div class="tickLabel" style="position:absolute;text-align:right;top:238px;right:834px;width:16px">65</div><div class="tickLabel" style="position:absolute;text-align:right;top:218px;right:834px;width:16px">70</div><div class="tickLabel" style="position:absolute;text-align:right;top:198px;right:834px;width:16px">75</div><div class="tickLabel" style="position:absolute;text-align:right;top:178px;right:834px;width:16px">80</div><div class="tickLabel" style="position:absolute;text-align:right;top:158px;right:834px;width:16px">85</div><div class="tickLabel" style="position:absolute;text-align:right;top:139px;right:834px;width:16px">90</div><div class="tickLabel" style="position:absolute;text-align:right;top:119px;right:834px;width:16px">95</div><div class="tickLabel" style="position:absolute;text-align:right;top:99px;right:834px;width:16px">100</div><div class="tickLabel" style="position:absolute;text-align:right;top:79px;right:834px;width:16px">105</div><div class="tickLabel" style="position:absolute;text-align:right;top:59px;right:834px;width:16px">110</div><div class="tickLabel" style="position:absolute;text-align:right;top:39px;right:834px;width:16px">115</div><div class="tickLabel" style="position:absolute;text-align:right;top:19px;right:834px;width:16px">120</div><div class="tickLabel" style="position:absolute;text-align:right;top:-1px;right:834px;width:16px">125</div></div></div></div>
+<div id="overview" style="width: 850px; height: 100px; padding: 0px; position: relative;"><canvas class="base" width="850" height="100"></canvas><canvas class="overlay" width="850" height="100" style="position: absolute; left: 0px; top: 0px;"></canvas><div class="tickLabels" style="font-size:smaller"><div class="xAxis x1Axis" style="color:#000000"><div class="tickLabel" style="position:absolute;text-align:center;left:67px;top:90px;width:94px">7/1 11:40</div><div class="tickLabel" style="position:absolute;text-align:center;left:182px;top:90px;width:94px">7/1 11:45</div><div class="tickLabel" style="position:absolute;text-align:center;left:296px;top:90px;width:94px">7/1 11:50</div><div class="tickLabel" style="position:absolute;text-align:center;left:410px;top:90px;width:94px">7/1 11:55</div><div class="tickLabel" style="position:absolute;text-align:center;left:525px;top:90px;width:94px">7/1 12:00</div><div class="tickLabel" style="position:absolute;text-align:center;left:639px;top:90px;width:94px">7/1 12:05</div><div class="tickLabel" style="position:absolute;text-align:center;left:753px;top:90px;width:94px">7/1 12:10</div></div><div class="yAxis y1Axis" style="color:#000000"><div class="tickLabel" style="position:absolute;text-align:right;top:78px;right:834px;width:16px">40</div><div class="tickLabel" style="position:absolute;text-align:right;top:62px;right:834px;width:16px">60</div><div class="tickLabel" style="position:absolute;text-align:right;top:46px;right:834px;width:16px">80</div><div class="tickLabel" style="position:absolute;text-align:right;top:31px;right:834px;width:16px">100</div><div class="tickLabel" style="position:absolute;text-align:right;top:15px;right:834px;width:16px">120</div><div class="tickLabel" style="position:absolute;text-align:right;top:-1px;right:834px;width:16px">140</div></div></div></div>
+            </div>
+
+        </div>
+
+
+
+        <div id="footer">
+
+            <ul>
+
+                <li>Version Release 1009-3.1.0: Factory Defaults
+</li>
+
+                <br>
+
+                <li><a href="http://192.168.2.1/index.php/upgrade">Software Upgrade</a> | <a href="http://192.168.2.1/index.php/upgrade/date_and_time">Date and Time</a> | <a href="http://192.168.2.1/index.php/main/changepassword/user">Change User Password</a> | <a href="http://192.168.2.1/index.php/main/changepassword/admin">Change Admin Password</a>
+                </li>
+
+                <br>
+
+                <li>
+
+                    <a href="http://192.168.2.1/index.php/main/reset">System Reset</a> | <a href="http://192.168.2.1/index.php/main/defaults">Restore Defaults</a> | <a href="http://192.168.2.1/index.php/main/modem_status">Modem Status</a> | <a href="http://192.168.2.1/index.php/log_viewer">Log Files</a>
+                </li>
+
+                <br>
+
+                <li>Copyright © 2012-2019 QinetiQ North America, All Rights Reserved</li>
+
+                <br>
+
+                <li><div id="dataloadtime" style="display:inline"></div></li>
+
+                <br>
+
+            </ul>
+
+        </div>
+
+    </div>
+
+
+
+
+
+
+
+
+
+    
+
+    
+
+<div id="ui-datepicker-div" class="ui-datepicker ui-widget ui-widget-content ui-helper-clearfix ui-corner-all"></div></body></html>

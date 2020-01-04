@@ -1,0 +1,816 @@
+<!DOCTYPE html>
+<!-- saved from url=(0038)http://192.168.2.1/index.php/main/test -->
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+    <title>
+
+	LineWatch-M Website
+    </title>
+
+    
+
+    <!-- Import CSS styles -->
+
+    <link rel="stylesheet" type="text/css" href="./LineWatch-M Website test_files/reset.css">
+
+    <link rel="stylesheet" type="text/css" href="./LineWatch-M Website test_files/styles.css">
+
+    <link rel="stylesheet" type="text/css" href="./LineWatch-M Website test_files/WebResource.css">
+
+    <link type="text/css" href="./LineWatch-M Website test_files/jquery-ui-1.8.16.custom.css" rel="Stylesheet">	
+
+    
+
+    <!-- Import JavaScript -->
+
+    <!--[if lte IE 8]><script language="javascript" type="text/javascript" src="/javascript/flot/excanvas.min.js"></script><![endif]-->
+
+    <script language="javascript" type="text/javascript" src="./LineWatch-M Website test_files/jquery.min.js.download"></script>
+
+    <script language="javascript" type="text/javascript" src="./LineWatch-M Website test_files/jquery-ui-1.8.16.custom.min.js.download"></script>
+
+    <script language="javascript" type="text/javascript" src="./LineWatch-M Website test_files/javascript.js.download"></script>
+
+    <script language="javascript" type="text/javascript" src="./LineWatch-M Website test_files/jquery.flot.js.download"></script>
+
+    <script language="javascript" type="text/javascript" src="./LineWatch-M Website test_files/jquery.flot.selection.js.download"></script>
+
+    <script language="javascript" type="text/javascript" src="./LineWatch-M Website test_files/jquery.flot.downsample.js.download"></script>
+
+    <script language="javascript" type="text/javascript" src="./LineWatch-M Website test_files/plot.js.download"></script>
+
+    <script language="javascript" type="text/javascript" src="./LineWatch-M Website test_files/plotquality.js.download"></script>
+
+    <script language="javascript" type="text/javascript" src="./LineWatch-M Website test_files/plotfault.js.download"></script>
+
+	<script language="javascript" type="text/javascript" src="./LineWatch-M Website test_files/dnp3.js.download"></script>
+
+    
+    <script language="javascript" type="text/javascript" src="./LineWatch-M Website test_files/refresh.js.download"></script>
+
+    
+
+
+    <!-- Dynamic JavaScript -->
+
+    <script language="javascript"> 
+
+        var column_name =
+
+        0;
+
+        var display_name = 
+
+        0;
+
+        var fault_file = 
+
+        0;
+
+        var base_url = "http://192.168.2.1/"; 
+
+        
+
+        var samples_per_cycle = 68;var is_single_phase = false;
+        
+
+        var sensor_type = "Feeder";
+
+    </script>
+
+</head>
+
+
+
+<body>
+
+    <div id="container">
+
+        <div id="header">
+
+            <a id="logo" href="http://192.168.2.1/">
+
+				<img src="./LineWatch-M Website test_files/top_logo.gif" alt="Image of Qinetiq company logo" title="Qinetiq North America" border="0">
+
+			</a>
+
+                <div id="topNav">
+
+                    <ul>
+
+                        <li> <a href="http://192.168.2.1/index.php/main/sensordata">Sensor DataReader</a> </li> |
+
+                        <li> <a href="http://192.168.2.1/index.php/main/powerquality">Power Quality</a> </li> |   
+
+                        <li> <a href="http://192.168.2.1/index.php/fault_viewer">Events</a> </li> |
+
+                        <li> <a href="http://192.168.2.1/index.php/external_comms">Communications</a> </li> |
+
+                        <li> <a href="http://192.168.2.1/index.php/main/configuration">Configuration</a> </li> |
+
+						<li> <a href="http://192.168.2.1/index.php/dnp3">DNP3</a> </li> |
+
+                        <li> <a href="http://192.168.2.1/index.php/download">Download</a> </li>
+
+                    </ul>
+
+                </div>
+
+        </div>		        	
+
+        <div id="homeMain">
+
+            <div id="flash">
+
+                <h1>LineWatch-M™</h1><h2>Medium Voltage Collector Id# 9800060</h2>
+            </div>
+
+            <div id="maindiv">
+
+                <div id="test"></div>
+
+                
+<h1>Update Configuration</h1>
+
+<form action="http://192.168.2.1/index.php/main/test" method="post" accept-charset="utf-8">
+
+
+
+<div class="trow">
+
+    <div class="tblank"></div>
+
+    <div class="tlabelTiny ">Parameter</div>
+
+    <div class="thead &lt;?php echo $odd_tag; ?&gt;">Phase 1</div><div class="thead &lt;?php echo $odd_tag; ?&gt;">Phase 2</div><div class="thead &lt;?php echo $odd_tag; ?&gt;">Phase 3</div>
+</div>
+
+
+
+<!-- Scale Current -->
+
+
+<div class="trow">
+
+    <div class="tblank"></div>
+
+    <div class="tlabelTiny odd">Scale Current</div>
+
+    
+        <div class="tcell odd">
+
+        <input type="number" class="odd" step="0.000000000000001" name="scaleCurrent1A" min="0.01" max="0.05" value="0.02629">
+        </div>
+
+    
+        <div class="tcell odd">
+
+        <input type="number" class="odd" step="0.000000000000001" name="scaleCurrent1B" min="0.01" max="0.05" value="0.02543">
+        </div>
+
+    
+        <div class="tcell odd">
+
+        <input type="number" class="odd" step="0.000000000000001" name="scaleCurrent1C" min="0.01" max="0.05" value="0.02612">
+        </div>
+
+    
+</div>
+
+
+
+<!-- Scale Voltage -->
+
+
+<div class="trow">
+
+    <div class="tblank"></div>
+
+    <div class="tlabelTiny ">Scale Voltage</div>
+
+    
+        <div class="tcell ">
+
+        <input type="number" class="" step="0.000000000000001" name="scaleVoltage1A" min="1.0" max="2.0" value="1.46396">
+        </div>
+
+    
+        <div class="tcell ">
+
+        <input type="number" class="" step="0.000000000000001" name="scaleVoltage1B" min="1.0" max="2.0" value="1.53985">
+        </div>
+
+    
+        <div class="tcell ">
+
+        <input type="number" class="" step="0.000000000000001" name="scaleVoltage1C" min="1.0" max="2.0" value="1.46845">
+        </div>
+
+    
+</div>
+
+
+
+<!-- Scale Raw Temp -->
+
+
+<div class="trow">
+
+    <div class="tblank"></div>
+
+    <div class="tlabelTiny odd">Scale Raw Temp</div>
+
+    
+        <div class="tcell odd">
+
+        <input type="number" class="odd" step="0.000000000000001" name="scaleRawTemp1A" value="0.0029">
+        </div>
+
+    
+        <div class="tcell odd">
+
+        <input type="number" class="odd" step="0.000000000000001" name="scaleRawTemp1B" value="0.0029">
+        </div>
+
+    
+        <div class="tcell odd">
+
+        <input type="number" class="odd" step="0.000000000000001" name="scaleRawTemp1C" value="0.0029">
+        </div>
+
+    
+</div>
+
+
+
+<!-- Offset Raw Temp -->
+
+
+<div class="trow">
+
+    <div class="tblank"></div>
+
+    <div class="tlabelTiny ">Offset Raw Temp</div>
+
+    
+        <div class="tcell ">
+
+        <input type="number" class="" step="0.000000000000001" name="offsetRawTemp1A" value="-65.52">
+        </div>
+
+    
+        <div class="tcell ">
+
+        <input type="number" class="" step="0.000000000000001" name="offsetRawTemp1B" value="-65.52">
+        </div>
+
+    
+        <div class="tcell ">
+
+        <input type="number" class="" step="0.000000000000001" name="offsetRawTemp1C" value="-65.52">
+        </div>
+
+    
+</div>
+
+
+
+<!-- Feeder Meter Specific Options -->
+
+
+
+
+<!-- Correction Angle -->
+
+
+<div class="trow">
+
+    <div class="tblank"></div>
+
+    <div class="tlabelTiny odd">Correction Angle</div>
+
+    
+        <div class="tcell odd">
+
+        <input type="number" class="odd" min="-45.0" max="45.0" step="0.000000000000001" name="correctionAngle1A" value="-0.1">
+        </div>
+
+    
+        <div class="tcell odd">
+
+        <input type="number" class="odd" min="-45.0" max="45.0" step="0.000000000000001" name="correctionAngle1B" value="-0.2">
+        </div>
+
+    
+        <div class="tcell odd">
+
+        <input type="number" class="odd" min="-45.0" max="45.0" step="0.000000000000001" name="correctionAngle1C" value="-0.3">
+        </div>
+
+    
+</div>
+
+
+
+<!-- Correction Voltage Scale -->
+
+
+<div class="trow">
+
+    <div class="tblank"></div>
+
+    <div class="tlabelTiny ">Correction Voltage Scale</div>
+
+    
+        <div class="tcell ">
+
+        <input type="number" class="" min="5.0" max="200.0" step="0.000000000000001" name="correctionVoltageScale1A" value="120">
+        </div>
+
+    
+        <div class="tcell ">
+
+        <input type="number" class="" min="5.0" max="200.0" step="0.000000000000001" name="correctionVoltageScale1B" value="20.05384">
+        </div>
+
+    
+        <div class="tcell ">
+
+        <input type="number" class="" min="5.0" max="200.0" step="0.000000000000001" name="correctionVoltageScale1C" value="19.94633">
+        </div>
+
+    
+</div>
+
+
+
+<!-- 10k Fault Scale -->
+
+
+<div class="trow">
+
+    <div class="tblank"></div>
+
+    <div class="tlabelTiny odd">10K Fault Scale</div>
+
+    
+    <div class="tcell odd">
+
+    <input type="number" class="odd" min="0.5" max="0.8" step="0.000000000000001" name="fault10kAScale1A" value="0.65019">
+    </div>
+
+    
+    <div class="tcell odd">
+
+    <input type="number" class="odd" min="0.5" max="0.8" step="0.000000000000001" name="fault10kAScale1B" value="0.65019">
+    </div>
+
+    
+    <div class="tcell odd">
+
+    <input type="number" class="odd" min="0.5" max="0.8" step="0.000000000000001" name="fault10kAScale1C" value="0.65019">
+    </div>
+
+    
+</div>
+
+
+
+<!-- 25k Fault Scale -->
+
+
+<div class="trow">
+
+    <div class="tblank"></div>
+
+    <div class="tlabelTiny ">25K Fault Scale</div>
+
+    
+        <div class="tcell ">
+
+        <input type="number" class="" min="2.0" max="3.0" step="0.000000000000001" name="fault25kAScale1A" value="2.6">
+        </div>
+
+    
+        <div class="tcell ">
+
+        <input type="number" class="" min="2.0" max="3.0" step="0.000000000000001" name="fault25kAScale1B" value="2.6">
+        </div>
+
+    
+        <div class="tcell ">
+
+        <input type="number" class="" min="2.0" max="3.0" step="0.000000000000001" name="fault25kAScale1C" value="2.6">
+        </div>
+
+    
+</div>
+
+
+
+<br><br>
+
+
+
+
+<div class="trow">
+
+    <div class="tblank"></div>
+
+    <div class="tlabelTiny ">Parameter</div>
+
+    <div class="thead &lt;?php echo $odd_tag; ?&gt;">Phase 1</div><div class="thead &lt;?php echo $odd_tag; ?&gt;">Phase 2</div><div class="thead &lt;?php echo $odd_tag; ?&gt;">Phase 3</div>
+</div>
+
+
+
+<!-- High Current RMS -->
+
+
+<div class="trow">
+
+    <div class="tblank"></div>
+
+    <div class="tlabelTiny odd">High Current RMS<img src="./LineWatch-M Website test_files/refresh.png" id="refresh" onclick="updateConfig();" height="12" width="12" title="Refresh Values."></div>
+
+    
+
+    
+            <div id="lastA_current" class="tcell bold odd">
+
+            60.0082
+    </div>
+
+    
+    
+
+        
+            <div id="lastB_current" class="tcell bold odd">
+
+            5.31694
+    </div>
+
+    
+    
+
+        
+            <div id="lastC_current" class="tcell bold odd">
+
+            0.648562
+    </div>
+
+    
+    
+
+    
+      
+
+    </div>
+
+
+
+<!-- High Current RMS Min -->
+
+
+<div class="trow">
+
+    <div class="tblank"></div>
+
+    <div class="tlabelTiny ">High Current RMS Min.</div>
+
+    
+        <div class="tcell ">
+
+        <input type="number" class="" min="5" max="20" step="1.0" name="highCurrentRMSmin1A" value="8">
+        </div>
+
+    
+        <div class="tcell ">
+
+        <input type="number" class="" min="5" max="20" step="1.0" name="highCurrentRMSmin1B" value="9">
+        </div>
+
+    
+        <div class="tcell ">
+
+        <input type="number" class="" min="5" max="20" step="1.0" name="highCurrentRMSmin1C" value="8">
+        </div>
+
+    
+</div>
+
+
+
+<!-- VCC -->
+
+
+<div class="trow">
+
+    <div class="tblank"></div>
+
+    <div class="tlabelTiny odd">VCC<img src="./LineWatch-M Website test_files/refresh.png" id="refresh" onclick="updateConfig ();" height="12" width="12" title="Refresh Values."></div>
+
+    
+
+    
+            <div id="lastA_VCC" class="tcell bold odd">
+
+            49639
+    </div>
+
+    
+    
+
+        
+            <div id="lastB_VCC" class="tcell bold odd">
+
+            38767
+    </div>
+
+    
+    
+
+        
+            <div id="lastC_VCC" class="tcell bold odd">
+
+            42086
+    </div>
+
+    
+    
+
+    
+      
+
+    </div>
+
+
+
+<!-- VCC Min -->
+
+
+<div class="trow">
+
+    <div class="tblank"></div>
+
+    <div class="tlabelTiny ">VCC Min.</div>
+
+    
+        <div class="tcell ">
+
+        <input type="number" class="" min="0" max="65535" name="VCCmin1A" value="47000">
+        </div>
+
+    
+        <div class="tcell ">
+
+        <input type="number" class="" min="0" max="65535" name="VCCmin1B" value="47000">
+        </div>
+
+    
+        <div class="tcell ">
+
+        <input type="number" class="" min="0" max="65535" name="VCCmin1C" value="47000">
+        </div>
+
+    
+</div>
+
+
+
+<!-- VCAP -->
+
+
+<div class="trow">
+
+    <div class="tblank"></div>
+
+    <div class="tlabelTiny odd">VCAP<img src="./LineWatch-M Website test_files/refresh.png" id="refresh" onclick="updateConfig ();" height="12" width="12" title="Refresh Values."></div>
+
+    
+
+    
+            <div id="lastA_VCAP" class="tcell bold odd">
+
+            46369
+    </div>
+
+    
+    
+
+        
+            <div id="lastB_VCAP" class="tcell bold odd">
+
+            39359
+    </div>
+
+    
+    
+
+        
+            <div id="lastC_VCAP" class="tcell bold odd">
+
+            39802
+    </div>
+
+    
+    
+
+    
+      
+
+    </div>
+
+
+
+<!-- VCAP Min -->
+
+
+<div class="trow">
+
+    <div class="tblank"></div>
+
+    <div class="tlabelTiny ">VCAP Min.</div>
+
+    
+        <div class="tcell ">
+
+        <input type="number" class="" min="0" max="65535" name="VCAPmin1A" value="48000">
+        </div>
+
+    
+        <div class="tcell ">
+
+        <input type="number" class="" min="0" max="65535" name="VCAPmin1B" value="48000">
+        </div>
+
+    
+        <div class="tcell ">
+
+        <input type="number" class="" min="0" max="65535" name="VCAPmin1C" value="48000">
+        </div>
+
+    
+</div>
+
+
+
+<br><br>
+
+ 
+
+<!-- Enable Voltage Ride Through -->
+
+
+<div class="trow">
+
+    <div class="tblank"></div>
+
+    <div class="tlabel odd" style="width: 272px; "> Enable Voltage Ride
+
+        Through</div>
+
+    
+
+    
+            <div class="tcell odd">
+
+        <input type="checkbox" class="odd" name="voltageRideThroughEnable">
+
+    </div>
+
+    
+    
+
+</div>
+
+<!-- Voltage Ride Through Threshold -->
+
+
+<div class="trow">
+
+    <div class="tblank"></div>
+
+    <div class="tlabel " style="width: 272px; "> Voltage Ride Through
+
+        Threshold</div>
+
+    
+
+    
+            <div class="tcell ">
+
+        <input type="number" min=".01" max="1.0" step="0.000000000000001" class="" name="voltageRideThroughThreshold" value="0.02">
+
+    </div>
+
+    
+    
+
+</div>
+
+
+
+
+
+
+
+<br>
+
+
+
+<h1> Clear Database </h1>
+
+<div class="trow">
+
+    <div class="tblank"></div>
+
+    <div class="thead">Clear?</div>
+
+</div>
+
+<div class="trow">
+
+    <div class="tblank"></div>
+
+    <div class="tcell">
+
+        <input type="checkbox" name="cleardatabase">
+
+    </div>
+
+</div>
+
+
+
+<br><br>
+
+
+
+<div id="password">
+
+    <div class="save">
+
+        Admin Password: <input type="password" name="password"><br><br>
+
+        <input type="submit" value="Submit">
+
+    </div>
+
+</div>
+
+
+            </form></div>
+
+        </div>
+
+
+
+        <div id="footer">
+
+            <ul>
+
+                <li>Version Release 1009-3.1.0: Factory Defaults
+</li>
+
+                <br>
+
+                <li><a href="http://192.168.2.1/index.php/upgrade">Software Upgrade</a> | <a href="http://192.168.2.1/index.php/upgrade/date_and_time">Date and Time</a> | <a href="http://192.168.2.1/index.php/main/changepassword/user">Change User Password</a> | <a href="http://192.168.2.1/index.php/main/changepassword/admin">Change Admin Password</a>
+                </li>
+
+                <br>
+
+                <li>
+
+                    <a href="http://192.168.2.1/index.php/main/reset">System Reset</a> | <a href="http://192.168.2.1/index.php/main/defaults">Restore Defaults</a> | <a href="http://192.168.2.1/index.php/main/modem_status">Modem Status</a> | <a href="http://192.168.2.1/index.php/log_viewer">Log Files</a>
+                </li>
+
+                <br>
+
+                <li>Copyright © 2012-2019 QinetiQ North America, All Rights Reserved</li>
+
+                <br>
+
+                <li><div id="dataloadtime" style="display:inline"></div></li>
+
+                <br>
+
+            </ul>
+
+        </div>
+
+    </div>
+
+
+
+
+
+
+
+
+
+    
+
+    
+
+</body></html>

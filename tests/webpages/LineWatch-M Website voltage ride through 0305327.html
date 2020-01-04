@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<!-- saved from url=(0045)http://192.168.2.1/index.php/snow_ctrl/config -->
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+    <title>
+
+	LineWatch-M Website
+    </title>
+
+    
+
+    <!-- Import CSS styles -->
+
+    <link rel="stylesheet" type="text/css" href="./LineWatch-M Website voltage ride through 0305327_files/reset.css">
+
+    <link rel="stylesheet" type="text/css" href="./LineWatch-M Website voltage ride through 0305327_files/styles.css">
+
+    <link rel="stylesheet" type="text/css" href="./LineWatch-M Website voltage ride through 0305327_files/WebResource.css">
+
+    <link type="text/css" href="./LineWatch-M Website voltage ride through 0305327_files/jquery-ui-1.8.16.custom.css" rel="Stylesheet">	
+
+    
+
+    <!-- Import JavaScript -->
+
+    <!--[if lte IE 8]><script language="javascript" type="text/javascript" src="/javascript/flot/excanvas.min.js"></script><![endif]-->
+
+    <script language="javascript" type="text/javascript" src="./LineWatch-M Website voltage ride through 0305327_files/jquery.min.js.download"></script>
+
+    <script language="javascript" type="text/javascript" src="./LineWatch-M Website voltage ride through 0305327_files/jquery-ui-1.8.16.custom.min.js.download"></script>
+
+    <script language="javascript" type="text/javascript" src="./LineWatch-M Website voltage ride through 0305327_files/javascript.js.download"></script>
+
+    <script language="javascript" type="text/javascript" src="./LineWatch-M Website voltage ride through 0305327_files/jquery.flot.js.download"></script>
+
+    <script language="javascript" type="text/javascript" src="./LineWatch-M Website voltage ride through 0305327_files/jquery.flot.selection.js.download"></script>
+
+    <script language="javascript" type="text/javascript" src="./LineWatch-M Website voltage ride through 0305327_files/jquery.flot.downsample.js.download"></script>
+
+    <script language="javascript" type="text/javascript" src="./LineWatch-M Website voltage ride through 0305327_files/plot.js.download"></script>
+
+    <script language="javascript" type="text/javascript" src="./LineWatch-M Website voltage ride through 0305327_files/plotquality.js.download"></script>
+
+    <script language="javascript" type="text/javascript" src="./LineWatch-M Website voltage ride through 0305327_files/plotfault.js.download"></script>
+
+	<script language="javascript" type="text/javascript" src="./LineWatch-M Website voltage ride through 0305327_files/dnp3.js.download"></script>
+
+    
+    <script language="javascript" type="text/javascript" src="./LineWatch-M Website voltage ride through 0305327_files/refresh.js.download"></script>
+
+    
+
+
+    <!-- Dynamic JavaScript -->
+
+    <script language="javascript"> 
+
+        var column_name =
+
+        0;
+
+        var display_name = 
+
+        0;
+
+        var fault_file = 
+
+        0;
+
+        var base_url = "http://127.0.0.1/"; 
+
+        
+
+        var samples_per_cycle = 68;var is_single_phase = false;
+        
+
+        var sensor_type = "Feeder";
+
+    </script>
+
+</head>
+
+
+
+<body>
+
+    <div id="container">
+
+        <div id="header">
+
+            <a id="logo" href="http://192.168.2.1/">
+
+				<img src="./LineWatch-M Website voltage ride through 0305327_files/top_logo.gif" alt="Image of Qinetiq company logo" title="Qinetiq North America" border="0">
+
+			</a>
+
+                <div id="topNav">
+
+                    <ul>
+
+                        <li> <a href="http://192.168.2.1/index.php/main/sensordata">Sensor DataReader</a> </li> |
+
+                        <li> <a href="http://192.168.2.1/index.php/main/powerquality">Power Quality</a> </li> |   
+
+                        <li> <a href="http://192.168.2.1/index.php/fault_viewer">Events</a> </li> |
+
+                        <li> <a href="http://192.168.2.1/index.php/external_comms">Communications</a> </li> |
+
+                        <li> <a href="http://192.168.2.1/index.php/main/configuration">Configuration</a> </li> |
+
+						<li> <a href="http://192.168.2.1/index.php/dnp3">DNP3</a> </li> |
+
+                        <li> <a href="http://192.168.2.1/index.php/download">Download</a> </li>
+
+                    </ul>
+
+                </div>
+
+        </div>		        	
+
+        <div id="homeMain">
+
+            <div id="flash">
+
+                <h1>LineWatch-M™</h1><h2>Medium Voltage Collector Id# 9800060</h2>
+            </div>
+
+            <div id="maindiv">
+
+                <div id="test"></div>
+
+                <h1>Voltage Ride Through</h1>
+<h2>Configuration Settings</h2>
+
+<p>
+This page contains all of the user editable parameters associated with the Voltage Ride Through capability of this collector.
+</p>
+
+<h3>Voltage Ride Through Parameters</h3>
+<form action="http://127.0.0.1/index.php/snow_ctrl/config" method="post" accept-charset="utf-8" enctype="multipart/form-data">
+<div>
+	<div class="trow">
+		<div class="tlabel">Parameter</div>
+		<div class="tcell">Value</div>
+
+	</div>
+	<div class="trow">
+		<div class="tlabel">Filter Gain Time Constant (Tau)</div>
+		<div class="tcell"><input type="number" name="GainTimeConstant" value="0.159"></div>
+	</div>
+	<div class="trow">
+		<div class="tlabel">Filter Gain Tolerance (EPS)</div>
+		<div class="tcell"><input type="number" name="GainTolerance" value="0.01"></div>
+	</div>
+	<div class="trow">
+		<div class="tlabel">VRT Turn ON Value</div>
+		<div class="tcell">
+            <input type="number" min=".01" max="1.0" step="0.000000000000001" name="TurnOn" value="0.02">
+        </div>
+	</div>
+	<div class="trow">
+		<div class="tlabel">VRT Turn OFF Value</div>
+		<div class="tcell">
+        	<input type="number" min=".005" max="1.0" step="0.000000000000001" name="TurnOff" value="0.015">
+        </div>
+	</div>
+	<div class="trow">
+		<div class="tlabel">Collector Calibration Factor</div>
+		<div class="tcell"><input type="number" name="CollectorCalibration" value="0.0305327"></div>
+	</div>
+
+</div>
+<br><br>
+
+<h4>Admin Password</h4><h4>
+<input type="password" name="password">
+<br><br>
+
+<input type="submit" value="Save Configuration">
+
+
+
+            </h4></form></div>
+
+        </div>
+
+
+
+        <div id="footer">
+
+            <ul>
+
+                <li>Version Release 1009-3.1.0: Factory Defaults
+</li>
+
+                <br>
+
+                <li><a href="http://192.168.2.1/index.php/upgrade">Software Upgrade</a> | <a href="http://192.168.2.1/index.php/upgrade/date_and_time">Date and Time</a> | <a href="http://192.168.2.1/index.php/main/changepassword/user">Change User Password</a> | <a href="http://192.168.2.1/index.php/main/changepassword/admin">Change Admin Password</a>
+                </li>
+
+                <br>
+
+                <li>
+
+                    <a href="http://192.168.2.1/index.php/main/reset">System Reset</a> | <a href="http://192.168.2.1/index.php/main/defaults">Restore Defaults</a> | <a href="http://192.168.2.1/index.php/main/modem_status">Modem Status</a> | <a href="http://192.168.2.1/index.php/log_viewer">Log Files</a>
+                </li>
+
+                <br>
+
+                <li>Copyright © 2012-2019 QinetiQ North America, All Rights Reserved</li>
+
+                <br>
+
+                <li><div id="dataloadtime" style="display:inline"></div></li>
+
+                <br>
+
+            </ul>
+
+        </div>
+
+    </div>
+
+
+
+
+
+
+
+
+
+    
+
+    
+
+</body></html>

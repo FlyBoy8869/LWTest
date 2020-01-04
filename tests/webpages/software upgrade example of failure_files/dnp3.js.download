@@ -1,0 +1,196 @@
+$(document).ready(function() {
+	/**
+     * Track changes to DNP3 form
+     */
+	function initDnp3Values() {
+		$('#dnp3Points *').filter(':input').each(function(){
+			// restore checked boxes in case of invalid password
+			if ($('.error').text().length) {
+				if (this.name in dnp3PointsModified) {
+					if (this.type == "checkbox") {
+						this.checked = dnp3PointsModified[this.name];
+						$("[name="+this.name+"_label]").css("background-color", "yellow");
+					} else if (this.type == "text") {
+						$(this).val(dnp3PointsModified[this.name]);
+						validateValueInput(this);
+					}
+				}
+			} else {
+				dnp3PointsModified = {};
+				if (this.type == "checkbox") {
+					dnp3PointsOnLoad[this.name] = this.checked;
+				} else if (this.type == "text") {
+					dnp3PointsOnLoad[this.name] = $(this).val();
+				}
+			}
+		});
+		initColorChangeEvent();
+		$('.loader').hide();
+	}
+
+	/**
+	 * Modify color of dnp3 box when modification has been made from startup value
+	 */
+	 function initColorChangeEvent() {
+		$("#dnp3Points").on("change", ":input", function() {
+			if ((this.type == "checkbox") || (this.type == "text")) {
+				if (this.type == "checkbox") {
+					if (this.className == 'sa') {
+						$("input."+this.name+":checkbox").prop("checked", this.checked);
+						$("input."+this.name+":checkbox").trigger("change");
+					} else {
+						if (this.checked != dnp3PointsOnLoad[this.name]) {
+							$("[name="+this.name+"_label]").css("background-color", "yellow");
+							dnp3PointsModified[this.name] = this.checked;  // save in case page password is invalid
+						} else {
+							$("[name="+this.name+"_label]").css("background-color", "");
+							delete dnp3PointsModified[this.name];
+						}
+					}
+				} else if (this.type == "text") {
+					newValue = $(this).val();
+					if (newValue != dnp3PointsOnLoad[this.name]) {
+						this.setAttribute('valid', "true");
+						validateValueInput(this);
+						dnp3PointsModified[this.name] = newValue;  // save in case page password is invalid
+					} else {
+						$("[name="+this.name+"]").css("background-color", "");
+						delete dnp3PointsModified[this.name];
+					}
+				}
+				$('#savednp3').text("Save Changes");
+			}
+		});
+	 }
+
+	/*
+	* Validate the inputs of a textbox based 
+	*/
+	function validateValueInput(inputObj) {
+		// parameter valiation
+		bgcolor = "yellow";
+		switch (inputObj.getAttribute('format')) {
+			case "BINARY":
+				if (!((newValue == "0") || (newValue == "1"))) { 
+					bgcolor = "Red";
+					inputObj.setAttribute('valid', "false");
+				}
+				break;
+			case "16INT":
+				newValueInt = parseInt(newValue);
+				if (!((newValueInt > 0) && (newValueInt < 65536))) { 
+					bgcolor = "Red";
+					inputObj.setAttribute('valid', "false");
+				}
+				break;
+			case "32INT":
+				// All SEL points are deprecated so this probably is as well
+				break;
+			case "SPFLOAT":
+				newValueFloat = parseFloat(newValue);
+				//min 1.401 × 10^-45, max 2^128
+				if ((newValueFloat < 1.401 * Math.pow(10, -45)) || (newValueFloat > Math.pow(2, 128))) { 
+					bgcolor = "Red";
+					inputObj.setAttribute('valid', "false");
+				}
+				break;							case 'SAMPLE_INTERVAL':								//Added as its own format per QNA-953								newValueInt = parseInt(newValue);				if (!((newValueInt >= 5) && (60 % newValueInt == 0))) { 					bgcolor = "Red";					inputObj.setAttribute('valid', "false");				}				break;
+		}
+		
+		$("[name="+inputObj.name+"]").css("background-color", bgcolor);
+	}
+	
+	var dnp3PointsOnLoad = {};
+	var dnp3PointsModified = {};
+	initDnp3Values();
+	initColorChangeEvent();
+	
+	/**
+     * event when save changes button is hit. format and post
+     */
+	$("body").delegate("#savednp3", "click", function(event) {
+        // prevent page refresh
+        event.preventDefault();
+	
+		// create object of form elements to be included in post
+		// format as needed
+		var postVarObjPoints = {};
+		var postVarObjValues = {};
+		var elem = document.getElementById('dnp3Points').elements;
+		var paramValidationPassed = true;
+		for(var i = 0; i < elem.length; i++)
+		{
+			if ((elem[i].type == "checkbox") && (elem[i].className != 'sa')) { //checkboxes need special format. 0=unchecked,1=checked
+				if (elem[i].checked != dnp3PointsOnLoad[elem[i].name]) { // only POST that which was changed
+					if (elem[i].checked == true) { postVarObjPoints[elem[i].name] = 1; } 
+					else { postVarObjPoints[elem[i].name] = 0; }
+				}
+			} else if (elem[i].type == "text") {
+				if (elem[i].value != dnp3PointsOnLoad[elem[i].name]) { 
+					if (elem[i].getAttribute('valid') == "false") { paramValidationPassed = false; }
+					postVarObjValues[elem[i].name] = elem[i].value; 
+				} 
+			}
+		}
+		
+		if (paramValidationPassed) {
+			//$(".error").hide();
+			if ($('#savednp3').text() == "Save Changes") {
+				alert("PLEASE CONFIRM CHANGES TO CONTINUE. \nMODIFIED VALUES ARE HIGHLIGHTED YELLOW.");
+				$('#savednp3').text("Confirm Changes");
+			} else {
+				$.post(this.href, 
+						{"points" : postVarObjPoints, 
+						"password" : $("[name='password']").val(),
+						"reset" : $("[name='restoreDefaultCheckbox']").is(':checked'),	
+						"sensor" : $('#ddll').find('option:selected').attr("value"),
+						"subcat" : $('#ddl2').find('option:selected').attr("value"),
+						"values" : postVarObjValues, },
+						function(xml) {
+							$("#dnp3page").html(getXmlTag("data", xml));
+							initDnp3Values();
+						});
+			}
+		} else {
+			alert("ERROR: Invalid Input. Red Values Must Be Changed To Valid Values.");
+			//$("#errorp").html('Invalid Input.');
+			//$(".error").show();
+		}
+	});
+	
+	/**
+     * event to get new table based on change of select box
+     */
+    $(document).on('change', '.selectBoxGroup', function() {
+		$('.loader').show();
+		$.post('dnp3/getAndDisplayTable', 
+		{"sensor" : $('#ddll').find('option:selected').attr("value"),
+		 "subcat" : $('#ddl2').find('option:selected').attr("value")},
+		function(xml) {
+			dnp3PointsOnLoad = {};
+			dnp3PointsModified = {};
+			$("#dnp3page").html(getXmlTag("data", xml));
+			initDnp3Values();
+
+			//modify url 
+			sensor = $('#ddll').find('option:selected').attr("value");
+			subcat = $('#ddl2').find('option:selected').attr("value");
+			var stateParams = { "sensor" : sensor, "subcat" : subcat }
+			var title = $(document).find("title").text();
+			window.history.pushState(stateParams, title, "/index.php/dnp3?sensor="+sensor+"&subcat="+subcat);
+			
+			// show or hide elements based on current box selection
+			if (sensor == 0) {
+				$('#ddl2').hide();
+				$('#restoreDefaults').show();
+			} else {
+				$('#ddl2').show();
+			}
+		});
+    });
+	
+	// we are modifying URL for select boxes so when forward/back button is hit we need to reload
+	// here to have normal interaction
+	window.onpopstate = function(event) {
+		location.reload();
+	};
+}); // end document ready

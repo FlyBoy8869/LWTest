@@ -1,0 +1,46 @@
+function refreshPage() {
+    var page_y = document.getElementsByTagName("body")[0].scrollTop;
+    window.location.href = window.location.href.split('?')[0] + '?page_y=' + page_y;
+}
+window.onload = function() {
+    if (window.location.href.indexOf('page_y') != -1) {
+        var match = window.location.href.split('?')[1].split("&")[0].split("=");
+        document.getElementsByTagName("body")[0].scrollTop = match[1];
+    }
+}
+
+/**
+ * Handle sensor data report data fetch
+ */
+function updateConfig() {
+    if (sensor_type == 'Feeder') {
+        $.post(base_url + "index.php/main/test", {}, function(xml) {
+
+            $("#lastA_current").html(getXmlTag("lastA_current", xml));
+            $("#lastA_VCC").html(getXmlTag("lastA_VCC", xml));
+            $("#lastA_VCAP").html(getXmlTag("lastA_VCAP", xml));
+
+            $("#lastB_current").html(getXmlTag("lastB_current", xml));
+            $("#lastB_VCC").html(getXmlTag("lastB_VCC", xml));
+            $("#lastB_VCAP").html(getXmlTag("lastB_VCAP", xml));
+
+            $("#lastC_current").html(getXmlTag("lastC_current", xml));
+            $("#lastC_VCC").html(getXmlTag("lastC_VCC", xml));
+            $("#lastC_VCAP").html(getXmlTag("lastC_VCAP", xml));
+
+            $("#lastD_current").html(getXmlTag("lastD_current", xml));
+            $("#lastD_VCC").html(getXmlTag("lastD_VCC", xml));
+            $("#lastD_VCAP").html(getXmlTag("lastD_VCAP", xml));
+
+            $("#lastE_current").html(getXmlTag("lastE_current", xml));
+            $("#lastE_VCC").html(getXmlTag("lastE_VCC", xml));
+            $("#lastE_VCAP").html(getXmlTag("lastE_VCAP", xml));
+
+            $("#lastF_current").html(getXmlTag("lastF_current", xml));
+            $("#lastF_VCC").html(getXmlTag("lastF_VCC", xml));
+            $("#lastF_VCAP").html(getXmlTag("lastF_VCAP", xml));
+        });
+    }
+
+
+} // end updateConfig

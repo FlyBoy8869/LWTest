@@ -3,7 +3,7 @@ from PyQt5.QtCore import QRunnable, QSettings
 from LWTest.config.dom.constants import serial_number_elements, configuration_frequency, voltage_ride_through, \
     configuration_password, configuration_save_changes
 from LWTest.signals import WorkerSignals
-from LWTest.utilities import utilities
+from LWTest.utilities import misc
 
 
 class SerialConfigWorker(QRunnable):
@@ -11,7 +11,7 @@ class SerialConfigWorker(QRunnable):
         super().__init__()
         self.settings = QSettings
 
-        self.serial_numbers = serial_numbers
+        self.serial_numbers = misc.ensure_six_numbers(serial_numbers)
         self.password = password
         self.browser = browser
         self.url = url
@@ -20,9 +20,9 @@ class SerialConfigWorker(QRunnable):
     def run(self):
         self.browser.get(self.url)
 
-        if utilities.page_failed_to_load(self.browser, '//*[@id="maindiv"]/form/div[1]/h1[1]'):
+        if misc.page_failed_to_load(self.browser, '//*[@id="maindiv"]/form/div[1]/h1[1]'):
             self.signals.serial_config_page_failed_to_load.emit(self.url, self.serial_numbers)
-            utilities.load_start_page(self.browser)
+            misc.load_start_page(self.browser)
             return
 
         for index, element in enumerate(serial_number_elements):

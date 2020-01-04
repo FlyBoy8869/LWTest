@@ -115,7 +115,7 @@ vrt_calibration_factor = '//*[@id="maindiv"]/form/div/div[6]/div[2]/input'
 vrt_admin_password_field = '//*[@id="maindiv"]/form/h4[2]/input[1]'
 vrt_save_configuration_button = '//*[@id="maindiv"]/form/h4[2]/input[2]'
 
-# Sensor Data elements
+# Sensor DataReader elements
 phase_voltage = ('//*[@id="data"]/div[3]/div[3]',
                  '//*[@id="data"]/div[3]/div[4]',
                  '//*[@id="data"]/div[3]/div[5]',

@@ -8,13 +8,12 @@ from PyQt5.QtCore import QRunnable
 
 from LWTest.signals import WorkerSignals
 
-
 # ------------------------
 # ----- For Testing -----
-_TESTING = True
+_TESTING = False
 
 doc = ""
-file_name = r"C:\Users\charles\Downloads\LineWatch\webpages\software upgrade example of unit following a failure.html"
+file_name = r"tests/webpages/software upgrade example of unit following a failure.html"
 
 
 def build_document():
@@ -37,9 +36,10 @@ class Page:
 
 
 class UpgradeWorker(QRunnable):
-    def __init__(self, serial_number, url, ignore_failures=False):
+    def __init__(self, serial_number: str, activity_loc: tuple, url: str, ignore_failures: bool = False):
         super().__init__()
         self.serial_number = serial_number
+        self.activity_loc = activity_loc
         self.url = url
         self.ignore_failures = ignore_failures
         self.signals = WorkerSignals()
@@ -50,6 +50,8 @@ class UpgradeWorker(QRunnable):
         self.time_to_sleep = 1
 
     def run(self):
+        sleep(5.0)
+
         # ----- For Testing -----
         global genny
         page = Page()
@@ -62,6 +64,8 @@ class UpgradeWorker(QRunnable):
                 # ----- End Test Section -----
                 else:
                     page = requests.get(self.url, timeout=5)
+                    html = [line for line in page.text.split("\n")]
+                    html.reverse()
                     print("retrieved page")
             except requests.exceptions.ConnectTimeout:
                 print(traceback.format_exc())
@@ -83,20 +87,20 @@ class UpgradeWorker(QRunnable):
                 return
 
             if page.status_code == 200:
-                self.signals.upgrade_show_activity.emit(self.serial_number)
+                self.signals.upgrade_show_activity.emit(self.activity_loc[0])
 
-                for line in dropwhile(lambda l: self.serial_number not in l, page.text.split('\n')):
+                for line in html:
 
-                    self.line_count += 1
+                    # Only evaluate the current upgrade session
+                    # ignore anything else in the file
+                    if self.serial_number in line:
+                        break
 
                     if "Failed to enter program mode" in line:
-                        if self.ignore_failures:
-                            continue
-                        else:
-                            self.signals.upgrade_failed_to_enter_program_mode.emit(self.serial_number)
-                            print("Failed to enter program mode.")
-                            next(genny)
-                            return
+                        self.signals.upgrade_failed_to_enter_program_mode.emit(self.activity_loc[0])
+                        print("Failed to enter program mode.")
+                        next(genny)
+                        return
 
                     if "Program Checksum is 0x3d07" in line:
                         self.signals.upgrade_successful.emit(self.serial_number)
@@ -104,7 +108,7 @@ class UpgradeWorker(QRunnable):
                         print("Sensor firmware successfully upgraded.")
                         return
 
-                print(f"self.line_count = {self.line_count}")
-
                 if _TESTING:
                     next(genny)
+
+            sleep(1)

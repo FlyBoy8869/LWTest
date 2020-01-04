@@ -9,4 +9,4 @@ def menu_file_save_handler():
 
 def menu_file_upgrade_handler(serial_number: str):
     settings = QSettings()
-    upgrade_worker = UpgradeWorker(serial_number, settings.value("pages/software_upgrade"))
+    upgrade_worker = UpgradeWorker(serial_number, settings.value("pages/software_upgrade"), )

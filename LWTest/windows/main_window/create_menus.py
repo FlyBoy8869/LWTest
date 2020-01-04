@@ -60,6 +60,7 @@ class MenuHelper:
         self.action_calibrate = QAction(QIcon("LWTest/resources/images/calibrate.png"), "Calibrate Sensor", window)
 
         self.action_check_persistence = QAction("Check\npersistence", window)
+        self.action_check_persistence.setEnabled(False)
 
         # add actions to menu
         self.menu_file.addAction(self.action_save)

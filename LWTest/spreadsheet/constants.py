@@ -6,8 +6,13 @@ from collections import namedtuple
 # usage:
 # from LWTest.spreadsheet import constants as sc
 # phase = sc.PhaseReadings(*sc.phase_1)
-PhaseReadings = namedtuple('PhaseReadings', "h_volts h_current h_factor h_power l_volts l_current l_factor l_power " +
-                           "s_current s_volts angle persists soft_version reporting_data rssi temp f_current")
+#
+# Note: do not change the order of arguments
+# or else readings will end up in the wrong place
+PhaseReadings = namedtuple('PhaseReadings', "high_voltage high_current high_power_factor high_real_power " +
+                           "low_voltage low_current low_power_factor low_real_power " +
+                           "scale_current scale_voltage correction_angle persists " +
+                           "firmware_version reporting_data rssi temperature fault_current")
 
 high_reference = ('D22', 'D23', 'D24', 'D25')
 

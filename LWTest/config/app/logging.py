@@ -20,12 +20,12 @@ def initialize():
     console_handler = logging.StreamHandler()  # defaults to sys.stderr
     console_handler.addFilter(lambda r: False if "selenium" in r.name else True)
     console_handler.addFilter(lambda r: False if "urllib3" in r.name else True)
-    console_handler.addFilter(lambda r: False if "test log" in r.name else True)
+    console_handler.addFilter(lambda r: False if "test _log" in r.name else True)
 
     file_handler = logging.FileHandler('app.log', mode='w')
     file_handler.addFilter(lambda r: False if "selenium" in r.name else True)
     file_handler.addFilter(lambda r: False if "urllib3" in r.name else True)
-    file_handler.addFilter(lambda r: False if "test log" in r.name else True)
+    file_handler.addFilter(lambda r: False if "test _log" in r.name else True)
 
     logging.basicConfig(level=_get_logging_level_constant(settings.value("main/debug_level")),
                         format="%(asctime)s : " +

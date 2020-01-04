@@ -6,7 +6,7 @@ import requests
 from PyQt5.QtCore import QRunnable
 
 from LWTest.signals import WorkerSignals
-from LWTest.utilities.utilities import indicator
+from LWTest.utilities.misc import indicator
 
 
 class LinkWorker(QRunnable):
@@ -16,9 +16,9 @@ class LinkWorker(QRunnable):
         self.url = url
         self.signals = WorkerSignals()
 
-        self.time_to_sleep = 2
+        self.time_to_sleep = 1
         self.elapsed_time = 0
-        self.timeout = 20
+        self.timeout = 30
 
         self.link_indicator = indicator()
 
@@ -57,15 +57,12 @@ class LinkWorker(QRunnable):
                     for line in page.text.split("\n"):
                         if line.strip() and line.strip()[0].isdigit():
                             for serial_number in serial_numbers:
-                                if serial_number != "0" and serial_number in line.strip():
+                                if serial_number in line.strip():
                                     data = [datum.strip() for datum in line.split(" ") if datum]
                                     if len(data) > 3:
-                                        self.signals.successful_link.emit((data[0], data[3]))
+                                        self.signals.successful_link.emit((data[0], data[3]))  # serial number, rssi
                                         items_to_remove.append(serial_number)
-                                    else:
-                                        print(f"{serial_number} not linked")
-                                elif serial_number == "0":
-                                    items_to_remove.append(serial_number)
+
                             if items_to_remove:
                                 for e in items_to_remove:
                                     serial_numbers.remove(e)
@@ -83,4 +80,5 @@ class LinkWorker(QRunnable):
             self.elapsed_time += self.time_to_sleep
             if self.elapsed_time >= self.timeout:
                 self.signals.link_timeout.emit(tuple(serial_numbers))
+                self.signals.resize_columns.emit()
                 return

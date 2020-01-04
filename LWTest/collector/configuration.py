@@ -6,11 +6,17 @@ from selenium import webdriver
 from selenium.common.exceptions import NoSuchElementException
 
 from LWTest.config.dom import constants as dom
-from LWTest.utilities.utilities import page_failed_to_load
+from LWTest.utilities import misc
 
 
 def do_serial_configuration(serial_numbers, browser):
     settings = QSettings()
+
+    # The collector phase serial number field must always have a value
+    # even if that value is '0' or else an 'Invalid Input' error will occur.
+    # Plus it eliminates confusion by removing serial numbers not being
+    # tested and replacing them with that '0'. Looks cleaner :)
+    serial_numbers = misc.ensure_six_numbers(serial_numbers)
 
     browser.get(settings.value("pages/configuration"))
 
@@ -106,7 +112,7 @@ def configure_correction_angle(url: str, browser: webdriver.Chrome, count: int):
     settings = QSettings()
     browser.get(url)
 
-    if page_failed_to_load(browser, '//*[@id="maindiv"]/form/div[1]/h1[1]'):
+    if misc.page_failed_to_load(browser, '//*[@id="maindiv"]/form/div[1]/h1[1]'):
         return True
 
     for element in dom.correction_angle_elements[:count]:

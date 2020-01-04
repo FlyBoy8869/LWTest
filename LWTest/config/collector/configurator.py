@@ -68,7 +68,7 @@ class Configurator:
         settings = QSettings()
 
         driver_executable = settings.value("drivers/chromedriver")
-        service_log_path = r"laboot\resources\logs\chromewebdriver.log"
+        service_log_path = r"laboot\resources\logs\chromewebdriver._log"
         browser = webdriver.Chrome(executable_path=driver_executable,
                                    service_log_path=service_log_path)
 

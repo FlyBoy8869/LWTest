@@ -5,10 +5,10 @@ pages/modem_status=http://192.168.2.1/index.php/main/modem_status
 # pages/modem_status=http://127.0.0.1:8080/LineWatch-M Website modem status.html
 
 pages/software_upgrade=http://192.168.2.1/index.php/upgrade
-# pages/software_upgrade=http://127.0.0.1:8080/LineWatch-M%20Website%20software%20upgrade.html
+#pages/software_upgrade=http://127.0.0.1:8080/LineWatch-M%20Website%20software%20upgrade.html
 
-# pages/software_upgrade_log=http://127.0.0.1:8080/software upgrade example of failure.html
-pages/software_upgrade_log=http://127.0.0.1:8080/software upgrade example of unit following a failure.html
+#pages/software_upgrade_log=http://127.0.0.1:8080/software upgrade example of failure.html
+# pages/software_upgrade_log=http://127.0.0.1:8080/software upgrade example of unit following a failure.html
 
 pages/temperature=http://192.168.2.1/index.php/main/Temperature
 # pages/temperature=http://127.0.0.1:8080/LineWatch-M%20Website%20temperature%20scale.html

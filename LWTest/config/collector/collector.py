@@ -23,7 +23,7 @@ class CollectorConfigurator:
         self.driver_executable = settings.value("drivers/chromedriver")
         self.configuration_url = settings.value("pages/configuration")
         self.config_password = settings.value("main/config_password")
-        self.service_log_path = r"laboot\resources\logs\chromewebdriver.log"
+        self.service_log_path = r"laboot\resources\logs\chromewebdriver._log"
         self.correction_angle = "25.8"
 
         if to_bool(settings.value("ui/menus/options/headless")):

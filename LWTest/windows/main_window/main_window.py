@@ -10,13 +10,11 @@ from selenium.webdriver.chrome.service import Service
 
 from LWTest import sensor, signals
 from LWTest.collector import configuration
-from LWTest.collector.readings import DataReader, FaultCurrentReader, PersistenceReader, FirmwareVersionReader, \
-    ReportingDataReader
+from LWTest.collector.readings import DataReader, FaultCurrentReader, PersistenceReader
 from LWTest.config.app import logging as lwt_logging, settings as lwt_settings
 from LWTest.config.dom import constants
 from LWTest.spreadsheet import spreadsheet
 from LWTest.spreadsheet.constants import phases, PhaseReadings
-from LWTest.utilities import misc
 from LWTest.utilities.misc import create_item
 from LWTest.windows.dialogs import PersistenceWaitDialog
 from LWTest.windows.main_window.create_menus import MenuHelper
@@ -25,11 +23,9 @@ from LWTest.windows.main_window.tasks import link_status as link_task
 from LWTest.windows.main_window.tasks import serial_config as serial_task
 from LWTest.workers import upgrade_worker
 from LWTest.workers.fault_current_worker import FaultCurrentWorker
-from LWTest.workers.firmware_worker import FirmwareWorker
 from LWTest.workers.persistence_worker import PersistenceWorker
 from LWTest.workers.post_link_check_worker import PostLinkCheckWorker
 from LWTest.workers.readings_worker import ReadingsWorker
-from LWTest.workers.reporting_data_worker import ReportingDataWorker
 
 lwt_settings.load(r"LWTest/resources/config/config.txt")
 lwt_logging.initialize()
@@ -606,6 +602,7 @@ class MainWindow(QMainWindow):
         if self.browser is None:
             # self.browser = webdriver.Chrome(executable_path=self.settings.value("drivers/chromedriver"))
             self.browser = webdriver.Remote(service.service_url)
+            self.browser.minimize_window()
             # self.browser = chrome_worker.get_browser()
 
         return self.browser

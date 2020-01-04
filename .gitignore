@@ -5,3 +5,4 @@ app.log
 .DS_Store
 /tests/webpages/
 *.log
+__pycache__

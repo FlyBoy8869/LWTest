@@ -1,29 +1,29 @@
-pages/configuration=http://192.168.2.1/index.php/main/configuration
-# pages/configuration=http://127.0.0.1:8080/LineWatch-M Website configuration.html
+#pages/configuration=http://192.168.2.1/index.php/main/configuration
+pages/configuration=http://127.0.0.1:8080/LineWatch-M Website configuration.html
 
-pages/modem_status=http://192.168.2.1/index.php/main/modem_status
-# pages/modem_status=http://127.0.0.1:8080/LineWatch-M Website modem status.html
+#pages/modem_status=http://192.168.2.1/index.php/main/modem_status
+pages/modem_status=http://127.0.0.1:8080/LineWatch-M Website modem status.html
 
-pages/software_upgrade=http://192.168.2.1/index.php/upgrade
-#pages/software_upgrade=http://127.0.0.1:8080/LineWatch-M%20Website%20software%20upgrade.html
+#pages/software_upgrade=http://192.168.2.1/index.php/upgrade
+pages/software_upgrade=http://127.0.0.1:8080/LineWatch-M%20Website%20software%20upgrade.html
 
 #pages/software_upgrade_log=http://127.0.0.1:8080/software upgrade example of failure.html
-# pages/software_upgrade_log=http://127.0.0.1:8080/software upgrade example of unit following a failure.html
+pages/software_upgrade_log=http://127.0.0.1:8080/software upgrade example of unit following a failure.html
 
-pages/temperature=http://192.168.2.1/index.php/main/Temperature
-# pages/temperature=http://127.0.0.1:8080/LineWatch-M%20Website%20temperature%20scale.html
+#pages/temperature=http://192.168.2.1/index.php/main/Temperature
+pages/temperature=http://127.0.0.1:8080/LineWatch-M%20Website%20temperature%20scale.html
 
-pages/raw_configuration=http://192.168.2.1/index.php/main/test
-# pages/raw_configuration=http://127.0.0.1:8080/LineWatch-M%20Website%20raw%20configuration.html
+#pages/raw_configuration=http://192.168.2.1/index.php/main/test
+pages/raw_configuration=http://127.0.0.1:8080/LineWatch-M%20Website%20raw%20configuration.html
 
-pages/voltage_ride_through=http://192.168.2.1/index.php/snow_ctrl/config
-# pages/voltage_ride_through=http://127.0.0.1:8080/LineWatch-M%20Website%20voltage%20ride%20through%200305327.html
+#pages/voltage_ride_through=http://192.168.2.1/index.php/snow_ctrl/config
+pages/voltage_ride_through=http://127.0.0.1:8080/LineWatch-M%20Website%20voltage%20ride%20through%200305327.html
 
-pages/sensor_data=http://192.168.2.1/index.php/main/sensordata
-# pages/sensor_data=http://127.0.0.1:8080/LineWatch-M%20Website%20sensor%20data.html
+#pages/sensor_data=http://192.168.2.1/index.php/main/sensordata
+pages/sensor_data=http://127.0.0.1:8080/LineWatch-M%20Website%20sensor%20data.html
 
-pages/fault_current=http://192.168.2.1/index.php/main/viewdata/cbc
-# pages/fault_current=http://127.0.0.1:8080/LineWatch-M%20Website%20fault_current.html
+#pages/fault_current=http://192.168.2.1/index.php/main/viewdata/cbc
+#pages/fault_current=http://127.0.0.1:8080/LineWatch-M%20Website%20fault_current.html
 
 main/config_password=Q854Xj8X
 main/admin_user=administrator

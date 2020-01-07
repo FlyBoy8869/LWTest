@@ -5,7 +5,7 @@ from PyQt5.QtWidgets import QMessageBox
 
 from LWTest.sensor import SensorLog
 from LWTest.utilities.misc import create_item
-from LWTest.workers.link_worker import LinkWorker
+from LWTest.workers.link import LinkWorker
 
 
 _link_error = None
@@ -66,7 +66,7 @@ def _sensor_linked_handler(parent, sensor_table, record_func, data):
 
     record_func(serial_number, rssi)
 
-    parent._read_current_firmware_version(serial_number)
+    parent._read_post_link_data(serial_number)
 
 
 def _warn_sensors_not_linked_handler(parent, sensor_table, serial_numbers):
@@ -79,7 +79,7 @@ def _warn_sensors_not_linked_handler(parent, sensor_table, serial_numbers):
 
             parent._record_rssi_readings(serial_number, "Not Linked")
 
-            parent._read_current_firmware_version(serial_number)
+            parent._read_post_link_data(serial_number)
 
 
 def _link_activity_handler(sensor_table, serial_numbers, indicator):

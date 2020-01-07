@@ -18,23 +18,35 @@ def ensure_six_numbers(serial_numbers):
     return tuple(numbers)
 
 
-def get_page_login_if_needed(url: str, browser: webdriver.Chrome):
+def get_page_login_if_needed(url: str, browser: webdriver.Chrome, text=""):
     settings = QSettings()
+    max_retries: int = 2
+    retries = 0
     user = settings.value("main/admin_user")
     password = settings.value("main/admin_password")
 
-    browser.get(url)
-    try:
-        # If we end up on the login page.
-        browser.find_element_by_xpath(dom.login_header)
-        browser.find_element_by_xpath(dom.login_username_field).send_keys(user)
-        browser.find_element_by_xpath(dom.login_password_field).send_keys(password)
-        browser.find_element_by_xpath(dom.login_button).click()
-    except NoSuchElementException:
-        pass
-    finally:
-        sleep(2)
+    while retries < max_retries:
+        print(f"{__name__}.get_page_login_if_needed: about to load page")
         browser.get(url)
+        print(f"{__name__}.get_page_login_if_needed: loaded page")
+
+        if text not in browser.page_source:
+            print(f"{__name__}.get_page_login_if_needed: text not on page, attempting login")
+            try:
+                # browser.get(url)
+                browser.find_element_by_xpath(dom.login_header)
+                browser.find_element_by_xpath(dom.login_username_field).send_keys(user)
+                browser.find_element_by_xpath(dom.login_password_field).send_keys(password)
+                browser.find_element_by_xpath(dom.login_button).click()
+
+                if text in browser.page_source:
+                    print(f"{__name__}.get_page_login_if_needed: navigation successful")
+                    break
+            except NoSuchElementException:
+                print(f"{__name__}.get_page_login_if_needed: received a 'NoSuchElementException'")
+                pass
+
+        retries += 1
 
 
 def indicator():

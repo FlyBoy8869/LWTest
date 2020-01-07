@@ -37,13 +37,15 @@ class Signals(QObject):
     data_persisted = pyqtSignal(list)
     data_reading_persisted = pyqtSignal(str, int, int)
     data_reporting_data = pyqtSignal(int, str)
-
     data_reading = pyqtSignal(tuple, str)
+    data_readings_complete = pyqtSignal()
 
     resize_columns = pyqtSignal()
 
     firmware_version = pyqtSignal(tuple, str)
     firmware_check_complete = pyqtSignal(int)
+
+    finished = pyqtSignal()
 
 
 class DataReader:
@@ -82,7 +84,6 @@ class DataReader:
                 field = self.browser.find_element_by_xpath(element)
                 content = field.get_attribute("textContent")
                 readings.append(content)
-                self.signals.data_reading.emit((index, data[0]), content)
             signal_voltage.emit(readings)
 
             readings.clear()
@@ -90,7 +91,6 @@ class DataReader:
                 field = self.browser.find_element_by_xpath(element)
                 content = field.get_attribute("textContent")
                 readings.append(content)
-                self.signals.data_reading.emit((index, data[1]), content)
             signal_current.emit(readings)
 
             readings.clear()
@@ -98,7 +98,6 @@ class DataReader:
                 field = self.browser.find_element_by_xpath(element)
                 content = field.get_attribute("textContent")
                 readings.append(content)
-                self.signals.data_reading.emit((index, data[2]), content)
             signal_power_factor.emit(readings)
 
             readings.clear()
@@ -108,7 +107,6 @@ class DataReader:
                 if content != 'NA':
                     content = str(int(float(content.replace(",", "")) * 1000))
                 readings.append(content)
-                self.signals.data_reading.emit((index, data[3]), content)
             signal_real_power.emit(readings)
 
             readings.clear()
@@ -116,7 +114,6 @@ class DataReader:
                 field = self.browser.find_element_by_xpath(element)
                 content = field.get_attribute("textContent")
                 readings.append(content)
-                self.signals.data_reading.emit((index, temp), content)
             self.signals.data_temperature.emit(readings)
 
             if self.voltage_level == "7200":
@@ -127,7 +124,6 @@ class DataReader:
                     field = self.browser.find_element_by_xpath(element)
                     content = field.get_attribute("value")
                     readings.append(content)
-                    self.signals.data_reading.emit((index, scale_current), content)
                 self.signals.data_scale_current.emit(readings)
 
                 readings.clear()
@@ -135,7 +131,6 @@ class DataReader:
                     field = self.browser.find_element_by_xpath(element)
                     content = field.get_attribute("value")
                     readings.append(content)
-                    self.signals.data_reading.emit((index, scale_voltage), content)
                 self.signals.data_scale_voltage.emit(readings)
 
                 readings.clear()
@@ -143,9 +138,9 @@ class DataReader:
                     field = self.browser.find_element_by_xpath(element)
                     content = field.get_attribute("value")
                     readings.append(content)
-                    self.signals.data_reading.emit((index, correction_angle), content)
                 self.signals.data_correction_angle.emit(readings)
 
+            self.signals.finished.emit()
             self.signals.resize_columns.emit()
         except StaleElementReferenceException:
             pass
@@ -166,6 +161,7 @@ class FaultCurrentReader:
         else:
             self.signals.data_fault_current.emit("Fail")
 
+        self.signals.finished.emit()
         self.signals.resize_columns.emit()
 
 
@@ -217,7 +213,7 @@ class PersistenceReader:
                 presumed_innocent[index] = "Failed"
 
         self.signals.data_persisted.emit(presumed_innocent)
-
+        self.signals.finished.emit()
         self.signals.resize_columns.emit()
 
 
@@ -247,7 +243,7 @@ class FirmwareVersionReader:
     """Used every time a sensor joins and links to the Collector."""
     _firmware_version_col = 2
 
-    def __init__(self, url: str, browser: webdriver.Chrome, index):
+    def __init__(self, index, url: str, browser: webdriver.Chrome):
         self.url = url
         self.browser = browser
         self.index = index

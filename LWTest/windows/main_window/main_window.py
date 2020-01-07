@@ -2,15 +2,18 @@ import datetime
 from time import sleep
 
 from PyQt5.QtCore import QThreadPool, QSettings, Qt
-from PyQt5.QtGui import QIcon, QCloseEvent
+from PyQt5.QtGui import QIcon, QCloseEvent, QBrush, QColor
 from PyQt5.QtWidgets import QMainWindow, QTableWidget, QVBoxLayout, QWidget, QTableWidgetItem, QMessageBox, QToolBar, \
-    QDialog
+    QDialog, QComboBox
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
 
+import LWTest.utilities as utilities
 from LWTest import sensor, signals
-from LWTest.collector import configuration
-from LWTest.collector.readings import DataReader, FaultCurrentReader, PersistenceReader
+from LWTest.collector import configure
+from LWTest.collector.read.confirm import ConfirmSerialConfig
+from LWTest.collector.read.read import DataReader, FaultCurrentReader, PersistenceReader, FirmwareVersionReader, \
+    ReportingDataReader
 from LWTest.config.app import logging as lwt_logging, settings as lwt_settings
 from LWTest.config.dom import constants
 from LWTest.spreadsheet import spreadsheet
@@ -19,19 +22,32 @@ from LWTest.utilities.misc import create_item
 from LWTest.windows.dialogs import PersistenceWaitDialog
 from LWTest.windows.main_window.create_menus import MenuHelper
 from LWTest.windows.main_window.menu_help_handlers import menu_help_about_handler
-from LWTest.windows.main_window.tasks import link_status as link_task
-from LWTest.windows.main_window.tasks import serial_config as serial_task
-from LWTest.workers import upgrade_worker
-from LWTest.workers.fault_current_worker import FaultCurrentWorker
-from LWTest.workers.persistence_worker import PersistenceWorker
-from LWTest.workers.post_link_check_worker import PostLinkCheckWorker
-from LWTest.workers.readings_worker import ReadingsWorker
+from LWTest.windows.main_window.tasks import link as link_task
+from LWTest.windows.main_window.tasks import serial as serial_task
+from LWTest.workers import upgrade
+from LWTest.workers.confirm import ConfirmSerialConfigWorker
+from LWTest.workers.fault import FaultCurrentWorker
+from LWTest.workers.persistence import PersistenceWorker
+from LWTest.workers.postlink import PostLinkCheckWorker
+from LWTest.workers.readings import ReadingsWorker
 
 lwt_settings.load(r"LWTest/resources/config/config.txt")
 lwt_logging.initialize()
 
 service = Service(r"LWTest\resources\drivers\chromedriver\windows\version_78-0-3904-70\chromedriver.exe")
 service.start()
+
+_DATA_IN_TABLE_ORDER = ["rssi", "firmware_version", "reporting_data", "high_voltage", "high_current",
+                        "high_power_factor", "high_real_power", "low_voltage", "low_current",
+                        "low_power_factor", "low_real_power", "temperature", "fault_current",
+                        "scale_current", "scale_voltage", "correction_angle", "persists"]
+
+_DATA_IN_SPREADSHEET_ORDER = ["high_voltage", "high_current", "high_power_factor", "high_real_power",
+                              "low_voltage", "low_current", "low_power_factor", "low_real_power",
+                              "scale_current", "scale_voltage", "correction_angle", "persists",
+                              "firmware_version", "reporting_data", "rssi", "temperature", "fault_current"]
+
+_PERSISTENCE_TIMEOUT = 15
 
 
 def dialog_title():
@@ -128,11 +144,11 @@ class MainWindow(QMainWindow):
             self.spreadsheet_path = filename
             sn = spreadsheet.get_serial_numbers(filename)
 
-            headers = ["Serial Number", "RSSI", "Firmware", "Reporting Data",
+            headers = ["Serial Number", "\t\t\t\t\t\tRSSI\t\t\t\t\t\t", "Firmware", "Reporting Data",
                        "\t\t\t\t\t\t13.8K\t\t\t\t\t\t", "\t\t\t\t120A\t\t\t\t", "Power Factor", "Real Power",
                        "\t\t\t\t\t\t7.2K\t\t\t\t\t\t", "\t\t\t\t\t60A\t\t\t\t\t", "Power Factor", "Real Power",
                        "Temperature", "Fault Current", "Scale Current", "Scale Voltage",
-                       "Correction Angle", "\t\tPersists\t\t\t\t"]
+                       "Correction Angle", "\t\tPersists\t\t\t\t", "Calibration"]
 
             self.qtw_sensors.clear()
             self.qtw_sensors.setRowCount(len(sn))
@@ -144,9 +160,28 @@ class MainWindow(QMainWindow):
                 item.setFlags(item.flags() | Qt.ItemIsSelectable)
                 self.qtw_sensors.setItem(index, 0, item)
 
-                for column in range(1, len(headers)):
+                # for column in range(1, len(headers) - 1):
+                for column in range(1, 13):
                     item = create_item()
                     self.qtw_sensors.setItem(index, column, item)
+
+                fault_combo = QComboBox(self)
+                fault_combo.insertItems(0, ["", "Pass", "Fail", "NA"])
+                fault_combo.currentTextChanged.connect(
+                    lambda text, index=index: self._manually_override_fault_current_result(text, index)
+                )
+                self.qtw_sensors.setCellWidget(index, 13, fault_combo)
+
+                for column in range(14, 18):
+                    item = create_item()
+                    self.qtw_sensors.setItem(index, column, item)
+
+                cal_combo = QComboBox(self)
+                cal_combo.insertItems(0, [" ", "Pass", "Fail", "NA"])
+                cal_combo.currentTextChanged.connect(
+                    lambda text, index=index: self._record_sensor_calibration(text, index)
+                )
+                self.qtw_sensors.setCellWidget(index, 18, cal_combo)
 
             self.qtw_sensors.setCurrentCell(0, 0)
             self.qtw_sensors.resizeColumnsToContents()
@@ -168,7 +203,24 @@ class MainWindow(QMainWindow):
     def _configure_collector_serial_numbers(self):
         serial_task.configure_serial_numbers(self.sensor_log.get_serial_numbers(),
                                              self._get_browser(),
-                                             self, self.thread_pool, self._determine_link_status)
+                                             self, self.thread_pool, self._confirm_serial_update)
+
+    def _confirm_serial_update(self):
+        settings = QSettings()
+        url = settings.value("pages/modem_status")
+        serial_numbers = self.sensor_log.get_serial_numbers()
+
+        confirm_serial_config = ConfirmSerialConfig(serial_numbers, url)
+        confirm_serial_config.signals.confirmed.connect(self._enable_advanced_config_if_possible)
+        confirm_serial_config.signals.confirmed.connect(self._determine_link_status)
+
+        worker = ConfirmSerialConfigWorker(confirm_serial_config)
+
+        self.thread_pool.start(worker)
+
+    def _enable_advanced_config_if_possible(self):
+        if self._check_all_sensors_upgraded():
+            self.menu_helper.enable_actions(1)
 
     def _determine_link_status(self):
         link_task.determine_link_status(self.sensor_log, self.qtw_sensors, self.thread_pool, self,
@@ -193,30 +245,28 @@ class MainWindow(QMainWindow):
 
             sleep(1)
 
-            date = datetime.datetime.now()
-            file = f"{date.year}-{date.month:02d}-{date.day:02d}_UPDATER.txt"
-            upgrade_log = f"http://192.168.2.1/index.php/log_viewer/view/{file}"
-            # upgrade_log = settings.value("pages/software_upgrade_log")
+            # date = datetime.datetime.now()
+            # file = f"{date.year}-{date.month:02d}-{date.day:02d}_UPDATER.txt"
+            # upgrade_log = f"http://192.168.2.1/index.php/log_viewer/view/{file}"
+            upgrade_log = settings.value("pages/software_upgrade_log")
 
-            worker = upgrade_worker.UpgradeWorker(self.qtw_sensors.item(row, 0).text(),
-                                                  (row, 3),
-                                                  upgrade_log,
-                                                  ignore_failures=ignore_failures)
+            worker = upgrade.UpgradeWorker(self.qtw_sensors.item(row, 0).text(),
+                                           (row, 3),
+                                           upgrade_log,
+                                           ignore_failures=ignore_failures)
             worker.signals.upgrade_successful.connect(self._upgrade_successful)
             worker.signals.upgrade_timed_out.connect(self._upgrade_timed_out)
             worker.signals.upgrade_show_activity.connect(self._upgrade_show_activity)
             worker.signals.upgrade_failed_to_enter_program_mode.connect(self._failed_to_enter_program_mode)
             self.thread_pool.start(worker)
 
-    def _update_persistence_column(self, results: list):
-        for index, result in enumerate(results):
-            if self.sensor_log.get_sensor_by_line_position(index).linked:
-                self.qtw_sensors.item(index, 17).setText(result)
-
     def _upgrade_successful(self, serial_number):
         row = self.sensor_log[serial_number].line_position
         self._update_table_with_reading((row, 2), "0x75")
         self.firmware_upgrade_in_progress = False
+
+        # self._enable_advanced_config_if_possible()
+
         QMessageBox.information(QMessageBox(self), dialog_title(), "Sensor firmware successfully upgraded.",
                                 QMessageBox.Ok)
 
@@ -246,14 +296,26 @@ class MainWindow(QMainWindow):
         QMessageBox.warning(QMessageBox(self), f"{dialog_title()} - Upgrading Sensor", "Process timed out.\t\t",
                             QMessageBox.Ok)
 
+    def _do_advanced_configuration(self):
+        self._get_browser()
+        count = self._get_sensor_count()
+        configure.do_advanced_configuration(count, self._get_browser())
+
+    def _start_calibration(self):
+        settings = QSettings()
+        url = settings.value("pages/calibration")
+
+        browser = self._get_browser()
+        utilities.misc.get_page_login_if_needed(url, browser, "calibration")
+
     def _config_correction_angle(self):
         settings = QSettings()
 
         while True:
             count = self._get_sensor_count()
-            result = configuration.configure_correction_angle(settings.value('pages/configuration'),
-                                                              self._get_browser(),
-                                                              count)
+            result = configure.configure_correction_angle(settings.value('pages/configuration'),
+                                                          self._get_browser(),
+                                                          count)
 
             if result:
                 button = QMessageBox.warning(self, "LWTest - warning\t\t\t\t",
@@ -265,95 +327,6 @@ class MainWindow(QMainWindow):
             else:
                 break
 
-    def _do_advanced_configuration(self):
-        self._get_browser()
-        count = self._get_sensor_count()
-        configuration.do_advanced_configuration(count, self._get_browser())
-
-    def _read_current_firmware_version(self, serial_number):
-        # CONCERN: after a long wait for a link, the browser will be grabbed
-        # CONCERN: in the middle of a config or data read operation and crash the program
-        settings = QSettings()
-
-        # firmware_version_reader = FirmwareVersionReader(settings.value('pages/software_upgrade'),
-        #                                                 self._get_browser(),
-        #                                                 self.sensor_log[serial_number].line_position)
-        # firmware_version_reader.signals.firmware_version.connect(self._update_table_with_reading)
-        # firmware_version_reader.signals.firmware_version.connect(
-        #     lambda index, version: self._record_firmware_version(
-        #         self.sensor_log.get_sensor_by_line_position(index).serial_number, version))
-        #
-        # worker = FirmwareWorker(firmware_version_reader)
-
-        worker = PostLinkCheckWorker(self, self.sensor_log[serial_number].line_position,
-                                     (settings.value('pages/software_upgrade'), settings.value("pages/sensor_data")),
-                                     self._get_browser())
-        self.thread_pool.start(worker)
-
-    def _read_fault_current(self):
-        settings = QSettings()
-
-        fault_current = FaultCurrentReader(settings.value('pages/fault_current'), self._get_browser())
-        fault_current.signals.data_fault_current.connect(self._update_fault_current_readings)
-        fault_current.signals.data_fault_current.connect(self._record_fault_current_readings)
-
-        worker = FaultCurrentWorker(fault_current)
-        self.thread_pool.start(worker)
-
-    # def _read_reporting_data(self, line_position):
-    #     settings = QSettings()
-    #
-    #     reporting_data_reader = ReportingDataReader(line_position, settings.value("pages/sensor_data"),
-    #                                                 self._get_browser())
-    #     reporting_data_reader.signals.data_reporting_data.connect(self._record_reporting_data)
-    #
-    #     worker = ReportingDataWorker(reporting_data_reader)
-    #     self.thread_pool.start(worker)
-
-    def _take_readings(self):
-        settings = QSettings()
-        choice = QMessageBox.Ok
-
-        if self.menu_helper.action_read_hi_or_low_voltage.data() == '13800':
-            choice = QMessageBox.warning(QMessageBox(self), "LWTest",
-                                         "Meter is set to read 13800 volts.\n"
-                                         "If this is correct, click 'Ok'.\n"
-                                         "If not, click 'Cancel', then click the\n"
-                                         "battery icon to select desired scale.",
-                                         QMessageBox.Ok | QMessageBox.Cancel)
-
-        if choice == QMessageBox.Ok:
-            data = DataReader(settings.value('pages/sensor_data'),
-                              settings.value('pages/raw_configuration'),
-                              self._get_browser(), self._get_sensor_count(),
-                              self.menu_helper.action_read_hi_or_low_voltage.data())
-            data.signals.data_reading.connect(self._update_table_with_reading)
-
-            data.signals.data_high_voltage.connect(self._record_high_voltage_readings)
-            data.signals.data_high_current.connect(self._record_high_current_readings)
-            data.signals.data_high_power_factor.connect(self._record_high_power_factor_readings)
-            data.signals.data_high_real_power.connect(self._record_high_real_power_readings)
-
-            data.signals.data_low_voltage.connect(self._record_low_voltage_readings)
-            data.signals.data_low_current.connect(self._record_low_current_readings)
-            data.signals.data_low_power_factor.connect(self._record_low_power_factor_readings)
-            data.signals.data_low_real_power.connect(self._record_low_real_power_readings)
-
-            data.signals.data_temperature.connect(self._record_temperature_readings)
-            data.signals.data_scale_current.connect(self._record_scale_current_readings)
-            data.signals.data_scale_voltage.connect(self._record_scale_voltage_readings)
-            data.signals.data_correction_angle.connect(self._record_correction_angle_readings)
-            data.signals.resize_columns.connect(self._resize_table_columns)
-
-            # data.run()
-            worker = ReadingsWorker(data)
-            self.thread_pool.start(worker)
-
-            if self.menu_helper.action_read_hi_or_low_voltage.data() == '7200':
-                self.menu_helper.action_check_persistence.setEnabled(True)
-
-            self.unsaved_test_results = True
-
     def _check_persistence(self):
         settings = QSettings()
 
@@ -361,7 +334,7 @@ class MainWindow(QMainWindow):
                                 QMessageBox.Ok)
 
         pd = PersistenceWaitDialog(self, "Persistence", "Please, wait before powering on the collector.\n" +
-                                   "'Cancel' will abort test.\t\t", 60)
+                                   "'Cancel' will abort test.\t\t", _PERSISTENCE_TIMEOUT)
         result = pd.exec_()
 
         if result == QDialog.Accepted:
@@ -378,17 +351,105 @@ class MainWindow(QMainWindow):
                                             self._get_browser(),
                                             self.qtw_sensors,
                                             self._get_sensor_count())
-            persistence.signals.data_persisted.connect(self._update_persistence_column)
+
             persistence.signals.data_persisted.connect(self._record_persistence_readings)
+            persistence.signals.finished.connect(self._update_from_model)
 
             worker = PersistenceWorker(persistence)
             self.thread_pool.start(worker)
+
+    def _read_post_link_data(self, serial_number):
+        settings = QSettings()
+        index = self.sensor_log[serial_number].line_position
+
+        firmware_reader = FirmwareVersionReader(index, settings.value('pages/software_upgrade'), self._get_browser())
+        firmware_reader.signals.firmware_version.connect(
+            lambda i, version: self._record_firmware_version(serial_number, version))
+
+        reporting_reader = ReportingDataReader(index, settings.value("pages/sensor_data"), self._get_browser())
+        reporting_reader.signals.data_reporting_data.connect(self._record_reporting_data)
+
+        worker = PostLinkCheckWorker((firmware_reader, reporting_reader))
+        worker.signals.finished.connect(self._update_from_model)
+        worker.signals.finished.connect(self._enable_advanced_config_if_possible)
+
+        self.thread_pool.start(worker)
+
+    def _read_fault_current(self):
+        settings = QSettings()
+
+        fault_current = FaultCurrentReader(settings.value('pages/fault_current'), self._get_browser())
+        fault_current.signals.data_fault_current.connect(self._record_fault_current_readings)
+        fault_current.signals.finished.connect(self._update_from_model)
+
+        worker = FaultCurrentWorker(fault_current)
+        self.thread_pool.start(worker)
+
+    def _take_readings(self):
+        settings = QSettings()
+        choice = QMessageBox.Ok
+
+        if self.menu_helper.action_read_hi_or_low_voltage.data() == '13800':
+            choice = QMessageBox.warning(QMessageBox(self), "LWTest\t\t\t\t\t\t",
+                                         "<b>Meter is set to read 13800 volts.</b><br/><br/>"
+                                         "If this is correct, click <b>'Ok'</b>.<br/><br/>"
+                                         "If not, click <b>'Cancel'</b>, then click the<br/>"
+                                         "battery icon to change scale.",
+                                         QMessageBox.Ok | QMessageBox.Cancel, QMessageBox.Cancel)
+
+        if choice == QMessageBox.Ok:
+            data = DataReader(settings.value('pages/sensor_data'),
+                              settings.value('pages/raw_configuration'),
+                              self._get_browser(), self._get_sensor_count(),
+                              self.menu_helper.action_read_hi_or_low_voltage.data())
+
+            data.signals.data_high_voltage.connect(self._record_high_voltage_readings)
+            data.signals.data_high_current.connect(self._record_high_current_readings)
+            data.signals.data_high_power_factor.connect(self._record_high_power_factor_readings)
+            data.signals.data_high_real_power.connect(self._record_high_real_power_readings)
+
+            data.signals.data_low_voltage.connect(self._record_low_voltage_readings)
+            data.signals.data_low_current.connect(self._record_low_current_readings)
+            data.signals.data_low_power_factor.connect(self._record_low_power_factor_readings)
+            data.signals.data_low_real_power.connect(self._record_low_real_power_readings)
+
+            data.signals.data_temperature.connect(self._record_temperature_readings)
+            data.signals.data_scale_current.connect(self._record_scale_current_readings)
+            data.signals.data_scale_voltage.connect(self._record_scale_voltage_readings)
+            data.signals.data_correction_angle.connect(self._record_correction_angle_readings)
+
+            data.signals.finished.connect(self._update_from_model)
+            data.signals.resize_columns.connect(self._resize_table_columns)
+
+            worker = ReadingsWorker(data)
+            self.thread_pool.start(worker)
+
+            if self.menu_helper.action_read_hi_or_low_voltage.data() == '7200':
+                self.menu_helper.action_check_persistence.setEnabled(True)
+
+            self.unsaved_test_results = True
+
+    def _manually_override_fault_current_result(self, result, index):
+        self.sensor_log.get_sensor_by_line_position(index).fault_current = result
 
     def _record_rssi_readings(self, serial_number, rssi):
         self.sensor_log[serial_number].rssi = rssi
 
     def _record_firmware_version(self, serial_number, version):
         self.sensor_log[serial_number].firmware_version = version
+
+    def _record_reporting_data(self, line_position, reporting):
+        self.sensor_log.get_sensor_by_line_position(line_position).reporting_data = reporting
+
+        if reporting == "Fail":
+            for index in range(4, 19):
+                if index == 13 or index == 18:
+                    self.qtw_sensors.cellWidget(line_position, index).setCurrentIndex(3)
+                else:
+                    self.qtw_sensors.item(line_position, index).setText("NA")
+
+    def _record_sensor_calibration(self, result, index):
+        self.sensor_log.get_sensor_by_line_position(index).calibrated = result
 
     def _record_high_voltage_readings(self, values: list):
         unit: sensor.Sensor
@@ -446,19 +507,19 @@ class MainWindow(QMainWindow):
             if unit.linked:
                 unit.low_real_power = values[index]
 
-    def _record_reporting_data(self, line_position, reporting):
-        self.sensor_log.get_sensor_by_line_position(line_position).reporting_data = reporting
-
-        if reporting == "Fail":
-            for index in range(4, 18):
-                self.qtw_sensors.item(line_position, index).setText("NA")
-
     def _record_temperature_readings(self, values: list):
         unit: sensor.Sensor
 
         for index, unit in enumerate(self.sensor_log):
             if unit.linked:
                 unit.temperature = values[index]
+
+    def _record_fault_current_readings(self, value: str):
+        unit: sensor.Sensor
+
+        for unit in self.sensor_log:
+            if unit.linked:
+                unit.fault_current = value
 
     def _record_scale_current_readings(self, values: list):
         unit: sensor.Sensor
@@ -481,13 +542,6 @@ class MainWindow(QMainWindow):
             if unit.linked:
                 unit.correction_angle = values[index]
 
-    def _record_fault_current_readings(self, value: str):
-        unit: sensor.Sensor
-
-        for unit in self.sensor_log:
-            if unit.linked:
-                unit.fault_current = value
-
     def _record_persistence_readings(self, value: list):
         unit: sensor.Sensor
 
@@ -496,15 +550,10 @@ class MainWindow(QMainWindow):
                 unit.persists = value[index]
 
     def _save_data_to_spreadsheet(self):
-        data_in_spreadsheet_order = ["high_voltage", "high_current", "high_power_factor", "high_real_power",
-                                     "low_voltage", "low_current", "low_power_factor", "low_real_power",
-                                     "scale_current", "scale_voltage", "correction_angle", "persists",
-                                     "firmware_version", "reporting_data", "rssi", "temperature", "fault_current"]
-
         data_sets = []
         data = []
         for index, unit in enumerate(self.sensor_log):
-            for field in data_in_spreadsheet_order:
+            for field in _DATA_IN_SPREADSHEET_ORDER:
                 data.append(unit.__getattribute__(field))
 
             phase = PhaseReadings(*phases[index])
@@ -518,23 +567,31 @@ class MainWindow(QMainWindow):
 
         self.unsaved_test_results = False
 
-    def _update_fault_current_readings(self, value):
-        for index in range(self._get_sensor_count()):
-            if self.sensor_log.get_sensor_by_line_position(index).linked:
-                self._update_table_with_reading((index, 13), value)
-
-    def _update_firmware_version_column(self, location, content):
-        item: QTableWidgetItem = self.qtw_sensors.item(location[0], location[1])
-        item.setText(content)
-
-    def _update_reporting_data_column(self, location, content):
-        item: QTableWidgetItem = self.qtw_sensors.item(location[0], location[1])
-        item.setText(content)
-
     def _update_table_with_reading(self, location, content):
         if self.sensor_log.get_sensor_by_line_position(location[0]).linked:
             item: QTableWidgetItem = self.qtw_sensors.item(location[0], location[1])
             item.setText(content)
+
+    def _update_from_model(self):
+        for index, unit in enumerate(self.sensor_log):
+            for j in range(1, 18):
+
+                # handle fault current
+                if unit.linked and j == 13:
+                    fc = unit.fault_current
+                    combo_index = 0
+                    if fc == "Pass":
+                        combo_index = 1
+                    elif fc == "Fail":
+                        combo_index = 2
+                    self.qtw_sensors.cellWidget(index, j).setCurrentIndex(combo_index)
+
+                # update table widget with current data if unit linked or j == rssi or firmware version index
+                elif unit.linked or j == 2 or j == 3:
+                    self.qtw_sensors.item(index, j).setText(unit.__getattribute__(_DATA_IN_TABLE_ORDER[j - 1]))
+
+            # if unit.linked:
+            #     self._set_field_background(index, 0, QBrush(QColor(0, 255, 0, 75)))
 
     def _create_toolbar(self):
         toolbar = QToolBar("ToolBar")
@@ -554,6 +611,8 @@ class MainWindow(QMainWindow):
         self.menu_helper.action_advanced_configuration.triggered.connect(self._action_router)
 
         toolbar.addAction(self.menu_helper.action_calibrate)
+        self.menu_helper.action_calibrate.setData(self._start_calibration)
+        self.menu_helper.action_calibrate.triggered.connect(self._action_router)
 
         toolbar.addAction(self.menu_helper.action_config_correction_angle)
         self.menu_helper.action_config_correction_angle.setData(self._config_correction_angle)
@@ -593,6 +652,13 @@ class MainWindow(QMainWindow):
         if self.sender() is not None:
             self.sender().data()()
 
+    def _check_all_sensors_upgraded(self):
+        for unit in self.sensor_log:
+            if unit.linked and unit.firmware_version != "0x75":
+                return False
+
+        return True
+
     def _close_browser(self):
         if self.browser:
             self.browser.quit()
@@ -602,10 +668,14 @@ class MainWindow(QMainWindow):
         if self.browser is None:
             # self.browser = webdriver.Chrome(executable_path=self.settings.value("drivers/chromedriver"))
             self.browser = webdriver.Remote(service.service_url)
-            self.browser.minimize_window()
+            # self.browser.minimize_window()
             # self.browser = chrome_worker.get_browser()
 
         return self.browser
 
     def _get_sensor_count(self):
         return len(self.sensor_log)
+
+    def _set_field_background(self, row: int, col: int, color: QBrush):
+        item: QTableWidgetItem = self.qtw_sensors.item(row,col)
+        item.setBackground(color)

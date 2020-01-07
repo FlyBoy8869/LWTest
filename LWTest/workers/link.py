@@ -18,7 +18,7 @@ class LinkWorker(QRunnable):
 
         self.time_to_sleep = 1
         self.elapsed_time = 0
-        self.timeout = 30
+        self.timeout = 10
 
         self.link_indicator = indicator()
 
@@ -32,7 +32,6 @@ class LinkWorker(QRunnable):
             except requests.exceptions.ConnectTimeout:
                 print(traceback.format_exc())
                 exc_type, value = sys.exc_info()[:2]
-                # self.signals.url_read_error.emit((exc_type, value, traceback.format_exc()))
                 self.signals.url_read_exception.emit((exc_type, "Connection timed out.", value))
                 return
             except requests.exceptions.ConnectionError:
@@ -53,7 +52,6 @@ class LinkWorker(QRunnable):
                 if page.status_code == 200:
                     self.signals.link_activity.emit(tuple(serial_numbers), next(self.link_indicator))
 
-                    print(f"dealing with {len(serial_numbers)} serial numbers")
                     for line in page.text.split("\n"):
                         if line.strip() and line.strip()[0].isdigit():
                             for serial_number in serial_numbers:
@@ -70,8 +68,6 @@ class LinkWorker(QRunnable):
 
                             if not serial_numbers:
                                 return
-                            else:
-                                print(f"{len(serial_numbers)} serial numbers left to check.")
             except:
                 print(traceback.format_exc())
                 return

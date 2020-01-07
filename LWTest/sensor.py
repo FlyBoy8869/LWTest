@@ -8,9 +8,10 @@ class Sensor:
         self.serial_number = serial_number
         self.tested = False
         self.result = "Not Tested"
-        self.rssi = ""
+        self.rssi = "Not Linked"
         self.firmware_version = ""
         self.reporting_data = ""
+        self.calibrated = ""
         self.high_voltage = ""
         self.high_current = ""
         self.high_power_factor = ""
@@ -33,7 +34,7 @@ class Sensor:
     def __repr__(self):
         r = (f"Sensor(serial_number={self.serial_number}, rssi={self.rssi}, "
              f"firmware_version={self.firmware_version}, "
-             f"reporting_data={self.reporting_data}, high_voltage={self.high_voltage}, "
+             f"reporting_data={self.reporting_data}, calibrated={self.calibrated}, high_voltage={self.high_voltage}, "
              f"high_current={self.high_current}, high_power_factor={self.high_power_factor}, "
              f"high_real_power={self.high_real_power}, low_voltage={self.low_voltage}, "
              f"low_current={self.low_current}, low_power_factor={self.low_power_factor}, "

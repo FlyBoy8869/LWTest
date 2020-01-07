@@ -1,6 +1,6 @@
 from PyQt5.QtCore import QSettings
 
-from LWTest.workers.upgrade_worker import UpgradeWorker
+from LWTest.workers.upgrade import UpgradeWorker
 
 
 def menu_file_save_handler():

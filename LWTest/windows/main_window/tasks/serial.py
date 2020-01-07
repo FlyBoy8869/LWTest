@@ -4,26 +4,28 @@ from PyQt5.QtCore import QSettings
 from PyQt5.QtWidgets import QMessageBox
 from selenium import webdriver
 
-from LWTest.workers.serial_config_worker import SerialConfigWorker
+from LWTest.workers.serial import SerialConfigWorker
 
 
 _load_failure = None
 
 
+# def configure_serial_numbers(serial_numbers: tuple, browser: webdriver.Chrome,
+#                              parent, thread_pool, link_checker):
 def configure_serial_numbers(serial_numbers: tuple, browser: webdriver.Chrome,
-                             parent, thread_pool, link_checker):
+                             parent, thread_pool, confirm_func):
     settings = QSettings()
 
     config_worker = SerialConfigWorker(serial_numbers,
                                        settings.value("main/config_password"),
                                        browser,
                                        settings.value("pages/configuration"))
-    # config_worker.signals.configured_serial_numbers.connect(self._determine_link_status)
 
     global _load_failure
     _load_failure = partial(_serial_config_page_failed_to_load, parent, thread_pool, browser)
 
-    config_worker.signals.configured_serial_numbers.connect(link_checker)
+    # config_worker.signals.configured_serial_numbers.connect(link_checker)
+    config_worker.signals.configured_serial_numbers.connect(confirm_func)
     config_worker.signals.serial_config_page_failed_to_load.connect(_load_failure)
 
     thread_pool.start(config_worker)

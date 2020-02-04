@@ -2,7 +2,7 @@ import sys
 
 from PyQt5.QtWidgets import QApplication
 
-from LWTest.windows.main_window.main_window import MainWindow
+from LWTest.gui.main_window.main_window import MainWindow
 
 
 def main():

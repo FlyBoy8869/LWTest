@@ -1,23 +1,12 @@
 from time import sleep
 
 from PyQt5.QtCore import pyqtSignal, QObject
-from PyQt5.QtWidgets import QTableWidget
 from selenium import webdriver
 from selenium.common.exceptions import StaleElementReferenceException
 
+from LWTest import LWTConstants as LWT
 from LWTest.config.dom import constants as dom, constants
 from LWTest.utilities.misc import get_page_login_if_needed
-
-
-# sensor table columns where data is to be recorded
-high_data = (4, 5, 6, 7)
-low_data = (8, 9, 10, 11)
-temp = 12
-fault_current = 13
-software_version_col = 2
-scale_current = 14
-scale_voltage = 15
-correction_angle = 16
 
 
 class Signals(QObject):
@@ -44,17 +33,27 @@ class Signals(QObject):
 
     firmware_version = pyqtSignal(tuple, str)
     firmware_check_complete = pyqtSignal(int)
-
     finished = pyqtSignal()
 
 
 class DataReader:
-    def __init__(self, url_1: str, url_2: str, browser: webdriver.Chrome, count: int, voltage_level):
-        self.url_1 = url_1
-        self.url_2 = url_2
+    def __init__(self, url_1: str, url_2: str, browser: webdriver.Chrome, count: int, voltage_level: str,
+                 validator, scale_and_angle_validator=None, temperature_validator=None):
+
+        if voltage_level == "7200":
+            assert scale_and_angle_validator is not None, ("You must provide a scale_n_angle_validator" +
+                                                           " when the voltage_level is '7200'")
+            assert temperature_validator is not None, ("You must provide a temperature_validator" +
+                                                       " when the voltage_level is '7200'")
+
+        self.url_sensor_data = url_1
+        self.url_raw_configuration = url_2
         self.browser = browser
         self.count = count
         self.voltage_level = voltage_level
+        self.validator = validator
+        self.scale_and_angle_validator = scale_and_angle_validator
+        self.temperature_validator = temperature_validator
         self.signals = Signals()
 
     def read(self):
@@ -63,87 +62,95 @@ class DataReader:
         signal_power_factor: pyqtSignal
         signal_real_power: pyqtSignal
 
-        self.browser.get(self.url_1)
+        self.browser.get(self.url_sensor_data)
 
         if self.voltage_level == "13800":
-            data = high_data
             signal_voltage = self.signals.data_high_voltage
             signal_current = self.signals.data_high_current
             signal_power_factor = self.signals.data_high_power_factor
             signal_real_power = self.signals.data_high_real_power
         else:
-            data = low_data
             signal_voltage = self.signals.data_low_voltage
             signal_current = self.signals.data_low_current
             signal_power_factor = self.signals.data_low_power_factor
             signal_real_power = self.signals.data_low_real_power
 
         try:
-            readings = []
+            voltage_readings = []
             for index, element in enumerate(dom.phase_voltage[:self.count]):
                 field = self.browser.find_element_by_xpath(element)
                 content = field.get_attribute("textContent")
-                readings.append(content)
-            signal_voltage.emit(readings)
+                voltage_readings.append(content)
+            signal_voltage.emit(voltage_readings)
 
-            readings.clear()
+            current_readings = []
             for index, element in enumerate(dom.phase_current[:self.count]):
                 field = self.browser.find_element_by_xpath(element)
                 content = field.get_attribute("textContent")
-                readings.append(content)
-            signal_current.emit(readings)
+                current_readings.append(content)
+            signal_current.emit(current_readings)
 
-            readings.clear()
+            factor_readings = []
             for index, element in enumerate(dom.phase_power_factor[:self.count]):
                 field = self.browser.find_element_by_xpath(element)
                 content = field.get_attribute("textContent")
-                readings.append(content)
-            signal_power_factor.emit(readings)
+                factor_readings.append(content)
+            signal_power_factor.emit(factor_readings)
 
-            readings.clear()
+            power_readings = []
             for index, element in enumerate(dom.phase_real_power[:self.count]):
                 field = self.browser.find_element_by_xpath(element)
                 content = field.get_attribute("textContent")
                 if content != 'NA':
                     content = str(int(float(content.replace(",", "")) * 1000))
-                readings.append(content)
-            signal_real_power.emit(readings)
+                power_readings.append(content)
+            signal_real_power.emit(power_readings)
 
-            readings.clear()
-            for index, element in enumerate(dom.phase_temperature[:self.count]):
-                field = self.browser.find_element_by_xpath(element)
-                content = field.get_attribute("textContent")
-                readings.append(content)
-            self.signals.data_temperature.emit(readings)
+            readings = tuple(zip(voltage_readings, current_readings, power_readings))
+            self.validator(readings)
 
             if self.voltage_level == "7200":
-                get_page_login_if_needed(self.url_2, self.browser)
+                get_page_login_if_needed(self.url_raw_configuration, self.browser)
 
-                readings.clear()
+                scale_current_readings = []
                 for index, element in enumerate(dom.scale_current[:self.count]):
                     field = self.browser.find_element_by_xpath(element)
                     content = field.get_attribute("value")
-                    readings.append(content)
-                self.signals.data_scale_current.emit(readings)
+                    scale_current_readings.append(content)
+                self.signals.data_scale_current.emit(scale_current_readings)
 
-                readings.clear()
+                scale_voltage_readings = []
                 for index, element in enumerate(dom.scale_voltage[:self.count]):
                     field = self.browser.find_element_by_xpath(element)
                     content = field.get_attribute("value")
-                    readings.append(content)
-                self.signals.data_scale_voltage.emit(readings)
+                    scale_voltage_readings.append(content)
+                self.signals.data_scale_voltage.emit(scale_voltage_readings)
 
-                readings.clear()
+                correction_angle_readings = []
                 for index, element in enumerate(dom.raw_configuration_angle[:self.count]):
                     field = self.browser.find_element_by_xpath(element)
                     content = field.get_attribute("value")
-                    readings.append(content)
-                self.signals.data_correction_angle.emit(readings)
+                    correction_angle_readings.append(content)
+                self.signals.data_correction_angle.emit(correction_angle_readings)
 
-            self.signals.finished.emit()
-            self.signals.resize_columns.emit()
+                readings = tuple(zip(scale_current_readings, scale_voltage_readings, correction_angle_readings))
+                self.scale_and_angle_validator(readings)
+
+                self.browser.get(LWT.URL_SENSOR_DATA)
+                temperature_readings = []
+                for index, element in enumerate(dom.phase_temperature[:self.count]):
+                    field = self.browser.find_element_by_xpath(element)
+                    content = field.get_attribute("textContent")
+                    temperature_readings.append(content)
+                self.signals.data_temperature.emit(temperature_readings)
+
+                self.temperature_validator(temperature_readings)
+
         except StaleElementReferenceException:
             pass
+
+        self.signals.finished.emit()
+        self.signals.resize_columns.emit()
 
 
 class FaultCurrentReader:
@@ -166,12 +173,12 @@ class FaultCurrentReader:
 
 
 class PersistenceReader:
-    def __init__(self, url: str, browser: webdriver.Chrome, table: QTableWidget, count: int):
+    def __init__(self, url: str, browser: webdriver.Chrome, values: list):
         self.signals = Signals()
         self.url = url
         self.browser = browser
-        self.table = table
-        self.count = count
+        self.values = values
+        self.count = len(values)
 
     def read(self):
         get_page_login_if_needed(self.url, self.browser)
@@ -198,19 +205,11 @@ class PersistenceReader:
             value = field.get_attribute("value")
             correction_angles.append(value)
 
-        # then for each category, update that assumption if proven wrong
+        collector_readings = tuple(zip(scale_currents, scale_voltages, correction_angles))
 
-        for index in range(self.count):
-            if scale_currents[index] != self.table.item(index, 14).text():
-                presumed_innocent[index] = "Failed"
-
-        for index in range(self.count):
-            if scale_voltages[index] != self.table.item(index, 15).text():
-                presumed_innocent[index] = "Failed"
-
-        for index in range(self.count):
-            if correction_angles[index] != self.table.item(index, 16).text():
-                presumed_innocent[index] = "Failed"
+        for sensor_index, sensor_readings in enumerate(self.values):
+            if collector_readings[sensor_index] != sensor_readings:
+                presumed_innocent[sensor_index] = "Failed"
 
         self.signals.data_persisted.emit(presumed_innocent)
         self.signals.finished.emit()
@@ -241,7 +240,6 @@ class ReportingDataReader:
 
 class FirmwareVersionReader:
     """Used every time a sensor joins and links to the Collector."""
-    _firmware_version_col = 2
 
     def __init__(self, index, url: str, browser: webdriver.Chrome):
         self.url = url
@@ -255,5 +253,5 @@ class FirmwareVersionReader:
         field = self.browser.find_element_by_xpath(constants.firmware_version[self.index])
         content = field.get_attribute("textContent")
 
-        self.signals.firmware_version.emit((self.index, self._firmware_version_col), content)
+        self.signals.firmware_version.emit((self.index, LWT.TableColumn.FIRMWARE), content)
         self.signals.firmware_check_complete.emit(self.index)

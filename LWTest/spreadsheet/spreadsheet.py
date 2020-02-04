@@ -15,7 +15,7 @@ from LWTest.spreadsheet import constants
 _CONVERSIONS = [float, float, float, int,
                 float, float, float, int,
                 float, float, float, str,
-                str, str, lambda v: int(v) if type(v) == int else str(v), float, str]
+                str, str, lambda v: int(v) if type(v) == int else str(v), str, float, str]
 
 _SERIAL_LOCATIONS = QSettings().value('spreadsheet/serial_locations').split(' ')
 _FIVE_AMP_SAVE_LOCATIONS = QSettings().value('spreadsheet/result_locations').split(' ')

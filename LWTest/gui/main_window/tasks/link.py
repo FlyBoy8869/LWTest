@@ -3,10 +3,9 @@ from functools import partial
 from PyQt5.QtCore import QSettings, Qt
 from PyQt5.QtWidgets import QMessageBox
 
+import LWTest.LWTConstants as LWT
 from LWTest.sensor import SensorLog
-from LWTest.utilities.misc import create_item
 from LWTest.workers.link import LinkWorker
-
 
 _link_error = None
 _sensor_linked = None
@@ -15,9 +14,7 @@ _link_activity = None
 
 
 def determine_link_status(sensor_log: SensorLog, sensor_table, thread_pool, parent, record_func):
-    settings = QSettings()
-
-    link_worker = LinkWorker(sensor_log.get_serial_numbers(), settings.value("pages/modem_status"))
+    link_worker = LinkWorker(sensor_log.get_serial_numbers(), LWT.URL_MODEM_STATUS)
 
     global _link_error
     _link_error = partial(_link_error_handler, parent, sensor_log.get_serial_numbers())

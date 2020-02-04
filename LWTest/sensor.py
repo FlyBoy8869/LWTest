@@ -49,6 +49,16 @@ class Sensor:
 class SensorLog:
     def __init__(self):
         self._log = dict()
+        self._room_temperature: str = "21.7"
+
+    @property
+    def room_temperature(self):
+        return self._room_temperature
+
+    @room_temperature.setter
+    def room_temperature(self, value):
+        self._room_temperature = f"{value:.1f}"
+        print(f"room temperature = {self._room_temperature}")
 
     def append_all(self, iterable):
         self._clear()
@@ -60,6 +70,13 @@ class SensorLog:
 
     def get_line_position_of_sensor(self, serial_number: str) -> int:
         return self._find_sensor(serial_number).line_position
+
+    def get_persistence_values_for_comparison(self):
+        values = []
+        for sensor in self._log.values():
+            values.append((sensor.scale_current, sensor.scale_voltage, sensor.correction_angle))
+
+        return tuple(values)
 
     def get_sensor_by_line_position(self, line_position):
         for sensor in self._log.values():

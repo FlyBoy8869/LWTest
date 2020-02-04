@@ -5,3 +5,4 @@ app.log
 .DS_Store
 *.log
 __pycache__
+/LWTest/tests/webpages/serve.bat

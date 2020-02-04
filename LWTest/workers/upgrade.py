@@ -1,77 +1,47 @@
 import sys
 import traceback
-from itertools import dropwhile
 from time import sleep
 
-import requests
 from PyQt5.QtCore import QRunnable
 
+import LWTest.LWTConstants as LWT
 from LWTest.signals import WorkerSignals
 
-# ------------------------
-# ----- For Testing -----
-_TESTING = False
-
-doc = ""
-file_name = r"tests/webpages/software upgrade example of unit following a failure.html"
-
-
-def build_document():
-    global doc
-    with open(file_name, 'r') as in_f:
-        for line in in_f:
-            doc += line
-            yield
-
-
-genny = build_document()
-
-
-class Page:
-    def __init__(self):
-        self.text = None
-        self.status_code = 200
-# ----- End Test Section -----
-# -----------------------------
+if LWT.TESTING:
+    import LWTest.tests.mock.requests.requests as requests
+else:
+    import requests
 
 
 class UpgradeWorker(QRunnable):
-    def __init__(self, serial_number: str, activity_loc: tuple, url: str, ignore_failures: bool = False):
+    def __init__(self, serial_number: str, url: str):
         super().__init__()
         self.serial_number = serial_number
-        self.activity_loc = activity_loc
         self.url = url
-        self.ignore_failures = ignore_failures
         self.signals = WorkerSignals()
 
-        self.line_count = 0
-        self.elapsed_time = 0
-        self.timeout = 15
-        self.time_to_sleep = 1
-
     def run(self):
-        sleep(5.0)
+        sleep(LWT.TimeOut.WAIT_FOR_COLLECTOR_TO_START_UPDATING_LOG_FILE.value)
 
-        # ----- For Testing -----
-        global genny
-        page = Page()
-        # ----- End Test Section -----
+        line_count = 0
+        previous_line_count = 0
+
         while True:
+
             try:
-                # ----- For Testing -----
-                if _TESTING:
-                    page.text = doc
-                # ----- End Test Section -----
-                else:
-                    page = requests.get(self.url, timeout=5)
-                    html = [line for line in page.text.split("\n")]
-                    html.reverse()
-                    print("retrieved page")
+                page = requests.get(self.url, timeout=LWT.TimeOut.URL_REQUEST.value)
+                html = page.text.split('\n')
+
+                # work from the bottom of the log file up so that we are only working
+                # with the current upgrade session data
+                html.reverse()
+
             except requests.exceptions.ConnectTimeout:
                 print(traceback.format_exc())
                 exc_type, value = sys.exc_info()[:2]
                 self.signals.url_read_exception.emit((exc_type, "Connection timed out.", value))
                 return
+            
             except requests.exceptions.ConnectionError:
                 print(traceback.format_exc())
                 exc_type, value = sys.exc_info()[:2]
@@ -87,28 +57,31 @@ class UpgradeWorker(QRunnable):
                 return
 
             if page.status_code == 200:
-                self.signals.upgrade_show_activity.emit(self.activity_loc[0])
 
                 for line in html:
 
+                    line_count += 1
+
                     # Only evaluate the current upgrade session
-                    # ignore anything else in the file
+                    # ignore everything else in the file
                     if self.serial_number in line:
                         break
 
-                    if "Failed to enter program mode" in line:
-                        self.signals.upgrade_failed_to_enter_program_mode.emit(self.activity_loc[0])
-                        print("Failed to enter program mode.")
-                        next(genny)
+                    if LWT.UPGRADE_FAILURE_TEXT in line:
+                        self.signals.upgrade_failed_to_enter_program_mode.emit()
                         return
 
-                    if "Program Checksum is 0x3d07" in line:
+                    if LWT.UPGRADE_SUCCESS_TEXT in line:
+                        self.signals.upgrade_progress.emit(-1)
                         self.signals.upgrade_successful.emit(self.serial_number)
-                        print(f"Closed found: {line}")
-                        print("Sensor firmware successfully upgraded.")
                         return
 
-                if _TESTING:
-                    next(genny)
+                lines_read_count = line_count - previous_line_count
+                if line_count > previous_line_count:
+                    previous_line_count += lines_read_count
 
-            sleep(1)
+                self.signals.upgrade_progress.emit(lines_read_count)
+
+                line_count = 0
+
+            sleep(LWT.TimeOut.UPGRADE_LOG_LOAD_INTERVAL.value)

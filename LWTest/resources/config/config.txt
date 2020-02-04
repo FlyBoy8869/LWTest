@@ -1,8 +1,8 @@
-pages/configuration=http://192.168.2.1/index.php/main/configuration
-#pages/configuration=http://127.0.0.1:8080/LineWatch-M Website configuration.html
+#pages/configuration=http://192.168.2.1/index.php/main/configuration
+pages/configuration=http://127.0.0.1:8080/LineWatch-M Website configuration.html
 
-pages/modem_status=http://192.168.2.1/index.php/main/modem_status
-#pages/modem_status=http://127.0.0.1:8080/LineWatch-M Website modem status.html
+#pages/modem_status=http://192.168.2.1/index.php/main/modem_status
+pages/modem_status=http://127.0.0.1:8080/LineWatch-M Website modem status.html
 
 pages/software_upgrade=http://192.168.2.1/index.php/upgrade
 #pages/software_upgrade=http://127.0.0.1:8080/LineWatch-M%20Website%20software%20upgrade.html
@@ -22,8 +22,8 @@ pages/voltage_ride_through=http://192.168.2.1/index.php/snow_ctrl/config
 
 pages/calibration=http://192.168.2.1/index.php/main/calibrate
 
-pages/sensor_data=http://192.168.2.1/index.php/main/sensordata
-#pages/sensor_data=http://127.0.0.1:8080/LineWatch-M%20Website%20sensor%20data.html
+#pages/sensor_data=http://192.168.2.1/index.php/main/sensordata
+pages/sensor_data=http://127.0.0.1:8080/LineWatch-M%20Website%20sensor%20data.html
 
 pages/fault_current=http://192.168.2.1/index.php/main/viewdata/cbc
 #pages/fault_current=http://127.0.0.1:8080/LineWatch-M%20Website%20fault_current.html

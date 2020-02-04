@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<!-- saved from url=(0044)http://192.168.2.1/index.php/main/sensordata -->
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+    <title>
+
+	LineWatch-M Website
+    </title>
+
+    
+
+    <!-- Import CSS styles -->
+
+    <link rel="stylesheet" type="text/css" href="./LineWatch-M Website sensor data_files/reset.css">
+
+    <link rel="stylesheet" type="text/css" href="./LineWatch-M Website sensor data_files/styles.css">
+
+    <link rel="stylesheet" type="text/css" href="./LineWatch-M Website sensor data_files/WebResource.css">
+
+    <link type="text/css" href="./LineWatch-M Website sensor data_files/jquery-ui-1.8.16.custom.css" rel="Stylesheet">	
+
+    
+
+    <!-- Import JavaScript -->
+
+    <!--[if lte IE 8]><script language="javascript" type="text/javascript" src="/javascript/flot/excanvas.min.js"></script><![endif]-->
+
+    <script language="javascript" type="text/javascript" src="./LineWatch-M Website sensor data_files/jquery.min.js.download"></script>
+
+    <script language="javascript" type="text/javascript" src="./LineWatch-M Website sensor data_files/jquery-ui-1.8.16.custom.min.js.download"></script>
+
+    <script language="javascript" type="text/javascript" src="./LineWatch-M Website sensor data_files/javascript.js.download"></script>
+
+    <script language="javascript" type="text/javascript" src="./LineWatch-M Website sensor data_files/jquery.flot.js.download"></script>
+
+    <script language="javascript" type="text/javascript" src="./LineWatch-M Website sensor data_files/jquery.flot.selection.js.download"></script>
+
+    <script language="javascript" type="text/javascript" src="./LineWatch-M Website sensor data_files/jquery.flot.downsample.js.download"></script>
+
+    <script language="javascript" type="text/javascript" src="./LineWatch-M Website sensor data_files/plot.js.download"></script>
+
+    <script language="javascript" type="text/javascript" src="./LineWatch-M Website sensor data_files/plotquality.js.download"></script>
+
+    <script language="javascript" type="text/javascript" src="./LineWatch-M Website sensor data_files/plotfault.js.download"></script>
+
+	<script language="javascript" type="text/javascript" src="./LineWatch-M Website sensor data_files/dnp3.js.download"></script>
+
+    
+    <script language="javascript" type="text/javascript" src="./LineWatch-M Website sensor data_files/refresh.js.download"></script>
+
+    
+
+
+    <!-- Dynamic JavaScript -->
+
+    <script language="javascript"> 
+
+        var column_name =
+
+        0;
+
+        var display_name = 
+
+        0;
+
+        var fault_file = 
+
+        0;
+
+        var base_url = "http://192.168.2.1/"; 
+
+        
+
+        var samples_per_cycle = 68;var is_single_phase = false;
+        
+
+        var sensor_type = "Feeder";
+
+    </script>
+
+</head>
+
+
+
+<body>
+
+    <div id="container">
+
+        <div id="header">
+
+            <a id="logo" href="http://192.168.2.1/">
+
+				<img src="./LineWatch-M Website sensor data_files/top_logo.gif" alt="Image of Qinetiq company logo" title="Qinetiq North America" border="0">
+
+			</a>
+
+                <div id="topNav">
+
+                    <ul>
+
+                        <li> <a href="http://192.168.2.1/index.php/main/sensordata">Sensor DataReader</a> </li> |
+
+                        <li> <a href="http://192.168.2.1/index.php/main/powerquality">Power Quality</a> </li> |   
+
+                        <li> <a href="http://192.168.2.1/index.php/fault_viewer">Events</a> </li> |
+
+                        <li> <a href="http://192.168.2.1/index.php/external_comms">Communications</a> </li> |
+
+                        <li> <a href="http://192.168.2.1/index.php/main/configuration">Configuration</a> </li> |
+
+						<li> <a href="http://192.168.2.1/index.php/dnp3">DNP3</a> </li> |
+
+                        <li> <a href="http://192.168.2.1/index.php/download">Download</a> </li>
+
+                    </ul>
+
+                </div>
+
+        </div>		        	
+
+        <div id="homeMain">
+
+            <div id="flash">
+
+                <h1>LineWatch-M™</h1><h2>Medium Voltage Collector Id# 9800060</h2>
+            </div>
+
+            <div id="maindiv">
+
+                <div id="test"></div>
+
+                <table><tbody><tr><td><h2 class="h2textfield">Date:</h2></td><td><input type="text" id="date" name="sensors_date" value="6/26/2019" class="hasDatepicker"></td></tr><tr><td><h2 class="h2textfield">Time:</h2></td><td><input type="text" id="time" name="sensors_time" value="18:41:00"></td></tr></tbody></table><br><br><p>Auto Update: <input type="checkbox" name="autoupdate" id="autoupdate" checked=""></p><div id="progress" style="width: 0px;"></div><p></p><div id="data"><div id="data">
+    <div class="trow">
+        <div class="tblank"></div>
+        <div class="tlabelShort"></div>
+        <div class="theadShort">Phase 1</div><div class="theadShort">Phase 2</div><div class="theadShort">Phase 3</div><div class="theadShort">Phase 4</div><div class="theadShort">Phase 5</div><div class="theadShort">Phase 6</div>    </div>
+
+    <div class="trow">
+    <div class="tblank"></div>
+    <div class="tlabelShort odd">Last Update</div>
+    <div class="tcellShort odd" id="lastA">06/26 18:41</div><div class="tcellShort odd" id="lastB">06/26 18:41</div><div class="tcellShort odd" id="lastC">06/26 18:41</div><div class="tcellShort odd" id="lastD">06/26 18:41</div><div class="tcellShort odd" id="lastE">06/26 18:41</div><div class="tcellShort odd" id="lastF">06/26 18:41</div>    </div>
+
+
+<div class="trow"><div class="tblank"><a href="http://192.168.2.1/index.php/main/viewdata/cdf"><img src="./LineWatch-M Website sensor data_files/view_sm.jpg" title="Click for time series."></a></div><div class="tlabelShort">Voltage<span style="float: right">(Vrms)</span></div><div class="tcellShort">7,199.83</div><div class="tcellShort">7,194.21</div><div class="tcellShort">7,195.25</div><div class="tcellShort">7,195.90</div><div class="tcellShort">NA</div><div class="tcellShort">7,192.8</div></div><div class="trow"><div class="tblank"><a href="http://192.168.2.1/index.php/main/viewdata/cbc"><img src="./LineWatch-M Website sensor data_files/view_sm.jpg" title="Click for time series."></a></div><div class="tlabelShort odd">Current<span style="float: right">(Arms)</span></div><div class="tcellShort odd">59.94</div><div class="tcellShort odd">59.95</div><div class="tcellShort odd">60.00</div><div class="tcellShort odd">59.99</div><div class="tcellShort odd">NA</div><div class="tcellShort odd">59.98</div></div><div class="trow"><div class="tblank"><a href="http://192.168.2.1/index.php/main/viewdata/211"><img src="./LineWatch-M Website sensor data_files/view_sm.jpg" title="Click for time series."></a></div><div class="tlabelShort">Power Factor</div><div class="tcellShort">0.9004</div><div class="tcellShort">0.9009</div><div class="tcellShort">0.9000</div><div class="tcellShort">0.9002</div><div class="tcellShort">NA</div><div class="tcellShort">0.9016</div></div><div class="trow"><div class="tblank"><a href="http://192.168.2.1/index.php/main/viewdata/9b8"><img src="./LineWatch-M Website sensor data_files/view_sm.jpg" title="Click for time series."></a></div><div class="tlabelShort odd">Lead / Lag</div><div class="tcellShort odd">Lagging</div><div class="tcellShort odd">Lagging</div><div class="tcellShort odd">Lagging</div><div class="tcellShort odd">Lagging</div><div class="tcellShort odd">NA</div><div class="tcellShort odd">Lagging</div></div><div class="trow"><div class="tblank"><a href="http://192.168.2.1/index.php/main/viewdata/c67"><img src="./LineWatch-M Website sensor data_files/view_sm.jpg" title="Click for time series."></a></div><div class="tlabelShort">Real Power<span style="float: right">(kW)</span></div><div class="tcellShort">388.80</div><div class="tcellShort">388.53</div><div class="tcellShort">386.85</div><div class="tcellShort">388.60</div><div class="tcellShort">NA</div><div class="tcellShort">389.02</div></div><div class="trow"><div class="tblank"><a href="http://192.168.2.1/index.php/main/viewdata/6a8"><img src="./LineWatch-M Website sensor data_files/view_sm.jpg" title="Click for time series."></a></div><div class="tlabelShort odd">Reactive Power<span style="float: right">(kVAr)</span></div><div class="tcellShort odd">187.83</div><div class="tcellShort odd">187.65</div><div class="tcellShort odd">187.82</div><div class="tcellShort odd">187.76</div><div class="tcellShort odd">NA</div><div class="tcellShort odd">186.78</div></div><div class="trow"><div class="tblank"><a href="http://192.168.2.1/index.php/main/viewdata/6de"><img src="./LineWatch-M Website sensor data_files/view_sm.jpg" title="Click for time series."></a></div><div class="tlabelShort">Apparent Power<span style="float: right">(kVA)</span></div><div class="tcellShort">431.80</div><div class="tcellShort">431.27</div><div class="tcellShort">431.72</div><div class="tcellShort">431.68</div><div class="tcellShort">NA</div><div class="tcellShort">431.50</div></div><div class="trow"><div class="tblank"><a href="http://192.168.2.1/index.php/main/viewdata/193"><img src="./LineWatch-M Website sensor data_files/view_sm.jpg" title="Click for time series."></a></div><div class="tlabelShort odd">Volt Hours<span style="float: right">(kVh)</span></div><div class="tcellShort odd">424.64</div><div class="tcellShort odd">353.56</div><div class="tcellShort odd">394.11</div><div class="tcellShort odd">381.30</div><div class="tcellShort odd">NA</div><div class="tcellShort odd">361.26</div></div><div class="trow"><div class="tblank"><a href="http://192.168.2.1/index.php/main/viewdata/7e6"><img src="./LineWatch-M Website sensor data_files/view_sm.jpg" title="Click for time series."></a></div><div class="tlabelShort">Amp Hours Dlvd<span style="float: right">(Ah)</span></div><div class="tcellShort">3,545.10</div><div class="tcellShort">2,962.39</div><div class="tcellShort">3,296.07</div><div class="tcellShort">3,387.84</div><div class="tcellShort">NA</div><div class="tcellShort">3,065.43</div></div><div class="trow"><div class="tblank"><a href="http://192.168.2.1/index.php/main/viewdata/267"><img src="./LineWatch-M Website sensor data_files/view_sm.jpg" title="Click for time series."></a></div><div class="tlabelShort odd">Amp Hours Rcvd<span style="float: right">(Ah)</span></div><div class="tcellShort odd">319.46</div><div class="tcellShort odd">167.52</div><div class="tcellShort odd">130.24</div><div class="tcellShort odd">30.27</div><div class="tcellShort odd">NA</div><div class="tcellShort odd">35.98</div></div><div class="trow"><div class="tblank"><a href="http://192.168.2.1/index.php/main/viewdata/2e1"><img src="./LineWatch-M Website sensor data_files/view_sm.jpg" title="Click for time series."></a></div><div class="tlabelShort">Real Energy Dlvd<span style="float: right">(kWh)</span></div><div class="tcellShort">38,283.77</div><div class="tcellShort">31,985.17</div><div class="tcellShort">36,812.06</div><div class="tcellShort">37,219.95</div><div class="tcellShort">NA</div><div class="tcellShort">35,487.36</div></div><div class="trow"><div class="tblank"><a href="http://192.168.2.1/index.php/main/viewdata/650"><img src="./LineWatch-M Website sensor data_files/view_sm.jpg" title="Click for time series."></a></div><div class="tlabelShort odd">Real Energy Rcvd<span style="float: right">(kWh)</span></div><div class="tcellShort odd">2,731.36</div><div class="tcellShort odd">1,452.89</div><div class="tcellShort odd">1,109.31</div><div class="tcellShort odd">0.01</div><div class="tcellShort odd">NA</div><div class="tcellShort odd">0.02</div></div><div class="trow"><div class="tblank"><a href="http://192.168.2.1/index.php/main/viewdata/28b"><img src="./LineWatch-M Website sensor data_files/view_sm.jpg" title="Click for time series."></a></div><div class="tlabelShort">Reactive Energy Dlvd<span style="float: right">(kVARh)</span></div><div class="tcellShort">18,405.13</div><div class="tcellShort">15,526.54</div><div class="tcellShort">17,781.79</div><div class="tcellShort">17,963.62</div><div class="tcellShort">NA</div><div class="tcellShort">17,200.53</div></div><div class="trow"><div class="tblank"><a href="http://192.168.2.1/index.php/main/viewdata/d16"><img src="./LineWatch-M Website sensor data_files/view_sm.jpg" title="Click for time series."></a></div><div class="tlabelShort odd">Reactive Energy Rcvd<span style="float: right">(kVARh)</span></div><div class="tcellShort odd">1,317.65</div><div class="tcellShort odd">705.59</div><div class="tcellShort odd">543.60</div><div class="tcellShort odd">0.01</div><div class="tcellShort odd">NA</div><div class="tcellShort odd">0.00</div></div><div class="trow"><div class="tblank"><a href="http://192.168.2.1/index.php/main/viewdata/029"><img src="./LineWatch-M Website sensor data_files/view_sm.jpg" title="Click for time series."></a></div><div class="tlabelShort">Temperature<span style="float: right">(°C)</span></div><div class="tcellShort">28.3</div><div class="tcellShort">28.5</div><div class="tcellShort">27.6</div><div class="tcellShort">27.7</div><div class="tcellShort">NA</div><div class="tcellShort">27.6</div></div>   
+ 
+<p>
+    <br>
+    * Click <img src="./LineWatch-M Website sensor data_files/view_sm.jpg"> for a time series of any parameter.
+</p>`
+</div><!-- DataReader Div! -->
+</div><!-- DataReader Div! -->
+
+            </div>
+
+        </div>
+
+
+
+        <div id="footer">
+
+            <ul>
+
+                <li>Version Release 1009-3.1.0: Factory Defaults
+</li>
+
+                <br>
+
+                <li><a href="http://192.168.2.1/index.php/upgrade">Software Upgrade</a> | <a href="http://192.168.2.1/index.php/upgrade/date_and_time">Date and Time</a> | <a href="http://192.168.2.1/index.php/main/changepassword/user">Change User Password</a> | <a href="http://192.168.2.1/index.php/main/changepassword/admin">Change Admin Password</a>
+                </li>
+
+                <br>
+
+                <li>
+
+                    <a href="http://192.168.2.1/index.php/main/reset">System Reset</a> | <a href="http://192.168.2.1/index.php/main/defaults">Restore Defaults</a> | <a href="http://192.168.2.1/index.php/main/modem_status">Modem Status</a> | <a href="http://192.168.2.1/index.php/log_viewer">Log Files</a>
+                </li>
+
+                <br>
+
+                <li>Copyright © 2012-2019 QinetiQ North America, All Rights Reserved</li>
+
+                <br>
+
+                <li><div id="dataloadtime" style="display:inline"></div></li>
+
+                <br>
+
+            </ul>
+
+        </div>
+
+    </div>
+
+
+
+
+
+
+
+
+
+    
+
+    
+
+<div id="ui-datepicker-div" class="ui-datepicker ui-widget ui-widget-content ui-helper-clearfix ui-corner-all"></div></body></html>

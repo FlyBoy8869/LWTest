@@ -5,41 +5,14 @@ from PyQt5.QtCore import QSettings
 from selenium import webdriver
 from selenium.common.exceptions import NoSuchElementException
 
+import LWTest.LWTConstants as LWT
 from LWTest.config.dom import constants as dom
 from LWTest.utilities import misc
 
 
-def do_serial_configuration(serial_numbers, browser):
-    settings = QSettings()
-
-    # The collector phase serial number field must always have a value
-    # even if that value is '0' or else an 'Invalid Input' error will occur.
-    # Plus it eliminates confusion by removing serial numbers not being
-    # tested and replacing them with that '0'. Looks cleaner :)
-    serial_numbers = misc.ensure_six_numbers(serial_numbers)
-
-    browser.get(settings.value("pages/configuration"))
-
-    for index, element in enumerate(dom.serial_number_elements):
-        field = browser.find_element_by_xpath(element)
-        field.clear()
-        field.send_keys(serial_numbers[index])
-
-    # select 60Hz
-    browser.find_element_by_xpath(dom.configuration_frequency).click()
-
-    # don't use voltage ride through
-    vrt = browser.find_element_by_xpath(dom.voltage_ride_through)
-    if vrt.is_selected():
-        vrt.click()
-
-    browser.find_element_by_xpath(dom.configuration_password).send_keys(settings.value("main/config_password"))
-    browser.find_element_by_xpath(dom.configuration_save_changes).click()
-
-
 def do_advanced_configuration(count: int, browser: webdriver.Chrome):
     settings = QSettings()
-    url = settings.value("pages/temperature")
+    url = LWT.URL_TEMPERATURE
     browser.get(url)
 
     try:
@@ -52,7 +25,7 @@ def do_advanced_configuration(count: int, browser: webdriver.Chrome):
         pass
     finally:
         sleep(2)
-        browser.get(settings.value("pages/temperature"))
+        browser.get(LWT.URL_TEMPERATURE)
 
     for element in dom.temperature_scale_offset[0:6]:
         field = browser.find_element_by_xpath(element)
@@ -68,7 +41,7 @@ def do_advanced_configuration(count: int, browser: webdriver.Chrome):
     _submit(browser.find_element_by_xpath(dom.temperature_submit_button), url)
 
     sleep(2)
-    url = settings.value("pages/raw_configuration")
+    url = LWT.URL_RAW_CONFIGURATION
     browser.get(url)
 
     for element in dom.scale_raw_temp_elements[0:count]:
@@ -95,7 +68,7 @@ def do_advanced_configuration(count: int, browser: webdriver.Chrome):
     _submit(browser.find_element_by_xpath(dom.raw_config_submit_button), url)
 
     sleep(2)
-    url = settings.value("pages/voltage_ride_through")
+    url = LWT.URL_VOLTAGE_RIDE_THROUGH
     browser.get(url)
 
     cal_factor = browser.find_element_by_xpath(dom.vrt_calibration_factor)

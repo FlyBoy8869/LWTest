@@ -1,7 +1,6 @@
-from time import sleep
+from PyQt5.QtCore import QRunnable, QSettings
 
-import requests
-from PyQt5.QtCore import QRunnable, QObject, pyqtSignal
+from LWTest.collector.read.confirm import ConfirmSerialConfig
 
 
 class ConfirmSerialConfigWorker(QRunnable):
@@ -11,3 +10,12 @@ class ConfirmSerialConfigWorker(QRunnable):
 
     def run(self):
         self.payload.read()
+
+
+def confirm_serial_update(serial_numbers: tuple):
+    settings = QSettings()
+    url = settings.value("pages/modem_status")
+
+    confirm_serial_config = ConfirmSerialConfig(serial_numbers, url)
+
+    return ConfirmSerialConfigWorker(confirm_serial_config)

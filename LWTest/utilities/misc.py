@@ -87,11 +87,3 @@ def to_bool(value) -> bool:
         return True
     else:
         return False
-
-
-def create_item(text=""):
-    item = QTableWidgetItem(text)
-    item.setFlags(Qt.ItemIsEnabled)
-    item.setTextAlignment(Qt.AlignHCenter | Qt.AlignVCenter)
-
-    return item

@@ -16,9 +16,10 @@ class WorkerSignals(QObject):
     link_timeout = pyqtSignal(tuple)  # emits the serial numbers that did not link to the collector
 
     upgrade_successful = pyqtSignal(str)
-    upgrade_failed_to_enter_program_mode = pyqtSignal(int)
-    upgrade_show_activity = pyqtSignal(int)
-    upgrade_timed_out = pyqtSignal(str)
+    upgrade_failed_to_enter_program_mode = pyqtSignal()
+    upgrade_progress = pyqtSignal(int)
+    upgrade_acknowledge_cancel = pyqtSignal()
+    upgrade_cancelled = pyqtSignal()
 
     link_activity = pyqtSignal(tuple, str)
 

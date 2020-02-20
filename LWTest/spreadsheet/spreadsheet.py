@@ -37,7 +37,7 @@ def get_serial_numbers(path: str) -> Tuple[str]:
     return _extract_serial_numbers_from_worksheet(_get_worksheet_from_workbook(path))
 
 
-def save_sensor_data(workbook_path, data_sets):
+def save_sensor_data(workbook_path, data_sets, temperature_reference: str):
     worksheet = _get_worksheet_from_workbook(workbook_path)
 
     for data_set in data_sets:
@@ -48,6 +48,7 @@ def save_sensor_data(workbook_path, data_sets):
             value = _convert_reading_for_spreadsheet(reading, _CONVERSIONS[index])
             worksheet[location].value = value
 
+    worksheet[constants.temperature_reference] = _convert_reading_for_spreadsheet(temperature_reference, float)
     worksheet[constants.tested_by].value = str("Charles Cognato")
     worksheet[constants.test_date].value = datetime.date.today()
 

@@ -298,19 +298,19 @@ class MainWindow(QMainWindow):
         choice = QMessageBox.Ok
 
         validator = None
-        sa_validator = None
+        scale_and_angle_validator = None
         temperature_validator = None
 
         # set_field_background = partial(self._set_field_background, QBrush(QColor(255, 0, 0, 50)))
         set_field_background = self._set_field_background
-        voltage_level = self.menu_helper.action_read_hi_or_low_voltage.data()
 
+        voltage_level = self.menu_helper.action_read_hi_or_low_voltage.data()
         if voltage_level == "13800":
             validator = partial(validators.validate_high_voltage_readings, set_field_background)
         else:
             validator = partial(validators.validate_low_voltage_readings, set_field_background)
 
-            sa_validator = partial(validators.validate_scale_n_angle_readings, set_field_background)
+            scale_and_angle_validator = partial(validators.validate_scale_n_angle_readings, set_field_background)
 
             temperature_validator = partial(validators.validate_temperature_readings, set_field_background,
                                             float(self.sensor_log.room_temperature))
@@ -328,7 +328,7 @@ class MainWindow(QMainWindow):
                                      LWT.URL_RAW_CONFIGURATION,
                                      self._get_browser(), self._get_sensor_count(),
                                      self.menu_helper.action_read_hi_or_low_voltage.data(),
-                                     validator, sa_validator, temperature_validator)
+                                     validator, scale_and_angle_validator, temperature_validator)
 
             data_reader.signals.data_high_voltage.connect(self._record_high_voltage_readings)
             data_reader.signals.data_high_current.connect(self._record_high_current_readings)
@@ -493,7 +493,7 @@ class MainWindow(QMainWindow):
             data_sets.append(dts)
             data = []
 
-        spreadsheet.save_sensor_data(self.spreadsheet_path, data_sets)
+        spreadsheet.save_sensor_data(self.spreadsheet_path, data_sets, self.sensor_log.room_temperature)
 
         self.unsaved_test_results = False
 

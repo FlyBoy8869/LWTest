@@ -50,5 +50,7 @@ phase_6 = ('J22', 'J23', 'J24', 'J25',
 
 phases = (phase_1, phase_2, phase_3, phase_4, phase_5, phase_6)
 
+temperature_reference = 'C17'
+
 tested_by = 'E43'
 test_date = 'I43'

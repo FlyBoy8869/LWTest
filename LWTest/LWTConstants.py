@@ -121,3 +121,4 @@ else:
     URL_VOLTAGE_RIDE_THROUGH = "http://192.168.2.1/index.php/snow_ctrl/config"
 
 
+print(f"using {URL_UPGRADE_LOG} to monitor firmware upgrade")

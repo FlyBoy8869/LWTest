@@ -12,6 +12,8 @@ if LWT.TESTING:
 else:
     import requests
 
+_trigger_words = ['updating', 'entering', 'erasing', 'beginning', 'seg#', 'transfer', 'last']
+
 
 class UpgradeWorker(QRunnable):
     def __init__(self, serial_number: str, url: str):
@@ -60,7 +62,9 @@ class UpgradeWorker(QRunnable):
 
                 for line in html:
 
-                    line_count += 1
+                    for _trigger_word in _trigger_words:
+                        if _trigger_word in line.lower():
+                            line_count += 1
 
                     # Only evaluate the current upgrade session
                     # ignore everything else in the file

@@ -36,7 +36,9 @@ class PersistenceBootMonitor(QDialog):
 
         self.description_label = QLabel("Please, wait for the collector to boot.\t\t")
 
+        progress_bar_stylesheet = "QProgressBar {min-height: 10px; max-height: 10px}"
         self.progress_bar = QProgressBar()
+        self.progress_bar.setStyleSheet(progress_bar_stylesheet)
         self.progress_bar.setMinimum(0)
         self.progress_bar.setMaximum(0)
         self.progress_bar.setTextVisible(False)
@@ -153,7 +155,9 @@ class CountDownDialog(QDialog):
 
         self.description_label = QLabel(self.message)
 
+        progress_bar_stylesheet = "QProgressBar {min-height: 10px; max-height: 10px}"
         self.progress_bar = QProgressBar()
+        self.progress_bar.setStyleSheet(progress_bar_stylesheet)
         self.progress_bar.setMinimum(0)
         self.progress_bar.setMaximum(self.timeout)
         self.progress_bar.setValue(self.timeout)
@@ -204,14 +208,9 @@ class UpgradeDialog(QDialog):
         self.progress = QProgressBar()
         self.progress.setAlignment(Qt.AlignHCenter)
         self.progress.setMinimum(0)
-        self.progress.setMaximum(57)
+        self.progress.setMaximum(83)
         self.progress.setValue(0)
         self.main_layout.addWidget(self.progress)
-
-        # self.button_box = QDialogButtonBox(QDialogButtonBox.Cancel)
-        # self.button_box.button(QDialogButtonBox.Cancel).setEnabled(False)
-        # self.button_box.rejected.connect(self.reject)
-        # self.main_layout.addWidget(self.button_box)
 
         self.setLayout(self.main_layout)
         self.setWindowTitle("Software Upgrade")

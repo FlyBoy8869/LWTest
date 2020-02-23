@@ -70,7 +70,7 @@ UPGRADE_FAILURE_TEXT = "Failed to enter program mode"
 
 if TESTING:
     class TimeOut(Enum):
-        COLLECTOR_POWER_OFF_TIME = 2
+        COLLECTOR_POWER_OFF_TIME = 5
         URL_REQUEST = 10
         URL_READ_INTERVAL = 2
         CONFIRM_SERIAL_CONFIG = 5
@@ -78,7 +78,7 @@ if TESTING:
         LINK_CHECK = 5
         LINK_PAGE_LOAD_INTERVAL = 1
         WAIT_FOR_COLLECTOR_TO_START_UPDATING_LOG_FILE = 1
-        UPGRADE_LOG_LOAD_INTERVAL = 0.2
+        UPGRADE_LOG_LOAD_INTERVAL = 0.1
 else:
     class TimeOut(Enum):
         COLLECTOR_POWER_OFF_TIME = 300  # time to wait while collector is powered off
@@ -96,7 +96,7 @@ if TESTING:
     URL_CONFIGURATION = "http://127.0.0.1:8080/LineWatch-M Website configuration.html"
     URL_MODEM_STATUS = "http://127.0.0.1:8080/LineWatch-M Website modem status.html"
     URL_UPGRADE = "http://127.0.0.1:8080/LineWatch-M%20Website%20software%20upgrade.html"
-    URL_UPGRADE_LOG = r"LWTest\tests\webpages\software upgrade example 1.html"
+    URL_UPGRADE_LOG = r"LWTest\tests\webpages\software upgrade example 1 mod 1.html"
     # URL_UPGRADE_LOG = r"LWTest\tests\webpages\software upgrade example of failure.html"
     URL_SENSOR_DATA = "http://127.0.0.1:8080/LineWatch-M%20Website%20sensor%20data.html"
     URL_TEMPERATURE = "http://127.0.0.1:8080/LineWatch-M%20Website%20temperature%20scale.html"

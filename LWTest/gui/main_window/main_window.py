@@ -344,14 +344,14 @@ class MainWindow(QMainWindow):
         pass_func = partial(self._set_field_background, QBrush(QColor(255, 255, 255, 255)))
         fail_func = partial(self._set_field_background, QBrush(QColor(255, 0, 0, 50)))
 
-        self._record_high_voltage_readings(readings[0])
-        self._record_high_current_readings(readings[1])
-        self._record_high_power_factor_readings(readings[2])
-        self._record_high_real_power_readings(readings[3])
+        self._record_high_voltage_readings(readings[LWT.VOLTAGE])
+        self._record_high_current_readings(readings[LWT.CURRENT])
+        self._record_high_power_factor_readings(readings[LWT.FACTORS])
+        self._record_high_real_power_readings(readings[LWT.POWER])
 
         self._update_from_model()
 
-        data_set = tuple(zip(readings[0], readings[1], readings[3]))
+        data_set = tuple(zip(readings[LWT.VOLTAGE], readings[LWT.CURRENT], readings[LWT.POWER]))
         validators.validate_high_voltage_readings(pass_func, fail_func, data_set)
 
     def _receive_low_data_readings(self, readings: tuple):
@@ -361,26 +361,26 @@ class MainWindow(QMainWindow):
         pass_func = partial(self._set_field_background, QBrush(QColor(255, 255, 255, 255)))
         fail_func = partial(self._set_field_background, QBrush(QColor(255, 0, 0, 50)))
 
-        self._record_low_voltage_readings(readings[0])
-        self._record_low_current_readings(readings[1])
-        self._record_low_power_factor_readings(readings[2])
-        self._record_low_real_power_readings(readings[3])
-        self._record_scale_current_readings(readings[4])
-        self._record_scale_voltage_readings(readings[5])
-        self._record_correction_angle_readings(readings[6])
-        self._record_temperature_readings(readings[7])
+        self._record_low_voltage_readings(readings[LWT.VOLTAGE])
+        self._record_low_current_readings(readings[LWT.CURRENT])
+        self._record_low_power_factor_readings(readings[LWT.FACTORS])
+        self._record_low_real_power_readings(readings[LWT.POWER])
+        self._record_scale_current_readings(readings[LWT.SCALE_CURRENT])
+        self._record_scale_voltage_readings(readings[LWT.SCALE_VOLTAGE])
+        self._record_correction_angle_readings(readings[LWT.CORRECTION_ANGLE])
+        self._record_temperature_readings(readings[LWT.TEMPERATURE])
 
         self._update_from_model()
 
-        data_set = tuple(zip(readings[0], readings[1], readings[3]))
+        data_set = tuple(zip(readings[LWT.VOLTAGE], readings[LWT.CURRENT], readings[LWT.POWER]))
         validators.validate_low_voltage_readings(pass_func, fail_func, data_set)
 
-        data_set = tuple(zip(readings[4], readings[5], readings[6]))
+        data_set = tuple(zip(readings[LWT.SCALE_CURRENT], readings[LWT.SCALE_VOLTAGE], readings[LWT.CORRECTION_ANGLE]))
         validators.validate_scale_n_angle_readings(pass_func, fail_func, data_set)
 
         validators.validate_temperature_readings(pass_func, fail_func,
                                                  float(self.sensor_log.room_temperature),
-                                                 readings[7])
+                                                 readings[LWT.TEMPERATURE])
 
     def _manually_override_calibrated_result(self, result, index):
         self.sensor_log.get_sensor_by_line_position(index).calibrated = result

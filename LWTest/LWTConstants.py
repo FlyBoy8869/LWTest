@@ -120,5 +120,13 @@ else:
     URL_FAULT_CURRENT = "http://192.168.2.1/index.php/main/viewdata/cbc"
     URL_VOLTAGE_RIDE_THROUGH = "http://192.168.2.1/index.php/snow_ctrl/config"
 
+VOLTAGE = 0
+CURRENT = 1
+FACTORS = 2
+POWER = 3
+SCALE_CURRENT = 4
+SCALE_VOLTAGE = 5
+CORRECTION_ANGLE = 6
+TEMPERATURE = 7
 
 print(f"using {URL_UPGRADE_LOG} to monitor firmware upgrade")

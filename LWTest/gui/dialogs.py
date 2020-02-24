@@ -155,7 +155,8 @@ class CountDownDialog(QDialog):
 
         self.description_label = QLabel(self.message)
 
-        progress_bar_stylesheet = "QProgressBar {min-height: 10px; max-height: 10px}"
+        progress_bar_stylesheet = "QProgressBar {min-height: 10px; max-height: 10px; " + \
+                                  "margin-top:10px; margin-bottom: 10px}"
         self.progress_bar = QProgressBar()
         self.progress_bar.setStyleSheet(progress_bar_stylesheet)
         self.progress_bar.setMinimum(0)

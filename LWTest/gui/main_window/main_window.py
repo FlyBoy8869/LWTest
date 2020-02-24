@@ -1,7 +1,7 @@
 from functools import partial
 
 from PyQt5.QtCore import QThreadPool, QSettings, QSize
-from PyQt5.QtGui import QIcon, QCloseEvent, QBrush
+from PyQt5.QtGui import QIcon, QCloseEvent, QBrush, QColor
 from PyQt5.QtWidgets import QMainWindow, QTableWidget, QVBoxLayout, QWidget, QTableWidgetItem, QMessageBox, QToolBar, \
     QDialog, QDoubleSpinBox
 from selenium import webdriver
@@ -297,10 +297,6 @@ class MainWindow(QMainWindow):
     def _take_readings(self):
         choice = QMessageBox.Ok
 
-        validator = None
-        scale_and_angle_validator = None
-        temperature_validator = None
-
         # set_field_background = partial(self._set_field_background, QBrush(QColor(255, 0, 0, 50)))
         set_field_background = self._set_field_background
 
@@ -327,26 +323,12 @@ class MainWindow(QMainWindow):
             data_reader = DataReader(LWT.URL_SENSOR_DATA,
                                      LWT.URL_RAW_CONFIGURATION,
                                      self._get_browser(), self._get_sensor_count(),
-                                     self.menu_helper.action_read_hi_or_low_voltage.data(),
-                                     validator, scale_and_angle_validator, temperature_validator)
+                                     self.menu_helper.action_read_hi_or_low_voltage.data())
 
-            data_reader.signals.data_high_voltage.connect(self._record_high_voltage_readings)
-            data_reader.signals.data_high_current.connect(self._record_high_current_readings)
-            data_reader.signals.data_high_power_factor.connect(self._record_high_power_factor_readings)
-            data_reader.signals.data_high_real_power.connect(self._record_high_real_power_readings)
-
-            data_reader.signals.data_low_voltage.connect(self._record_low_voltage_readings)
-            data_reader.signals.data_low_current.connect(self._record_low_current_readings)
-            data_reader.signals.data_low_power_factor.connect(self._record_low_power_factor_readings)
-            data_reader.signals.data_low_real_power.connect(self._record_low_real_power_readings)
-
-            data_reader.signals.data_temperature.connect(self._record_temperature_readings)
-            data_reader.signals.data_scale_current.connect(self._record_scale_current_readings)
-            data_reader.signals.data_scale_voltage.connect(self._record_scale_voltage_readings)
-            data_reader.signals.data_correction_angle.connect(self._record_correction_angle_readings)
-
-            data_reader.signals.finished.connect(self._update_from_model)
-            data_reader.signals.finished.connect(self._resize_table_columns)
+            if voltage_level == "13800":
+                data_reader.signals.high_data_readings.connect(self._receive_high_data_readings)
+            else:
+                data_reader.signals.low_data_readings.connect(self._receive_low_data_readings)
 
             worker = ReadingsWorker(data_reader)
             self.thread_pool.start(worker)
@@ -355,6 +337,50 @@ class MainWindow(QMainWindow):
                 self.menu_helper.action_check_persistence.setEnabled(True)
 
             self.unsaved_test_results = True
+
+    def _receive_high_data_readings(self, readings: tuple):
+        """Receives data in the following order: voltage, current, factors, power."""
+
+        pass_func = partial(self._set_field_background, QBrush(QColor(255, 255, 255, 255)))
+        fail_func = partial(self._set_field_background, QBrush(QColor(255, 0, 0, 50)))
+
+        self._record_high_voltage_readings(readings[0])
+        self._record_high_current_readings(readings[1])
+        self._record_high_power_factor_readings(readings[2])
+        self._record_high_real_power_readings(readings[3])
+
+        self._update_from_model()
+
+        data_set = tuple(zip(readings[0], readings[1], readings[3]))
+        validators.validate_high_voltage_readings(pass_func, fail_func, data_set)
+
+    def _receive_low_data_readings(self, readings: tuple):
+        """Receives data in the following order: voltage, current, factors, power, scale current,
+        scale voltage, correction angle, temperature."""
+
+        pass_func = partial(self._set_field_background, QBrush(QColor(255, 255, 255, 255)))
+        fail_func = partial(self._set_field_background, QBrush(QColor(255, 0, 0, 50)))
+
+        self._record_low_voltage_readings(readings[0])
+        self._record_low_current_readings(readings[1])
+        self._record_low_power_factor_readings(readings[2])
+        self._record_low_real_power_readings(readings[3])
+        self._record_scale_current_readings(readings[4])
+        self._record_scale_voltage_readings(readings[5])
+        self._record_correction_angle_readings(readings[6])
+        self._record_temperature_readings(readings[7])
+
+        self._update_from_model()
+
+        data_set = tuple(zip(readings[0], readings[1], readings[3]))
+        validators.validate_low_voltage_readings(pass_func, fail_func, data_set)
+
+        data_set = tuple(zip(readings[4], readings[5], readings[6]))
+        validators.validate_scale_n_angle_readings(pass_func, fail_func, data_set)
+
+        validators.validate_temperature_readings(pass_func, fail_func,
+                                                 float(self.sensor_log.room_temperature),
+                                                 readings[7])
 
     def _manually_override_calibrated_result(self, result, index):
         self.sensor_log.get_sensor_by_line_position(index).calibrated = result

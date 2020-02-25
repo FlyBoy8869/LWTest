@@ -71,6 +71,8 @@ class MainWindow(QMainWindow):
         self.unsaved_test_results = False
         self.spreadsheet_path = None
         self.room_temp: QDoubleSpinBox = QDoubleSpinBox(self)
+        self.pass_func = partial(self._set_sensor_table_field_background, QBrush(QColor(255, 255, 255, 255)))
+        self.fail_func = partial(self._set_sensor_table_field_background, QBrush(QColor(255, 0, 0, 50)))
 
         self.panel = QWidget(self)
         self.panel_layout = QVBoxLayout(self.panel)
@@ -297,8 +299,8 @@ class MainWindow(QMainWindow):
     def _take_readings(self):
         choice = QMessageBox.Ok
 
-        # set_field_background = partial(self._set_field_background, QBrush(QColor(255, 0, 0, 50)))
-        set_field_background = self._set_field_background
+        # set_field_background = partial(self._set_sensor_table_field_background, QBrush(QColor(255, 0, 0, 50)))
+        set_field_background = self._set_sensor_table_field_background
 
         voltage_level = self.menu_helper.action_read_hi_or_low_voltage.data()
         if voltage_level == "13800":
@@ -341,9 +343,6 @@ class MainWindow(QMainWindow):
     def _receive_high_data_readings(self, readings: tuple):
         """Receives data in the following order: voltage, current, factors, power."""
 
-        pass_func = partial(self._set_field_background, QBrush(QColor(255, 255, 255, 255)))
-        fail_func = partial(self._set_field_background, QBrush(QColor(255, 0, 0, 50)))
-
         self._record_high_voltage_readings(readings[LWT.VOLTAGE])
         self._record_high_current_readings(readings[LWT.CURRENT])
         self._record_high_power_factor_readings(readings[LWT.FACTORS])
@@ -352,14 +351,11 @@ class MainWindow(QMainWindow):
         self._update_from_model()
 
         data_set = tuple(zip(readings[LWT.VOLTAGE], readings[LWT.CURRENT], readings[LWT.POWER]))
-        validators.validate_high_voltage_readings(pass_func, fail_func, data_set)
+        validators.validate_high_voltage_readings(self.pass_func, self.fail_func, data_set)
 
     def _receive_low_data_readings(self, readings: tuple):
         """Receives data in the following order: voltage, current, factors, power, scale current,
         scale voltage, correction angle, temperature."""
-
-        pass_func = partial(self._set_field_background, QBrush(QColor(255, 255, 255, 255)))
-        fail_func = partial(self._set_field_background, QBrush(QColor(255, 0, 0, 50)))
 
         self._record_low_voltage_readings(readings[LWT.VOLTAGE])
         self._record_low_current_readings(readings[LWT.CURRENT])
@@ -373,12 +369,12 @@ class MainWindow(QMainWindow):
         self._update_from_model()
 
         data_set = tuple(zip(readings[LWT.VOLTAGE], readings[LWT.CURRENT], readings[LWT.POWER]))
-        validators.validate_low_voltage_readings(pass_func, fail_func, data_set)
+        validators.validate_low_voltage_readings(self.pass_func, self.fail_func, data_set)
 
         data_set = tuple(zip(readings[LWT.SCALE_CURRENT], readings[LWT.SCALE_VOLTAGE], readings[LWT.CORRECTION_ANGLE]))
-        validators.validate_scale_n_angle_readings(pass_func, fail_func, data_set)
+        validators.validate_scale_n_angle_readings(self.pass_func, self.fail_func, data_set)
 
-        validators.validate_temperature_readings(pass_func, fail_func,
+        validators.validate_temperature_readings(self.pass_func, self.fail_func,
                                                  float(self.sensor_log.room_temperature),
                                                  readings[LWT.TEMPERATURE])
 
@@ -649,7 +645,7 @@ class MainWindow(QMainWindow):
     def _get_sensor_count(self):
         return len(self.sensor_log)
 
-    def _set_field_background(self, color: QBrush, row: int, col: int):
+    def _set_sensor_table_field_background(self, color: QBrush, row: int, col: int):
         item: QTableWidgetItem = self.sensor_table.item(row, col)
         item.setBackground(color)
 

@@ -1,9 +1,6 @@
-from typing import Callable, Tuple
-
-from PyQt5.QtGui import QBrush, QColor
+from typing import Callable
 
 import LWTest.LWTConstants as LWT
-
 
 HIGH_MINS = (LWT.Tolerance.HIGH_VOLTAGE_MIN.value,
              LWT.Tolerance.HIGH_CURRENT_MIN.value,

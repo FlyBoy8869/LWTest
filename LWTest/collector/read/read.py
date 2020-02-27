@@ -5,7 +5,7 @@ from selenium import webdriver
 from selenium.common.exceptions import StaleElementReferenceException
 
 from LWTest import LWTConstants as LWT
-from LWTest.config.dom import constants as dom, constants
+from LWTest.constants import dom
 from LWTest.utilities.misc import get_page_login_if_needed
 
 
@@ -215,7 +215,7 @@ class FirmwareVersionReader:
     def read(self):
         self.browser.get(self.url)
 
-        field = self.browser.find_element_by_xpath(constants.firmware_version[self.index])
+        field = self.browser.find_element_by_xpath(dom.firmware_version[self.index])
         content = field.get_attribute("textContent")
 
         self.signals.firmware_version.emit((self.index, LWT.TableColumn.FIRMWARE), content)

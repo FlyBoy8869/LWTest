@@ -7,7 +7,7 @@ from PyQt5.QtWidgets import QDialog, QVBoxLayout, QProgressBar, QLabel, QHBoxLay
 
 import LWTest.LWTConstants as LWT
 from LWTest.collector.read.confirm import ConfirmSerialConfig
-from LWTest.config.dom import constants
+from LWTest.constants import dom
 from LWTest.workers.confirm import ConfirmSerialConfigWorker
 from LWTest.workers.upgrade import UpgradeWorker
 
@@ -230,12 +230,12 @@ class UpgradeDialog(QDialog):
             if "Please reload after a moment" in self.browser.page_source:
                 self.browser.get(LWT.URL_UPGRADE)
 
-            self.browser.find_element_by_xpath(constants.unit_select_button[self.row]).click()
-            self.browser.find_element_by_xpath(constants.firmware_file).send_keys(
+            self.browser.find_element_by_xpath(dom.unit_select_button[self.row]).click()
+            self.browser.find_element_by_xpath(dom.firmware_file).send_keys(
                 "LWTest/resources/firmware/firmware-0x0075.zip")
-            self.browser.find_element_by_xpath(constants.upgrade_password).send_keys(
+            self.browser.find_element_by_xpath(dom.upgrade_password).send_keys(
                 settings.value('main/config_password'))
-            self.browser.find_element_by_xpath(constants.upgrade_button).click()
+            self.browser.find_element_by_xpath(dom.upgrade_button).click()
 
             self.thread_starter(self.worker)
 

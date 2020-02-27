@@ -6,7 +6,7 @@ from selenium import webdriver
 from selenium.common.exceptions import NoSuchElementException
 
 import LWTest.LWTConstants as LWT
-from LWTest.config.dom import constants as dom
+from LWTest.constants import dom as dom
 from LWTest.utilities import misc
 
 

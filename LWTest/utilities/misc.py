@@ -2,14 +2,12 @@
 import os
 import sys
 import traceback
-from time import sleep
 
-from PyQt5.QtCore import QSettings, Qt
-from PyQt5.QtWidgets import QTableWidgetItem
+from PyQt5.QtCore import QSettings
 from selenium import webdriver
 from selenium.common.exceptions import NoSuchElementException
 
-from LWTest.config.dom import constants as dom
+from LWTest.constants import dom as dom
 
 
 def ensure_six_numbers(serial_numbers):

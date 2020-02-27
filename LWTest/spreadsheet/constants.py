@@ -1,4 +1,4 @@
-# spreadsheet.constants.py
+# spreadsheet.dom.py
 
 from collections import namedtuple
 

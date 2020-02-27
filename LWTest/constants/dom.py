@@ -1,4 +1,4 @@
-# config.dom.constants.py
+# config.dom.dom.py
 
 login_header = '/html/body/div/h1'
 login_username_field = '//*[@id="username"]'

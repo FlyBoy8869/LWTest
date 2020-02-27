@@ -1,11 +1,10 @@
 from time import sleep
 
 from PyQt5.QtCore import QRunnable, QSettings, QObject, pyqtSignal
-from PyQt5.QtWidgets import QMessageBox
 from selenium import webdriver
 
 import LWTest.LWTConstants as LWT
-from LWTest.config.dom.constants import serial_number_elements, configuration_frequency, voltage_ride_through, \
+from LWTest.constants.dom import serial_number_elements, configuration_frequency, voltage_ride_through, \
     configuration_password, configuration_save_changes
 from LWTest.utilities import misc
 

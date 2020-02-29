@@ -298,20 +298,7 @@ class MainWindow(QMainWindow):
 
     def _take_readings(self):
         choice = QMessageBox.Ok
-
-        # set_field_background = partial(self._set_sensor_table_field_background, QBrush(QColor(255, 0, 0, 50)))
-        set_field_background = self._set_sensor_table_field_background
-
         voltage_level = self.menu_helper.action_read_hi_or_low_voltage.data()
-        if voltage_level == "13800":
-            validator = partial(validators.validate_high_voltage_readings, set_field_background)
-        else:
-            validator = partial(validators.validate_low_voltage_readings, set_field_background)
-
-            scale_and_angle_validator = partial(validators.validate_scale_n_angle_readings, set_field_background)
-
-            temperature_validator = partial(validators.validate_temperature_readings, set_field_background,
-                                            float(self.sensor_log.room_temperature))
 
         if voltage_level == '13800':
             choice = QMessageBox.warning(QMessageBox(self), "LWTest\t\t\t\t\t\t",

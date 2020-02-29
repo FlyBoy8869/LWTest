@@ -31,7 +31,7 @@ def get_page_login_if_needed(url: str, browser: webdriver.Chrome, text=""):
         if text not in browser.page_source:
             print(f"{__name__}.get_page_login_if_needed: text not on page, attempting login")
             try:
-                # browser.get(url)
+                # _driver.get(_url)
                 browser.find_element_by_xpath(dom.login_header)
                 browser.find_element_by_xpath(dom.login_username_field).send_keys(user)
                 browser.find_element_by_xpath(dom.login_password_field).send_keys(password)

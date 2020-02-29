@@ -95,8 +95,8 @@ class MainWindow(QMainWindow):
         self.signals.serial_numbers_imported.connect(self.sensor_log.append_all)
 
         self.browser: webdriver.Chrome
-        # misc.load_start_page(self.browser)
-        # self.browser.maximize_window()
+        # misc.load_start_page(self._driver)
+        # self._driver.maximize_window()
 
         self.activateWindow()
 
@@ -635,10 +635,10 @@ class MainWindow(QMainWindow):
 
     def _get_browser(self):
         if self.browser is None:
-            # self.browser = webdriver.Chrome(executable_path=self.settings.value("drivers/chromedriver"))
+            # self._driver = webdriver.Chrome(executable_path=self.settings.value("drivers/chromedriver"))
             self.browser = webdriver.Remote(service.service_url)
-            # self.browser.minimize_window()
-            # self.browser = chrome_worker.get_browser()
+            # self._driver.minimize_window()
+            # self._driver = chrome_worker.get_browser()
 
         return self.browser
 

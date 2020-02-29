@@ -27,7 +27,7 @@ class PersistenceBootMonitor(QDialog):
         self.setWindowTitle("Persistence")
 
         self.parent = parent
-        # self.url = LWT.URL_RAW_CONFIGURATION
+        # self._url = LWT.URL_RAW_CONFIGURATION
         self.timeout = LWT.TimeOut.COLLECTOR_BOOT_WAIT_TIME.value
 
         self.thread_started = False

@@ -49,4 +49,4 @@ spreadsheet/worksheet=Sensor(s)
 spreadsheet/serial_locations=D4 E4 F4 G4 H4 I4
 spreadsheet/result_locations=D5 E5 F5 G5 H5 I5
 
-drivers/chromedriver=LWTest\resources\drivers\chromedriver\windows\version_78-0-3904-70\chromedriver.exe
+drivers/chromedriver=LWTest\resources\drivers\chromedriver\windows\version_80_0_3987_106\chromedriver.exe

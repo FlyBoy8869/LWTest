@@ -17,7 +17,6 @@ from LWTest.collector import configure
 from LWTest.collector.read.confirm import ConfirmSerialConfig
 from LWTest.collector.read.read import DataReader, FaultCurrentReader, PersistenceReader, FirmwareVersionReader, \
     ReportingDataReader
-from LWTest.config.app import logging as lwt_logging, settings as lwt_settings
 from LWTest.gui.dialogs import PersistenceBootMonitor, ConfirmSerialConfigDialog, CountDownDialog, UpgradeDialog
 from LWTest.gui.main_window.create_menus import MenuHelper
 from LWTest.gui.main_window.menu_help_handlers import menu_help_about_handler
@@ -31,10 +30,7 @@ from LWTest.workers.postlink import PostLinkCheckWorker
 from LWTest.workers.readings import ReadingsWorker
 from LWTest.workers.serial import configure_serial_numbers
 
-lwt_settings.load(r"LWTest/resources/config/config.txt")
-lwt_logging.initialize()
-
-service = Service(r"LWTest\resources\drivers\chromedriver\windows\version_78-0-3904-70\chromedriver.exe")
+service = Service(QSettings().value("drivers/chromedriver"))
 service.start()
 
 _DATA_IN_TABLE_ORDER = ("rssi", "firmware_version", "reporting_data", "calibrated", "high_voltage", "high_current",
@@ -95,8 +91,6 @@ class MainWindow(QMainWindow):
         self.signals.serial_numbers_imported.connect(self.sensor_log.append_all)
 
         self.browser: webdriver.Chrome
-        # misc.load_start_page(self._driver)
-        # self._driver.maximize_window()
 
         self.activateWindow()
 

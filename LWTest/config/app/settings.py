@@ -9,12 +9,16 @@ QCoreApplication.setOrganizationName(org_name)
 QCoreApplication.setApplicationName(app_name)
 
 
-def load(path: str):
+def load(path: str, settings: QSettings):
     with open(path) as in_f:
-        settings = QSettings()
         for setting in in_f.readlines():
             if not setting.strip() or setting.startswith("#"):
                 continue
             setting = setting.strip().split("=", 1)
             print(f"creating setting: {setting}")
             settings.setValue(setting[0], setting[1])
+
+
+def process_command_line_args(args: list, settings: QSettings):
+    debug = True if "DEBUG" in args else False
+    settings.setValue("DEBUG", debug)

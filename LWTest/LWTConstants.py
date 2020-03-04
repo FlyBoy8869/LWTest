@@ -1,8 +1,10 @@
 import datetime
 from enum import Enum, auto, unique, IntEnum
 
+from PyQt5.QtCore import QSettings
 
-TESTING = True
+
+TESTING = True if QSettings().value("DEBUG") == 'true' else False
 
 
 class TestID(Enum):

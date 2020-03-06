@@ -30,6 +30,7 @@ from LWTest.workers.postlink import PostLinkCheckWorker
 from LWTest.workers.readings import ReadingsWorker
 from LWTest.workers.serial import configure_serial_numbers
 
+
 service = Service(QSettings().value("drivers/chromedriver"))
 service.start()
 
@@ -87,7 +88,7 @@ class MainWindow(QMainWindow):
         self.show()
 
         self.signals.file_dropped.connect(lambda data: print(f"dropped filename: {data}"))
-        self.signals.file_dropped.connect(self._import_serial_numbers)
+        self.signals.file_dropped.connect(lambda filename: self._import_serial_numbers(filename, self.sensor_log))
         self.signals.serial_numbers_imported.connect(self.sensor_log.append_all)
 
         self.browser: webdriver.Chrome
@@ -116,7 +117,9 @@ class MainWindow(QMainWindow):
             event.ignore()
 
     def dropEvent(self, event):
-        self.signals.file_dropped.emit(event.mimeData().urls()[0].toLocalFile())
+        filename = event.mimeData().urls()[0].toLocalFile()
+        self.spreadsheet_path = filename
+        self.signals.file_dropped.emit(filename)
 
     def _discard_test_results(self, clear_flag=True):
         if self.unsaved_test_results:
@@ -133,10 +136,11 @@ class MainWindow(QMainWindow):
 
         return True
 
-    def _import_serial_numbers(self, filename: str):
+    def _import_serial_numbers(self, filename: str, sensor_log):
+        # listens for MainWindow().signals.file_dropped
+        
         if self._discard_test_results():
-            self.spreadsheet_path = filename
-            self.sensor_log.append_all(spreadsheet.get_serial_numbers(filename))
+            sensor_log.append_all(spreadsheet.get_serial_numbers(filename))
             self._setup_sensor_table()
 
         self.unsaved_test_results = False
@@ -146,9 +150,6 @@ class MainWindow(QMainWindow):
         sensortable.setup_table_widget(self, self.sensor_log.get_serial_numbers(), self.sensor_table,
                                        self._manually_override_calibrated_result,
                                        self._manually_override_fault_current_result)
-
-    def _resize_table_columns(self):
-        self.sensor_table.resizeColumnsToContents()
 
     def _configure_collector_serial_numbers(self):
         worker = configure_serial_numbers(self.sensor_log.get_serial_numbers(), self._get_browser())

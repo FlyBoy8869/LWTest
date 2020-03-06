@@ -18,6 +18,8 @@ _FAULT_10K = "0.65019"
 _FAULT_25K = "2.6"
 _VOLTAGE_RIDE_THROUGH_CALIBRATION_FACTOR = "0.0305327"
 _PHASE_ANGLE = "25.8"
+_NUMBER_OF_VOLTAGE_TEMPERATURE_SCALE_FIELDS = 6
+_NUMBER_OF_FIELDS_TO_SKIP = 6
 
 
 def do_advanced_configuration(driver: webdriver.Chrome, settings: QSettings):
@@ -79,12 +81,12 @@ def configure_correction_angle(url: str, driver: webdriver.Chrome, settings: QSe
 
 
 def _set_temperature_configuration_values(driver: webdriver.Chrome) -> None:
-    for element in dom.temperature_scale_offset[0:6]:
+    for element in dom.temperature_scale_offset[0:_NUMBER_OF_VOLTAGE_TEMPERATURE_SCALE_FIELDS]:
         field = driver.find_element_by_xpath(element)
         field.clear()
         field.send_keys(_VOLTAGE_TEMPERATURE_SCALE)
 
-    for element in dom.temperature_scale_offset[6:]:
+    for element in dom.temperature_scale_offset[_NUMBER_OF_FIELDS_TO_SKIP:]:
         field = driver.find_element_by_xpath(element)
         field.clear()
         field.send_keys(_REMAINING_TEMPERATURE_INPUT_FIELDS)

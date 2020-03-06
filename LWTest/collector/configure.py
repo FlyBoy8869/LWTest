@@ -59,8 +59,7 @@ def do_advanced_configuration(driver: webdriver.Chrome, settings: QSettings):
     sleep(LWT.TimeOut.TIME_BETWEEN_CONFIGURATION_PAGES.value)
 
 
-def configure_correction_angle(url: str, browser: webdriver.Chrome) -> bool:
-    settings = QSettings()
+def configure_correction_angle(url: str, browser: webdriver.Chrome, settings: QSettings) -> bool:
     browser.get(url)
 
     if misc.page_failed_to_load(browser, '//*[@id="maindiv"]/form/div[1]/h1[1]'):

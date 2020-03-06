@@ -221,7 +221,7 @@ class MainWindow(QMainWindow):
 
     def _config_correction_angle(self):
         while True:
-            result = configure.configure_correction_angle(LWT.URL_CONFIGURATION, self._get_browser())
+            result = configure.configure_correction_angle(LWT.URL_CONFIGURATION, self._get_browser(), QSettings())
 
             if result:
                 button = QMessageBox.warning(QMessageBox(self), "LWTest - warning\t\t\t\t",

@@ -59,19 +59,19 @@ def do_advanced_configuration(driver: webdriver.Chrome, settings: QSettings):
     sleep(LWT.TimeOut.TIME_BETWEEN_CONFIGURATION_PAGES.value)
 
 
-def configure_correction_angle(url: str, browser: webdriver.Chrome, settings: QSettings) -> bool:
-    browser.get(url)
+def configure_correction_angle(url: str, driver: webdriver.Chrome, settings: QSettings) -> bool:
+    driver.get(url)
 
-    if misc.page_failed_to_load(browser, '//*[@id="maindiv"]/form/div[1]/h1[1]'):
+    if misc.page_failed_to_load(driver, '//*[@id="maindiv"]/form/div[1]/h1[1]'):
         return True
 
     for element in dom.correction_angle_elements:
-        field = browser.find_element_by_xpath(element)
+        field = driver.find_element_by_xpath(element)
         field.clear()
         field.send_keys(_PHASE_ANGLE)
 
-    browser.find_element_by_xpath(dom.configuration_password).send_keys(settings.value("main/config_password"))
-    _submit(browser.find_element_by_xpath(dom.configuration_save_changes), settings)
+    driver.find_element_by_xpath(dom.configuration_password).send_keys(settings.value("main/config_password"))
+    _submit(driver.find_element_by_xpath(dom.configuration_save_changes), settings)
 
     sleep(LWT.TimeOut.TIME_BETWEEN_CONFIGURATION_PAGES.value)
 

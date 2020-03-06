@@ -138,7 +138,7 @@ class MainWindow(QMainWindow):
 
     def _import_serial_numbers(self, filename: str, sensor_log):
         # listens for MainWindow().signals.file_dropped
-        
+
         if self._discard_test_results():
             sensor_log.append_all(spreadsheet.get_serial_numbers(filename))
             self._setup_sensor_table()
@@ -215,7 +215,7 @@ class MainWindow(QMainWindow):
     def _do_advanced_configuration(self):
         self._get_browser()
         count = self._get_sensor_count()
-        configure.do_advanced_configuration(count, self._get_browser())
+        configure.do_advanced_configuration(count, self._get_browser(), QSettings())
 
     def _start_calibration(self):
         utilities.misc.get_page_login_if_needed(LWT.URL_CALIBRATE, self._get_browser(), "calibration")

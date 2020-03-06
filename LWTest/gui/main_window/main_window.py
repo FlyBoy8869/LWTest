@@ -214,8 +214,7 @@ class MainWindow(QMainWindow):
 
     def _do_advanced_configuration(self):
         self._get_browser()
-        count = self._get_sensor_count()
-        configure.do_advanced_configuration(count, self._get_browser(), QSettings())
+        configure.do_advanced_configuration(self._get_browser(), QSettings())
 
     def _start_calibration(self):
         utilities.misc.get_page_login_if_needed(LWT.URL_CALIBRATE, self._get_browser(), "calibration")

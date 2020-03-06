@@ -20,7 +20,7 @@ _VOLTAGE_RIDE_THROUGH_CALIBRATION_FACTOR = "0.0305327"
 _PHASE_ANGLE = "25.8"
 
 
-def do_advanced_configuration(count: int, driver: webdriver.Chrome, settings: QSettings):
+def do_advanced_configuration(driver: webdriver.Chrome, settings: QSettings):
     url = LWT.URL_TEMPERATURE
     driver.get(url)
 
@@ -44,7 +44,7 @@ def do_advanced_configuration(count: int, driver: webdriver.Chrome, settings: QS
     url = LWT.URL_RAW_CONFIGURATION
     driver.get(url)
 
-    _set_raw_configuration_values(count, driver)
+    _set_raw_configuration_values(driver)
     driver.find_element_by_xpath(dom.raw_config_password).send_keys(settings.value("main/config_password"))
     _submit(driver.find_element_by_xpath(dom.raw_config_submit_button), settings)
 
@@ -91,23 +91,23 @@ def _set_temperature_configuration_values(driver: webdriver.Chrome) -> None:
         field.send_keys(_REMAINING_TEMPERATURE_INPUT_FIELDS)
 
 
-def _set_raw_configuration_values(number_of_sensors: int, driver: webdriver.Chrome) -> None:
-    for element in dom.scale_raw_temp_elements[0:number_of_sensors]:
+def _set_raw_configuration_values(driver: webdriver.Chrome) -> None:
+    for element in dom.scale_raw_temp_elements:
         field = driver.find_element_by_xpath(element)
         field.clear()
         field.send_keys(_SCALE_RAW_TEMP)
 
-    for element in dom.offset_raw_temp_elements[0:number_of_sensors]:
+    for element in dom.offset_raw_temp_elements:
         field = driver.find_element_by_xpath(element)
         field.clear()
         field.send_keys(_OFFSET_RAW_TEMP)
 
-    for element in dom.fault10k[0:number_of_sensors]:
+    for element in dom.fault10k:
         field = driver.find_element_by_xpath(element)
         field.clear()
         field.send_keys(_FAULT_10K)
 
-    for element in dom.fault25k[0:number_of_sensors]:
+    for element in dom.fault25k:
         field = driver.find_element_by_xpath(element)
         field.clear()
         field.send_keys(_FAULT_25K)
@@ -119,7 +119,7 @@ def _set_collector_calibration_factor(driver: webdriver.Chrome) -> None:
     cal_factor.send_keys(_VOLTAGE_RIDE_THROUGH_CALIBRATION_FACTOR)
 
 
-def _submit(element, settings: QSettings):
+def _submit(element, settings: QSettings) -> None:
     if settings.value("DEBUG") == 'true':
         return
 

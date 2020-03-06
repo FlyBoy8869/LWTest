@@ -59,7 +59,7 @@ def do_advanced_configuration(count: int, driver: webdriver.Chrome, settings: QS
     sleep(LWT.TimeOut.TIME_BETWEEN_CONFIGURATION_PAGES.value)
 
 
-def configure_correction_angle(url: str, browser: webdriver.Chrome, count: int):
+def configure_correction_angle(url: str, browser: webdriver.Chrome, count: int) -> bool:
     settings = QSettings()
     browser.get(url)
 
@@ -75,6 +75,8 @@ def configure_correction_angle(url: str, browser: webdriver.Chrome, count: int):
     _submit(browser.find_element_by_xpath(dom.configuration_save_changes), settings)
 
     sleep(LWT.TimeOut.TIME_BETWEEN_CONFIGURATION_PAGES.value)
+
+    return False
 
 
 def _set_temperature_configuration_values(driver: webdriver.Chrome) -> None:

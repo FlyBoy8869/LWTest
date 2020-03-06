@@ -17,6 +17,7 @@ _OFFSET_RAW_TEMP = "-65.52"
 _FAULT_10K = "0.65019"
 _FAULT_25K = "2.6"
 _VOLTAGE_RIDE_THROUGH_CALIBRATION_FACTOR = "0.0305327"
+_PHASE_ANGLE = "25.8"
 
 
 def do_advanced_configuration(count: int, driver: webdriver.Chrome, settings: QSettings):
@@ -68,19 +69,12 @@ def configure_correction_angle(url: str, browser: webdriver.Chrome, count: int):
     for element in dom.correction_angle_elements[:count]:
         field = browser.find_element_by_xpath(element)
         field.clear()
-        field.send_keys("25.8")
+        field.send_keys(_PHASE_ANGLE)
 
     browser.find_element_by_xpath(dom.configuration_password).send_keys(settings.value("main/config_password"))
     _submit(browser.find_element_by_xpath(dom.configuration_save_changes), settings)
 
     sleep(LWT.TimeOut.TIME_BETWEEN_CONFIGURATION_PAGES.value)
-
-
-def _submit(element, settings: QSettings):
-    if settings.value("DEBUG") == 'true':
-        return
-
-    element.click()
 
 
 def _set_temperature_configuration_values(driver: webdriver.Chrome) -> None:
@@ -117,7 +111,14 @@ def _set_raw_configuration_values(number_of_sensors: int, driver: webdriver.Chro
         field.send_keys(_FAULT_25K)
 
 
-def _set_collector_calibration_factor(driver: webdriver.Chrome):
+def _set_collector_calibration_factor(driver: webdriver.Chrome) -> None:
     cal_factor = driver.find_element_by_xpath(dom.vrt_calibration_factor)
     cal_factor.clear()
     cal_factor.send_keys(_VOLTAGE_RIDE_THROUGH_CALIBRATION_FACTOR)
+
+
+def _submit(element, settings: QSettings):
+    if settings.value("DEBUG") == 'true':
+        return
+
+    element.click()

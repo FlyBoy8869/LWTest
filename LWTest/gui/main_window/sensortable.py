@@ -34,7 +34,7 @@ def setup_table_widget(parent, serial_numbers: tuple, table: QTableWidget, calib
 
         # A "custom" cellWidget
         cal_combo = QComboBox(parent)
-        cal_combo.insertItems(0, [" ", "Pass", "Fail", "NA"])
+        cal_combo.insertItems(0, ["NA", "Pass", "Fail"])
         cal_combo.currentTextChanged.connect(lambda text, index=index: calibrated_override(text, index))
         table.setCellWidget(index, LWT.TableColumn.CALIBRATION.value, cal_combo)
 
@@ -44,7 +44,7 @@ def setup_table_widget(parent, serial_numbers: tuple, table: QTableWidget, calib
             table.setItem(index, column, item)
 
         fault_combo = QComboBox(parent)
-        fault_combo.insertItems(0, ["", "Pass", "Fail", "NA"])
+        fault_combo.insertItems(0, ["NA", "Pass", "Fail"])
         fault_combo.currentTextChanged.connect(lambda text, index=index: fault_current_override(text, index))
         table.setCellWidget(index, LWT.TableColumn.FAULT_CURRENT.value, fault_combo)
 

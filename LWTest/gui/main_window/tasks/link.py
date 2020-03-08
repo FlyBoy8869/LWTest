@@ -32,8 +32,6 @@ def determine_link_status(sensor_log: SensorLog, sensor_table, thread_pool, pare
     _link_activity = partial(_link_activity_handler, sensor_table)
     link_worker.signals.link_activity.connect(_link_activity)
 
-    link_worker.signals.resize_columns.connect(lambda: sensor_table.resizeColumnsToContents())
-
     thread_pool.start(link_worker)
 
 

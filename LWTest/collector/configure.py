@@ -11,7 +11,7 @@ from LWTest.utilities import misc
 
 
 _VOLTAGE_TEMPERATURE_SCALE = "-0.00012"
-_REMAINING_TEMPERATURE_INPUT_FIELDS = "0"
+_REMAINING_TEMPERATURE_FIELDS_CONFIGURATION_VALUE = "0"
 _SCALE_RAW_TEMP = "0.0029"
 _OFFSET_RAW_TEMP = "-65.52"
 _FAULT_10K = "0.65019"
@@ -35,7 +35,6 @@ def do_advanced_configuration(driver: webdriver.Chrome, settings: QSettings):
     except NoSuchElementException:
         pass
     finally:
-        # sleep(LWT.TimeOut.TIME_BETWEEN_CONFIGURATION_PAGES.value)
         driver.get(LWT.URL_TEMPERATURE)
 
     _set_temperature_configuration_values(driver)
@@ -89,7 +88,7 @@ def _set_temperature_configuration_values(driver: webdriver.Chrome) -> None:
     for element in dom.temperature_scale_offset[_NUMBER_OF_FIELDS_TO_SKIP:]:
         field = driver.find_element_by_xpath(element)
         field.clear()
-        field.send_keys(_REMAINING_TEMPERATURE_INPUT_FIELDS)
+        field.send_keys(_REMAINING_TEMPERATURE_FIELDS_CONFIGURATION_VALUE)
 
 
 def _set_raw_configuration_values(driver: webdriver.Chrome) -> None:

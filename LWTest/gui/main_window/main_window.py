@@ -50,6 +50,26 @@ def dialog_title():
     return "LWtest"
 
 
+class CellLocation:
+    def __init__(self, row: int, col: int):
+        if row < 0:
+            raise ValueError(f"value {row} given for row must be 0 or greater")
+
+        if col < 0:
+            raise ValueError(f"value {col} given for col must be 0 or greater")
+
+        self._row = row
+        self._col = col
+
+    @property
+    def row(self):
+        return self._row
+
+    @property
+    def col(self):
+        return self._col
+
+
 class MainWindow(QMainWindow):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, *kwargs)
@@ -150,6 +170,8 @@ class MainWindow(QMainWindow):
         sensortable.setup_table_widget(self, self.sensor_log.get_serial_numbers(), self.sensor_table,
                                        self._manually_override_calibrated_result,
                                        self._manually_override_fault_current_result)
+
+        self._update_from_model()
 
     def _configure_collector_serial_numbers(self):
         worker = configure_serial_numbers(self.sensor_log.get_serial_numbers(), self._get_browser())
@@ -503,27 +525,37 @@ class MainWindow(QMainWindow):
             item.setText(content)
 
     def _update_from_model(self):
-        for index, unit in enumerate(self.sensor_log):
+        for index, sensor in enumerate(self.sensor_log):
             for j in range(LWT.TableColumn.RSSI, LWT.TableColumn.FAULT_CURRENT + 1):
 
-                # handle fault current
-                if unit.linked and j == LWT.TableColumn.FAULT_CURRENT:
-                    fc = unit.fault_current
-                    combo_index = 0
-                    if fc == "Pass":
-                        combo_index = 1
-                    elif fc == "Fail":
-                        combo_index = 2
-                    self.sensor_table.cellWidget(index, j).setCurrentIndex(combo_index)
-                elif unit.linked and j == LWT.TableColumn.CALIBRATION.value:
-                    pass
-                # update table widget with current data if unit linked
-                # if not linked only update columns j == rssi or firmware version index
-                elif unit.linked or j == LWT.TableColumn.RSSI or j == LWT.TableColumn.FIRMWARE\
-                        or j == LWT.TableColumn.REPORTING:
-                    self.sensor_table.item(index, j).setText(unit.__getattribute__(_DATA_IN_TABLE_ORDER[j - 1]))
+                if j == LWT.TableColumn.FAULT_CURRENT.value:
+                    self._update_fault_current_cell(CellLocation(index, LWT.TableColumn.FAULT_CURRENT.value),
+                                                    sensor.fault_current)
+                elif j == LWT.TableColumn.CALIBRATION.value:
+                    self._update_calibration_cell(CellLocation(index, LWT.TableColumn.CALIBRATION.value),
+                                                  sensor.calibrated)
+                else:
+                    self.sensor_table.item(index, j).setText(sensor.__getattribute__(_DATA_IN_TABLE_ORDER[j - 1]))
 
         self.sensor_table.resizeColumnsToContents()
+
+    def _update_calibration_cell(self, cell_location: CellLocation, text: str) -> None:
+        self._update_combo_box_cell(cell_location, text)
+
+    def _update_fault_current_cell(self, cell_location: CellLocation, text: str) -> None:
+        self._update_combo_box_cell(cell_location, text)
+
+    def _update_combo_box_cell(self, cell_location: CellLocation, text: str) -> None:
+        def _determine_index(result: str) -> int:
+            index = 0
+            if result == "Pass":
+                index = 1
+            elif result == "Fail":
+                index = 2
+
+            return index
+
+        self.sensor_table.cellWidget(cell_location.row, cell_location.col).setCurrentIndex(_determine_index(text))
 
     def _create_toolbar(self):
         toolbar = QToolBar("ToolBar")

@@ -3,29 +3,29 @@ from typing import Optional
 
 
 class Sensor:
-    def __init__(self, line_position, serial_number):
+    def __init__(self, line_position: int, serial_number: str):
         self.line_position = line_position
         self.serial_number = serial_number
-        self.tested = False
+
         self.result = "Not Tested"
         self.rssi = "Not Linked"
-        self.firmware_version = ""
-        self.reporting_data = ""
-        self.calibrated = ""
-        self.high_voltage = ""
-        self.high_current = ""
-        self.high_power_factor = ""
-        self.high_real_power = ""
-        self.low_voltage = ""
-        self.low_current = ""
-        self.low_power_factor = ""
-        self.low_real_power = ""
-        self.temperature = ""
-        self.fault_current = ""
-        self.scale_current = ""
-        self.scale_voltage = ""
-        self.correction_angle = ""
-        self.persists = ""
+        self.firmware_version = "NA"
+        self.reporting_data = "NA"
+        self.calibrated = "NA"
+        self.high_voltage = "NA"
+        self.high_current = "NA"
+        self.high_power_factor = "NA"
+        self.high_real_power = "NA"
+        self.low_voltage = "NA"
+        self.low_current = "NA"
+        self.low_power_factor = "NA"
+        self.low_real_power = "NA"
+        self.temperature = "NA"
+        self.fault_current = "NA"
+        self.scale_current = "NA"
+        self.scale_voltage = "NA"
+        self.correction_angle = "NA"
+        self.persists = "NA"
 
     @property
     def linked(self):
@@ -68,8 +68,8 @@ class SensorLog:
     def get_serial_numbers(self) -> tuple:
         return tuple([sensor.serial_number for sensor in self._log.values()])
 
-    def get_line_position_of_sensor(self, serial_number: str) -> int:
-        return self._find_sensor(serial_number).line_position
+    # def get_line_position(self, serial_number: str) -> int:
+    #     return self._find_sensor(serial_number).line_position
 
     def get_persistence_values_for_comparison(self):
         values = []
@@ -123,10 +123,10 @@ class SensorLog:
 
 
 if __name__ == '__main__':
-    numbers = ['9801010', '9802020', '9803030', '9804040', '9805050', '9806060']
+    numbers = ['9800001', '9800002', '9800003', '9800004', '9800005', '9800006']
     sensor_log = SensorLog()
     sensor_log.append_all(numbers)
 
     assert len(sensor_log) == 6, "sensor_log should have 6 elements"
     assert sensor_log.get_serial_numbers() == tuple(numbers), "serial numbers don't match"
-    assert sensor_log.get_line_position_of_sensor(numbers[3]) == 3, "incorrect line position"
+    assert sensor_log.get_line_position(numbers[3]) == 3, "incorrect line position"

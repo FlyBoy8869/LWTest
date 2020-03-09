@@ -48,7 +48,7 @@ def _link_error_handler(parent, serial_numbers: tuple, info):
 
     if button == QMessageBox.Retry:
         determine_link_status(parent.sensor_log, parent.qtw_sensors, parent.thread_pool, parent,
-                              parent._record_rssi_readings)
+                              parent.sensor_log.record_rssi_readings)
 
 
 def _sensor_linked_handler(parent, sensor_table, record_func, data):
@@ -72,7 +72,7 @@ def _warn_sensors_not_linked_handler(parent, sensor_table, serial_numbers):
             row = sensor_table.row(items[0])
             sensor_table.item(row, 1).setText("Not Linked")
 
-            parent._record_rssi_readings(serial_number, "Not Linked")
+            parent.sensor_log.record_rssi_readings(serial_number, "Not Linked")
 
             parent._read_post_link_data(serial_number)
 

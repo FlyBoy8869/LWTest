@@ -94,6 +94,116 @@ class SensorLog:
     def is_tested(self, serial_number: str) -> bool:
         return self._find_sensor(serial_number).tested
 
+    def record_reporting_data(self, line_position, reporting):
+        self.get_sensor_by_line_position(line_position).reporting_data = reporting
+
+    def record_sensor_calibration(self, result, index):
+        self.get_sensor_by_line_position(index).calibrated = result
+
+    def record_high_voltage_readings(self, values: list):
+        unit: Sensor
+
+        for index, unit in enumerate(self):
+            if unit.linked:
+                unit.high_voltage = values[index].replace(',', '')
+
+    def record_high_current_readings(self, values: list):
+        unit: Sensor
+
+        for index, unit in enumerate(self):
+            if unit.linked:
+                unit.high_current = values[index]
+
+    def record_high_power_factor_readings(self, values: list):
+        unit: Sensor
+
+        for index, unit in enumerate(self):
+            if unit.linked:
+                unit.high_power_factor = values[index]
+
+    def record_high_real_power_readings(self, values: list):
+        unit: Sensor
+
+        for index, unit in enumerate(self):
+            if unit.linked:
+                unit.high_real_power = values[index]
+
+    def record_low_voltage_readings(self, values: list):
+        unit: Sensor
+
+        for index, unit in enumerate(self):
+            if unit.linked:
+                unit.low_voltage = values[index].replace(',', '')
+
+    def record_low_current_readings(self, values: list):
+        unit: Sensor
+
+        for index, unit in enumerate(self):
+            if unit.linked:
+                unit.low_current = values[index]
+
+    def record_low_power_factor_readings(self, values: list):
+        unit: Sensor
+
+        for index, unit in enumerate(self):
+            if unit.linked:
+                unit.low_power_factor = values[index]
+
+    def record_low_real_power_readings(self, values: list):
+        unit: Sensor
+
+        for index, unit in enumerate(self):
+            if unit.linked:
+                unit.low_real_power = values[index]
+
+    def record_temperature_readings(self, values: list):
+        unit: Sensor
+
+        for index, unit in enumerate(self):
+            if unit.linked:
+                unit.temperature = values[index]
+
+    def record_fault_current_readings(self, value: str):
+        unit: Sensor
+
+        for unit in self:
+            if unit.linked:
+                unit.fault_current = value
+
+    def record_scale_current_readings(self, values: list):
+        unit: Sensor
+
+        for index, unit in enumerate(self):
+            if unit.linked:
+                unit.scale_current = values[index]
+
+    def record_scale_voltage_readings(self, values: list):
+        unit: Sensor
+
+        for index, unit in enumerate(self):
+            if unit.linked:
+                unit.scale_voltage = values[index]
+
+    def record_correction_angle_readings(self, values: list):
+        unit: Sensor
+
+        for index, unit in enumerate(self):
+            if unit.linked:
+                unit.correction_angle = values[index]
+
+    def record_persistence_readings(self, value: list):
+        unit: Sensor
+
+        for index, unit in enumerate(self):
+            if unit.linked:
+                unit.persists = value[index]
+
+    def record_firmware_version(self, serial_number, version):
+        self._log[serial_number].firmware_version = version
+
+    def record_rssi_readings(self, serial_number, rssi):
+        self._log[serial_number].rssi = rssi
+
     def set_test_result(self, serial_number: str, result: str):
         sensor = self._find_sensor(serial_number)
         sensor.result = result

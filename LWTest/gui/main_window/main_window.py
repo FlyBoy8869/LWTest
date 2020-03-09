@@ -200,7 +200,7 @@ class MainWindow(QMainWindow):
 
     def _determine_link_status(self):
         link_task.determine_link_status(self.sensor_log, self.sensor_table, self.thread_pool, self,
-                                        self._record_rssi_readings)
+                                        self.sensor_log.record_rssi_readings)
 
     def _upgrade_sensor(self, row: int):
         if not self.firmware_upgrade_in_progress:
@@ -219,7 +219,7 @@ class MainWindow(QMainWindow):
 
     def _upgrade_successful(self, serial_number):
         self.firmware_upgrade_in_progress = False
-        self._record_firmware_version(serial_number, LWT.LATEST_FIRMWARE_VERSION_NUMBER)
+        self.sensor_log.record_firmware_version(serial_number, LWT.LATEST_FIRMWARE_VERSION_NUMBER)
         self._update_from_model()
 
         QMessageBox.information(QMessageBox(self), dialog_title(), "Sensor firmware successfully upgraded.",
@@ -280,7 +280,7 @@ class MainWindow(QMainWindow):
                                             self._get_browser(),
                                             self.sensor_log.get_persistence_values_for_comparison())
 
-            persistence.signals.data_persisted.connect(self._record_persistence_readings)
+            persistence.signals.data_persisted.connect(self.sensor_log.record_persistence_readings)
             persistence.signals.finished.connect(self._update_from_model)
 
             worker = PersistenceWorker(persistence)
@@ -291,10 +291,10 @@ class MainWindow(QMainWindow):
 
         firmware_reader = FirmwareVersionReader(index, LWT.URL_UPGRADE, self._get_browser())
         firmware_reader.signals.firmware_version.connect(
-            lambda i, version: self._record_firmware_version(serial_number, version))
+            lambda i, version: self.sensor_log.record_firmware_version(serial_number, version))
 
         reporting_reader = ReportingDataReader(index, LWT.URL_SENSOR_DATA, self._get_browser())
-        reporting_reader.signals.data_reporting_data.connect(self._record_reporting_data)
+        reporting_reader.signals.data_reporting_data.connect(self.sensor_log.record_reporting_data)
 
         worker = PostLinkCheckWorker((firmware_reader, reporting_reader))
         worker.signals.finished.connect(self._update_from_model)
@@ -303,7 +303,7 @@ class MainWindow(QMainWindow):
 
     def _read_fault_current(self):
         fault_current = FaultCurrentReader(LWT.URL_FAULT_CURRENT, self._get_browser())
-        fault_current.signals.data_fault_current.connect(self._record_fault_current_readings)
+        fault_current.signals.data_fault_current.connect(self.sensor_log.record_fault_current_readings)
         fault_current.signals.finished.connect(self._update_from_model)
 
         worker = FaultCurrentWorker(fault_current)
@@ -343,10 +343,10 @@ class MainWindow(QMainWindow):
     def _receive_high_data_readings(self, readings: tuple):
         """Receives data in the following order: voltage, current, factors, power."""
 
-        self._record_high_voltage_readings(readings[LWT.VOLTAGE])
-        self._record_high_current_readings(readings[LWT.CURRENT])
-        self._record_high_power_factor_readings(readings[LWT.FACTORS])
-        self._record_high_real_power_readings(readings[LWT.POWER])
+        self.sensor_log.record_high_voltage_readings(readings[LWT.VOLTAGE])
+        self.sensor_log.record_high_current_readings(readings[LWT.CURRENT])
+        self.sensor_log.record_high_power_factor_readings(readings[LWT.FACTORS])
+        self.sensor_log.record_high_real_power_readings(readings[LWT.POWER])
 
         self._update_from_model()
 
@@ -357,14 +357,14 @@ class MainWindow(QMainWindow):
         """Receives data in the following order: voltage, current, factors, power, scale current,
         scale voltage, correction angle, temperature."""
 
-        self._record_low_voltage_readings(readings[LWT.VOLTAGE])
-        self._record_low_current_readings(readings[LWT.CURRENT])
-        self._record_low_power_factor_readings(readings[LWT.FACTORS])
-        self._record_low_real_power_readings(readings[LWT.POWER])
-        self._record_scale_current_readings(readings[LWT.SCALE_CURRENT])
-        self._record_scale_voltage_readings(readings[LWT.SCALE_VOLTAGE])
-        self._record_correction_angle_readings(readings[LWT.CORRECTION_ANGLE])
-        self._record_temperature_readings(readings[LWT.TEMPERATURE])
+        self.sensor_log.record_low_voltage_readings(readings[LWT.VOLTAGE])
+        self.sensor_log.record_low_current_readings(readings[LWT.CURRENT])
+        self.sensor_log.record_low_power_factor_readings(readings[LWT.FACTORS])
+        self.sensor_log.record_low_real_power_readings(readings[LWT.POWER])
+        self.sensor_log.record_scale_current_readings(readings[LWT.SCALE_CURRENT])
+        self.sensor_log.record_scale_voltage_readings(readings[LWT.SCALE_VOLTAGE])
+        self.sensor_log.record_correction_angle_readings(readings[LWT.CORRECTION_ANGLE])
+        self.sensor_log.record_temperature_readings(readings[LWT.TEMPERATURE])
 
         self._update_from_model()
 
@@ -383,123 +383,6 @@ class MainWindow(QMainWindow):
 
     def _manually_override_fault_current_result(self, result, index):
         self.sensor_log.get_sensor_by_line_position(index).fault_current = result
-
-    def _record_rssi_readings(self, serial_number, rssi):
-        self.sensor_log[serial_number].rssi = rssi
-
-    def _record_firmware_version(self, serial_number, version):
-        self.sensor_log[serial_number].firmware_version = version
-
-    def _record_reporting_data(self, line_position, reporting):
-        self.sensor_log.get_sensor_by_line_position(line_position).reporting_data = reporting
-
-        if reporting == "Fail":
-            for index in range(4, 19):
-                if index == LWT.TableColumn.CALIBRATION or index == LWT.TableColumn.FAULT_CURRENT:
-                    self.sensor_table.cellWidget(line_position, index).setCurrentIndex(3)
-                else:
-                    self.sensor_table.item(line_position, index).setText("NA")
-
-    def _record_sensor_calibration(self, result, index):
-        self.sensor_log.get_sensor_by_line_position(index).calibrated = result
-
-    def _record_high_voltage_readings(self, values: list):
-        unit: sensor.Sensor
-
-        for index, unit in enumerate(self.sensor_log):
-            if unit.linked:
-                unit.high_voltage = values[index].replace(',', '')
-
-    def _record_high_current_readings(self, values: list):
-        unit: sensor.Sensor
-
-        for index, unit in enumerate(self.sensor_log):
-            if unit.linked:
-                unit.high_current = values[index]
-
-    def _record_high_power_factor_readings(self, values: list):
-        unit: sensor.Sensor
-
-        for index, unit in enumerate(self.sensor_log):
-            if unit.linked:
-                unit.high_power_factor = values[index]
-
-    def _record_high_real_power_readings(self, values: list):
-        unit: sensor.Sensor
-
-        for index, unit in enumerate(self.sensor_log):
-            if unit.linked:
-                unit.high_real_power = values[index]
-
-    def _record_low_voltage_readings(self, values: list):
-        unit: sensor.Sensor
-
-        for index, unit in enumerate(self.sensor_log):
-            if unit.linked:
-                unit.low_voltage = values[index].replace(',', '')
-
-    def _record_low_current_readings(self, values: list):
-        unit: sensor.Sensor
-
-        for index, unit in enumerate(self.sensor_log):
-            if unit.linked:
-                unit.low_current = values[index]
-
-    def _record_low_power_factor_readings(self, values: list):
-        unit: sensor.Sensor
-
-        for index, unit in enumerate(self.sensor_log):
-            if unit.linked:
-                unit.low_power_factor = values[index]
-
-    def _record_low_real_power_readings(self, values: list):
-        unit: sensor.Sensor
-
-        for index, unit in enumerate(self.sensor_log):
-            if unit.linked:
-                unit.low_real_power = values[index]
-
-    def _record_temperature_readings(self, values: list):
-        unit: sensor.Sensor
-
-        for index, unit in enumerate(self.sensor_log):
-            if unit.linked:
-                unit.temperature = values[index]
-
-    def _record_fault_current_readings(self, value: str):
-        unit: sensor.Sensor
-
-        for unit in self.sensor_log:
-            if unit.linked:
-                unit.fault_current = value
-
-    def _record_scale_current_readings(self, values: list):
-        unit: sensor.Sensor
-
-        for index, unit in enumerate(self.sensor_log):
-            if unit.linked:
-                unit.scale_current = values[index]
-
-    def _record_scale_voltage_readings(self, values: list):
-        unit: sensor.Sensor
-
-        for index, unit in enumerate(self.sensor_log):
-            if unit.linked:
-                unit.scale_voltage = values[index]
-
-    def _record_correction_angle_readings(self, values: list):
-        unit: sensor.Sensor
-
-        for index, unit in enumerate(self.sensor_log):
-            if unit.linked:
-                unit.correction_angle = values[index]
-
-    def _record_persistence_readings(self, value: list):
-        unit: sensor.Sensor
-
-        for index, unit in enumerate(self.sensor_log):
-            if unit.linked:
-                unit.persists = value[index]
 
     def _save_data_to_spreadsheet(self):
         data_sets = []
@@ -526,7 +409,7 @@ class MainWindow(QMainWindow):
 
     def _update_from_model(self):
         for index, sensor in enumerate(self.sensor_log):
-            for j in range(LWT.TableColumn.RSSI, LWT.TableColumn.FAULT_CURRENT + 1):
+            for j in range(LWT.TableColumn.RSSI.value, LWT.TableColumn.FAULT_CURRENT.value + 1):
 
                 if j == LWT.TableColumn.FAULT_CURRENT.value:
                     self._update_fault_current_cell(CellLocation(index, LWT.TableColumn.FAULT_CURRENT.value),

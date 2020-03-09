@@ -1,7 +1,7 @@
 from PyQt5.QtWidgets import QMessageBox
 
 _title = "LWTest"
-_version = "0.2.0"
+_version = "0.2.1"
 
 
 def menu_help_about_handler(parent=None):

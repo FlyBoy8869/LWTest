@@ -45,8 +45,9 @@ def save_sensor_data(workbook_path, data_sets, temperature_reference: str):
             if not reading:
                 continue
 
-            value = _convert_reading_for_spreadsheet(reading, _CONVERSIONS[index])
-            worksheet[location].value = value
+            if reading != 'NA':
+                value = _convert_reading_for_spreadsheet(reading, _CONVERSIONS[index])
+                worksheet[location].value = value
 
     worksheet[constants.temperature_reference] = _convert_reading_for_spreadsheet(temperature_reference, float)
     worksheet[constants.tested_by].value = str("Charles Cognato")

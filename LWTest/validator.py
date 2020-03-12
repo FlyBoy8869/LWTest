@@ -62,25 +62,19 @@ class Validator:
             else:
                 self._passing(index, LWT.TableColumn.TEMPERATURE.value)
 
-    def _validate_readings(self, validator: Callable, tol_mins: tuple, tol_maxs: tuple, cols: tuple, readings: tuple):
+    def _validate_readings(self, validator: Callable, tol_min: tuple, tol_max: tuple, cols: tuple, readings: tuple):
         for sensor_index, sensor_readings in enumerate(readings):
             if sensor_readings[0] == 'NA':
                 continue
 
             readings_as_floats = tuple([float(reading.replace(",", "")) for reading in sensor_readings])
 
-            validator(readings_as_floats, sensor_index, cols, tol_mins, tol_maxs)
+            validator(readings_as_floats, sensor_index, cols, tol_min, tol_max)
 
-    def _validate_sensor_readings(self, readings: tuple, row: int, cols, tol_mins, tol_maxs):
-        voltage: float = readings[0]
-        current: float = readings[1]
-        power: float = readings[2]
-
-        self._validate(voltage, tol_mins[0], tol_maxs[0], row, cols[0])
-
-        self._validate(current, tol_mins[1], tol_maxs[1], row, cols[1])
-
-        self._validate(power, tol_mins[2], tol_maxs[2], row, cols[2])
+    def _validate_sensor_readings(self, readings: tuple, row: int, cols, tol_min, tol_max):
+        self._validate(readings[0], tol_min[0], tol_max[0], row, cols[0])
+        self._validate(readings[1], tol_min[1], tol_max[1], row, cols[1])
+        self._validate(readings[2], tol_min[2], tol_max[2], row, cols[2])
 
     def _validate(self, reading: float, min: float, max: float, row: int, column: int):
         if min >= reading or max <= reading:

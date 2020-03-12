@@ -11,7 +11,7 @@ import LWTest.LWTConstants as LWT
 import LWTest.gui.main_window.sensortable as sensortable
 import LWTest.utilities as utilities
 import LWTest.utilities.misc as utilities_misc
-import LWTest.validators as validators
+import LWTest.validator as validator
 from LWTest import sensor, signals
 from LWTest.collector import configure
 from LWTest.collector.read.confirm import ConfirmSerialConfig
@@ -88,8 +88,12 @@ class MainWindow(QMainWindow):
         self.unsaved_test_results = False
         self.spreadsheet_path = None
         self.room_temp: QDoubleSpinBox = QDoubleSpinBox(self)
-        self.pass_func = partial(self._set_sensor_table_field_background, QBrush(QColor(255, 255, 255, 255)))
-        self.fail_func = partial(self._set_sensor_table_field_background, QBrush(QColor(255, 0, 0, 50)))
+        # self.pass_func = partial(self._set_sensor_table_field_background, QBrush(QColor(255, 255, 255, 255)))
+        # self.fail_func = partial(self._set_sensor_table_field_background, QBrush(QColor(255, 0, 0, 50)))
+        self.validator = validator.Validator(
+            partial(self._set_sensor_table_field_background, QBrush(QColor(255, 255, 255, 255))),
+            partial(self._set_sensor_table_field_background, QBrush(QColor(255, 0, 0, 50)))
+        )
 
         self.panel = QWidget(self)
         self.panel_layout = QVBoxLayout(self.panel)
@@ -351,7 +355,7 @@ class MainWindow(QMainWindow):
         self._update_from_model()
 
         data_set = tuple(zip(readings[LWT.VOLTAGE], readings[LWT.CURRENT], readings[LWT.POWER]))
-        validators.validate_high_voltage_readings(self.pass_func, self.fail_func, data_set)
+        self.validator.validate_high_voltage_readings(data_set)
 
     def _receive_low_data_readings(self, readings: tuple):
         """Receives data in the following order: voltage, current, factors, power, scale current,
@@ -369,14 +373,12 @@ class MainWindow(QMainWindow):
         self._update_from_model()
 
         data_set = tuple(zip(readings[LWT.VOLTAGE], readings[LWT.CURRENT], readings[LWT.POWER]))
-        validators.validate_low_voltage_readings(self.pass_func, self.fail_func, data_set)
+        self.validator.validate_low_voltage_readings(data_set)
 
         data_set = tuple(zip(readings[LWT.SCALE_CURRENT], readings[LWT.SCALE_VOLTAGE], readings[LWT.CORRECTION_ANGLE]))
-        validators.validate_scale_n_angle_readings(self.pass_func, self.fail_func, data_set)
+        self.validator.validate_scale_n_angle_readings(data_set)
 
-        validators.validate_temperature_readings(self.pass_func, self.fail_func,
-                                                 float(self.sensor_log.room_temperature),
-                                                 readings[LWT.TEMPERATURE])
+        self.validator.validate_temperature_readings(float(self.sensor_log.room_temperature), readings[LWT.TEMPERATURE])
 
     def _manually_override_calibrated_result(self, result, index):
         self.sensor_log.get_sensor_by_line_position(index).calibrated = result

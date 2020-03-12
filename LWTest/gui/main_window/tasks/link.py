@@ -47,7 +47,7 @@ def _link_error_handler(parent, serial_numbers: tuple, info):
     button = msg_box.exec_()
 
     if button == QMessageBox.Retry:
-        determine_link_status(parent.sensor_log, parent.qtw_sensors, parent.thread_pool, parent,
+        determine_link_status(parent.sensor_log, parent.sensor_table, parent.thread_pool, parent,
                               parent.sensor_log.record_rssi_readings)
 
 

@@ -45,13 +45,13 @@ class Validator:
         self._failing = failing
 
     def validate_high_voltage_readings(self, readings: tuple):
-        self._validate_readings(self._validate_sensor_readings, _HIGH_MINS, _HIGH_MAXS, _HIGH_COLS, readings)
+        self._validate_readings(_HIGH_MINS, _HIGH_MAXS, _HIGH_COLS, readings)
 
     def validate_low_voltage_readings(self, readings: tuple):
-        self._validate_readings(self._validate_sensor_readings, _LOW_MINS, _LOW_MAXS, _LOW_COLS, readings)
+        self._validate_readings(_LOW_MINS, _LOW_MAXS, _LOW_COLS, readings)
 
     def validate_scale_n_angle_readings(self, readings: tuple):
-        self._validate_readings(self._validate_sensor_readings, _SCALE_MINS, _SCALE_MAXS, _SCALE_COLS, readings)
+        self._validate_readings(_SCALE_MINS, _SCALE_MAXS, _SCALE_COLS, readings)
 
     def validate_temperature_readings(self, room_temperature: float, readings: tuple):
         for index, temperature in enumerate(readings):
@@ -62,19 +62,15 @@ class Validator:
             else:
                 self._passing(index, LWT.TableColumn.TEMPERATURE.value)
 
-    def _validate_readings(self, validator: Callable, tol_min: tuple, tol_max: tuple, cols: tuple, readings: tuple):
+    def _validate_readings(self, tol_min: tuple, tol_max: tuple, cols: tuple, readings: tuple):
         for sensor_index, sensor_readings in enumerate(readings):
             if sensor_readings[0] == 'NA':
                 continue
 
             readings_as_floats = tuple([float(reading.replace(",", "")) for reading in sensor_readings])
 
-            validator(readings_as_floats, sensor_index, cols, tol_min, tol_max)
-
-    def _validate_sensor_readings(self, readings: tuple, row: int, cols, tol_min, tol_max):
-        self._validate(readings[0], tol_min[0], tol_max[0], row, cols[0])
-        self._validate(readings[1], tol_min[1], tol_max[1], row, cols[1])
-        self._validate(readings[2], tol_min[2], tol_max[2], row, cols[2])
+            for index, reading in enumerate(readings_as_floats):
+                self._validate(readings_as_floats[index], tol_min[index], tol_max[index], sensor_index, cols[index])
 
     def _validate(self, reading: float, min: float, max: float, row: int, column: int):
         if min >= reading or max <= reading:

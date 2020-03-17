@@ -22,7 +22,7 @@ _NUMBER_OF_VOLTAGE_TEMPERATURE_SCALE_FIELDS = 6
 _NUMBER_OF_FIELDS_TO_SKIP = 6
 
 
-def do_advanced_configuration(driver: webdriver.Chrome, settings: QSettings):
+def do_advanced_configuration(sensor_count: int, driver: webdriver.Chrome, settings: QSettings):
     url = LWT.URL_TEMPERATURE
     driver.get(url)
 
@@ -45,7 +45,7 @@ def do_advanced_configuration(driver: webdriver.Chrome, settings: QSettings):
     url = LWT.URL_RAW_CONFIGURATION
     driver.get(url)
 
-    _set_raw_configuration_values(driver)
+    _set_raw_configuration_values(sensor_count, driver)
     driver.find_element_by_xpath(dom.raw_config_password).send_keys(settings.value("main/config_password"))
     _submit(driver.find_element_by_xpath(dom.raw_config_submit_button), settings)
 
@@ -60,13 +60,14 @@ def do_advanced_configuration(driver: webdriver.Chrome, settings: QSettings):
     sleep(LWT.TimeOut.TIME_BETWEEN_CONFIGURATION_PAGES.value)
 
 
-def configure_correction_angle(url: str, driver: webdriver.Chrome, settings: QSettings) -> bool:
+def configure_correction_angle(sensor_count: int, url: str, driver: webdriver.Chrome, settings: QSettings) -> bool:
+    columns = 3 if sensor_count <= 3 else 6
     driver.get(url)
 
     if misc.page_failed_to_load(driver, '//*[@id="maindiv"]/form/div[1]/h1[1]'):
         return True
 
-    for element in dom.correction_angle_elements:
+    for element in dom.correction_angle_elements[:columns]:
         field = driver.find_element_by_xpath(element)
         field.clear()
         field.send_keys(_PHASE_ANGLE)
@@ -91,23 +92,25 @@ def _set_temperature_configuration_values(driver: webdriver.Chrome) -> None:
         field.send_keys(_REMAINING_TEMPERATURE_FIELDS_CONFIGURATION_VALUE)
 
 
-def _set_raw_configuration_values(driver: webdriver.Chrome) -> None:
-    for element in dom.scale_raw_temp_elements:
+def _set_raw_configuration_values(sensor_count: int, driver: webdriver.Chrome) -> None:
+    columns = 3 if sensor_count <= 3 else 6
+
+    for element in dom.scale_raw_temp_elements[:columns]:
         field = driver.find_element_by_xpath(element)
         field.clear()
         field.send_keys(_SCALE_RAW_TEMP)
 
-    for element in dom.offset_raw_temp_elements:
+    for element in dom.offset_raw_temp_elements[:columns]:
         field = driver.find_element_by_xpath(element)
         field.clear()
         field.send_keys(_OFFSET_RAW_TEMP)
 
-    for element in dom.fault10k:
+    for element in dom.fault10k[:columns]:
         field = driver.find_element_by_xpath(element)
         field.clear()
         field.send_keys(_FAULT_10K)
 
-    for element in dom.fault25k:
+    for element in dom.fault25k[:columns]:
         field = driver.find_element_by_xpath(element)
         field.clear()
         field.send_keys(_FAULT_25K)

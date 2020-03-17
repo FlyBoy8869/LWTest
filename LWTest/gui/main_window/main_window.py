@@ -172,7 +172,7 @@ class MainWindow(QMainWindow):
     def _setup_sensor_table(self):
         print(f"room temperature = {self.sensor_log.room_temperature}")
         sensortable.setup_table_widget(self, self.sensor_log.get_serial_numbers(), self.sensor_table,
-                                       self._manually_override_calibrated_result,
+                                       self._manually_override_calibration_result,
                                        self._manually_override_fault_current_result)
 
         self._update_from_model()
@@ -240,14 +240,15 @@ class MainWindow(QMainWindow):
 
     def _do_advanced_configuration(self):
         self._get_browser()
-        configure.do_advanced_configuration(self._get_browser(), QSettings())
+        configure.do_advanced_configuration(len(self.sensor_log), self._get_browser(), QSettings())
 
     def _start_calibration(self):
         utilities.misc.get_page_login_if_needed(LWT.URL_CALIBRATE, self._get_browser(), "calibration")
 
     def _config_correction_angle(self):
         while True:
-            result = configure.configure_correction_angle(LWT.URL_CONFIGURATION, self._get_browser(), QSettings())
+            result = configure.configure_correction_angle(len(self.sensor_log), LWT.URL_CONFIGURATION,
+                                                          self._get_browser(), QSettings())
 
             if result:
                 button = QMessageBox.warning(QMessageBox(self), "LWTest - warning\t\t\t\t",
@@ -332,9 +333,9 @@ class MainWindow(QMainWindow):
                                      self.menu_helper.action_read_hi_or_low_voltage.data())
 
             if voltage_level == "13800":
-                data_reader.signals.high_data_readings.connect(self._receive_high_data_readings)
+                data_reader.signals.high_data_readings.connect(self._process_high_data_readings)
             else:
-                data_reader.signals.low_data_readings.connect(self._receive_low_data_readings)
+                data_reader.signals.low_data_readings.connect(self._process_low_data_readings)
 
             worker = ReadingsWorker(data_reader)
             self.thread_pool.start(worker)
@@ -344,7 +345,7 @@ class MainWindow(QMainWindow):
 
             self.unsaved_test_results = True
 
-    def _receive_high_data_readings(self, readings: tuple):
+    def _process_high_data_readings(self, readings: tuple):
         """Receives data in the following order: voltage, current, factors, power."""
 
         self.sensor_log.record_high_voltage_readings(readings[LWT.VOLTAGE])
@@ -357,7 +358,7 @@ class MainWindow(QMainWindow):
         data_set = tuple(zip(readings[LWT.VOLTAGE], readings[LWT.CURRENT], readings[LWT.POWER]))
         self.validator.validate_high_voltage_readings(data_set)
 
-    def _receive_low_data_readings(self, readings: tuple):
+    def _process_low_data_readings(self, readings: tuple):
         """Receives data in the following order: voltage, current, factors, power, scale current,
         scale voltage, correction angle, temperature."""
 
@@ -380,7 +381,7 @@ class MainWindow(QMainWindow):
 
         self.validator.validate_temperature_readings(float(self.sensor_log.room_temperature), readings[LWT.TEMPERATURE])
 
-    def _manually_override_calibrated_result(self, result, index):
+    def _manually_override_calibration_result(self, result, index):
         self.sensor_log.get_sensor_by_line_position(index).calibrated = result
 
     def _manually_override_fault_current_result(self, result, index):

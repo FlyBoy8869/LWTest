@@ -63,6 +63,7 @@ class Validator:
         for index, temperature in enumerate(readings):
             if temperature == 'NA':
                 continue
+
             if abs(float(temperature) - room_temperature) > LWT.Tolerance.TEMPERATURE_DELTA.value:
                 self._failing(index, LWT.TableColumn.TEMPERATURE.value)
             else:

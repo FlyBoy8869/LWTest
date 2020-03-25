@@ -2,14 +2,20 @@ from time import sleep
 from typing import Callable
 
 import requests
-from PyQt5.QtCore import QTimer, QRunnable, QObject, pyqtSignal, Qt, QSettings
-from PyQt5.QtWidgets import QDialog, QVBoxLayout, QProgressBar, QLabel, QHBoxLayout, QDialogButtonBox
+from PyQt5.QtCore import QTimer, QRunnable, QObject, pyqtSignal, Qt, QSettings, QCoreApplication
+from PyQt5.QtGui import QPalette
+from PyQt5.QtWidgets import QDialog, QVBoxLayout, QProgressBar, QLabel, QHBoxLayout, QDialogButtonBox, QMessageBox, \
+    QWidget
 
+import LWTest.spreadsheet.spreadsheet as spreadsheet
 import LWTest.LWTConstants as LWT
 from LWTest.collector.read.confirm import ConfirmSerialConfig
 from LWTest.constants import dom
+from LWTest.utilities import file
 from LWTest.workers.confirm import ConfirmSerialConfigWorker
 from LWTest.workers.upgrade import UpgradeWorker
+from LWTest.spreadsheet.constants import phases, PhaseReadings
+import LWTest.utilities.returns as returns
 
 
 class Signals(QObject):
@@ -27,7 +33,7 @@ class PersistenceBootMonitor(QDialog):
         self.setWindowTitle("Persistence")
 
         self.parent = parent
-        # self._url = LWT.URL_RAW_CONFIGURATION
+        # self._url = LWT_constants.URL_RAW_CONFIGURATION
         self.timeout = LWT.TimeOut.COLLECTOR_BOOT_WAIT_TIME.value
 
         self.thread_started = False
@@ -279,3 +285,81 @@ class SpinDialog(QDialog):
         if self.timeout < 1:
             self.timer.stop()
             self.accept()
+
+
+class SaveDataDialog(QDialog):
+    _DATA_IN_SPREADSHEET_ORDER = ("high_voltage", "high_current", "high_power_factor", "high_real_power",
+                                  "low_voltage", "low_current", "low_power_factor", "low_real_power",
+                                  "scale_current", "scale_voltage", "correction_angle", "persists",
+                                  "firmware_version", "reporting_data", "rssi", "calibrated",
+                                  "temperature", "fault_current")
+
+    def __init__(self, parent, path: str, sensors: list, room_temperature: str):
+        super().__init__(parent=parent)
+        self._path = path
+        self._sensors = sensors
+        self._room_temperature = room_temperature
+
+        self.setWindowTitle("LWTest - Saving Sensor Data")
+
+        palette = QPalette()
+        palette.setColor(QPalette.Background, Qt.white)
+        self.setPalette(palette)
+
+        self.setLayout(QVBoxLayout())
+
+        self._main_layout = QHBoxLayout()
+        self.layout().addLayout(self._main_layout)
+
+        self._main_label = QLabel("Saving sensor data to spreadsheet.", self)
+        font = self._main_label.font()
+        font.setPointSize(9)
+        self._main_label.setFont(font)
+        self._main_layout.addWidget(self._main_label, alignment=Qt.AlignHCenter)
+
+        self._sub_layout = QHBoxLayout()
+        self.layout().addLayout(self._sub_layout)
+
+        self._sub_label = QLabel("Please, wait...", self)
+        self._sub_label.setFont(font)
+        self._sub_label.setStyleSheet("padding-top: 10px;")
+        self._sub_layout.addWidget(self._sub_label, alignment=Qt.AlignHCenter)
+
+    def showEvent(self, QShowEvent):
+        QTimer().singleShot(1000, self._save_data)
+
+    def _save_data(self):
+        data_sets = []
+        data = []
+        for index, unit in enumerate(self._sensors):
+            for field in self._DATA_IN_SPREADSHEET_ORDER:
+                data.append(unit.__getattribute__(field))
+
+            phase = PhaseReadings(*phases[index])
+            data_to_save = zip(phase, data)
+            dts = list(data_to_save)
+
+            data_sets.append(dts)
+            data = []
+
+        if not spreadsheet.save_sensor_data(self._path, data_sets, self._room_temperature):
+            self.reject()
+
+        result = self._download_log_files()
+        if not result:
+            self._report_log_file_download_failure(result.error)
+            self.reject()
+            return
+
+        self.accept()
+
+    def _download_log_files(self) -> returns.Result:
+        self._main_label.setText("Downloading log files from the collector.")
+        return file.download_log_files(file.create_log_filename_from_spreadsheet_path(self._path))
+
+    def _report_log_file_download_failure(self, detail_text):
+        msg_box = QMessageBox(QMessageBox.Warning, "LWTest - Saving Log Files",
+                              "An error occurred trying to download the log files.", QMessageBox.Ok,
+                              self)
+        msg_box.setDetailedText(detail_text)
+        msg_box.exec()

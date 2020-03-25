@@ -37,7 +37,7 @@ def get_serial_numbers(path: str) -> Tuple[str]:
     return _extract_serial_numbers_from_worksheet(_get_worksheet_from_workbook(path))
 
 
-def save_sensor_data(workbook_path, data_sets, temperature_reference: str):
+def save_sensor_data(workbook_path, data_sets, temperature_reference: str) -> bool:
     worksheet = _get_worksheet_from_workbook(workbook_path)
 
     for data_set in data_sets:
@@ -46,7 +46,11 @@ def save_sensor_data(workbook_path, data_sets, temperature_reference: str):
                 continue
 
             if reading != 'NA':
-                value = _convert_reading_for_spreadsheet(reading, _CONVERSIONS[index])
+                value = reading
+                try:
+                    value = _convert_reading_for_spreadsheet(reading, _CONVERSIONS[index])
+                except Exception as e:
+                    pass
                 worksheet[location].value = value
 
     worksheet[constants.temperature_reference] = _convert_reading_for_spreadsheet(temperature_reference, float)
@@ -54,6 +58,8 @@ def save_sensor_data(workbook_path, data_sets, temperature_reference: str):
     worksheet[constants.test_date].value = datetime.date.today()
 
     _save_workbook(workbook_path)
+
+    return True
 
 
 def save_test_results(workbook_path: str, results: Tuple[str]):
@@ -79,7 +85,7 @@ _workbook = None
 
 
 def _convert_reading_for_spreadsheet(reading, conversion):
-    return conversion(reading)
+    return conversion(LWTest.utilities.misc.normalize_reading(reading))
 
 
 def _extract_serial_numbers_from_worksheet(worksheet: openpyxlWorksheet) -> Tuple[str]:

@@ -8,6 +8,7 @@ from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
 
 import LWTest.LWTConstants as LWT
+import LWTest.utilities.file as file
 import LWTest.gui.main_window.sensortable as sensortable
 import LWTest.utilities as utilities
 import LWTest.utilities.misc as utilities_misc
@@ -17,7 +18,8 @@ from LWTest.collector import configure
 from LWTest.collector.read.confirm import ConfirmSerialConfig
 from LWTest.collector.read.read import DataReader, FaultCurrentReader, PersistenceReader, FirmwareVersionReader, \
     ReportingDataReader
-from LWTest.gui.dialogs import PersistenceBootMonitor, ConfirmSerialConfigDialog, CountDownDialog, UpgradeDialog
+from LWTest.gui.dialogs import PersistenceBootMonitor, ConfirmSerialConfigDialog, CountDownDialog, UpgradeDialog, \
+    SaveDataDialog
 from LWTest.gui.main_window.create_menus import MenuHelper
 from LWTest.gui.main_window.menu_help_handlers import menu_help_about_handler
 from LWTest.gui.main_window.tasks import link as link_task
@@ -88,11 +90,10 @@ class MainWindow(QMainWindow):
         self.unsaved_test_results = False
         self.spreadsheet_path = None
         self.room_temp: QDoubleSpinBox = QDoubleSpinBox(self)
-        # self.pass_func = partial(self._set_sensor_table_field_background, QBrush(QColor(255, 255, 255, 255)))
-        # self.fail_func = partial(self._set_sensor_table_field_background, QBrush(QColor(255, 0, 0, 50)))
+
         self.validator = validator.Validator(
-            partial(self._set_sensor_table_field_background, QBrush(QColor(255, 255, 255, 255))),
-            partial(self._set_sensor_table_field_background, QBrush(QColor(255, 0, 0, 50)))
+            partial(self._set_sensor_table_widget_item_background, QBrush(QColor(255, 255, 255, 255))),
+            partial(self._set_sensor_table_widget_item_background, QBrush(QColor(255, 0, 0, 50)))
         )
 
         self.panel = QWidget(self)
@@ -315,35 +316,14 @@ class MainWindow(QMainWindow):
         self.thread_pool.start(worker)
 
     def _take_readings(self):
-        choice = QMessageBox.Ok
-        voltage_level = self.menu_helper.action_read_hi_or_low_voltage.data()
+        data_reader = DataReader(LWT.URL_SENSOR_DATA, LWT.URL_RAW_CONFIGURATION)
 
-        if voltage_level == '13800':
-            choice = QMessageBox.warning(QMessageBox(self), "LWTest\t\t\t\t\t\t",
-                                         "<b>Meter is set to read 13800 volts.</b><br/><br/>"
-                                         "If this is correct, click <b>'Ok'</b>.<br/><br/>"
-                                         "If not, click <b>'Cancel'</b>, then click the<br/>"
-                                         "battery icon to change scale.",
-                                         QMessageBox.Ok | QMessageBox.Cancel, QMessageBox.Cancel)
+        data_reader.signals.high_data_readings.connect(self._process_high_data_readings)
+        data_reader.signals.low_data_readings.connect(self._process_low_data_readings)
 
-        if choice == QMessageBox.Ok:
-            data_reader = DataReader(LWT.URL_SENSOR_DATA,
-                                     LWT.URL_RAW_CONFIGURATION,
-                                     self._get_browser(), self._get_sensor_count(),
-                                     self.menu_helper.action_read_hi_or_low_voltage.data())
+        data_reader.read(self._get_browser(), self._get_sensor_count())
 
-            if voltage_level == "13800":
-                data_reader.signals.high_data_readings.connect(self._process_high_data_readings)
-            else:
-                data_reader.signals.low_data_readings.connect(self._process_low_data_readings)
-
-            worker = ReadingsWorker(data_reader)
-            self.thread_pool.start(worker)
-
-            if self.menu_helper.action_read_hi_or_low_voltage.data() == '7200':
-                self.menu_helper.action_check_persistence.setEnabled(True)
-
-            self.unsaved_test_results = True
+        self.unsaved_test_results = True
 
     def _process_high_data_readings(self, readings: tuple):
         """Receives data in the following order: voltage, current, factors, power."""
@@ -381,29 +361,21 @@ class MainWindow(QMainWindow):
 
         self.validator.validate_temperature_readings(float(self.sensor_log.room_temperature), readings[LWT.TEMPERATURE])
 
+        self.menu_helper.action_check_persistence.setEnabled(True)
+
     def _manually_override_calibration_result(self, result, index):
         self.sensor_log.get_sensor_by_line_position(index).calibrated = result
 
     def _manually_override_fault_current_result(self, result, index):
         self.sensor_log.get_sensor_by_line_position(index).fault_current = result
 
-    def _save_data_to_spreadsheet(self):
-        data_sets = []
-        data = []
-        for index, unit in enumerate(self.sensor_log):
-            for field in _DATA_IN_SPREADSHEET_ORDER:
-                data.append(unit.__getattribute__(field))
+    def _save_data(self):
+        save_data_dialog = SaveDataDialog(self, self.spreadsheet_path, [sensor for sensor in self.sensor_log],
+                                          self.sensor_log.room_temperature)
+        result = save_data_dialog.exec()
 
-            phase = PhaseReadings(*phases[index])
-            data_to_save = zip(phase, data)
-            dts = list(data_to_save)
-
-            data_sets.append(dts)
-            data = []
-
-        spreadsheet.save_sensor_data(self.spreadsheet_path, data_sets, self.sensor_log.room_temperature)
-
-        self.unsaved_test_results = False
+        if result == QDialog.Accepted:
+            self.unsaved_test_results = False
 
     def _update_table_with_reading(self, location, content):
         if self.sensor_log.get_sensor_by_line_position(location[0]).linked:
@@ -489,8 +461,6 @@ class MainWindow(QMainWindow):
         self.menu_helper.action_take_readings.setData(self._take_readings)
         self.menu_helper.action_take_readings.triggered.connect(self._action_router)
 
-        toolbar.addAction(self.menu_helper.action_read_hi_or_low_voltage)
-
         toolbar.addAction(self.menu_helper.action_check_persistence)
         self.menu_helper.action_check_persistence.setData(self._check_persistence)
         self.menu_helper.action_check_persistence.triggered.connect(self._action_router)
@@ -504,7 +474,7 @@ class MainWindow(QMainWindow):
         self.menu_helper.insert_spacer(toolbar, self)
 
         toolbar.addAction(self.menu_helper.action_save)
-        self.menu_helper.action_save.setData(self._save_data_to_spreadsheet)
+        self.menu_helper.action_save.setData(self._save_data)
         self.menu_helper.action_save.triggered.connect(self._action_router)
 
         self.menu_helper.insert_spacer(toolbar, self)
@@ -516,13 +486,6 @@ class MainWindow(QMainWindow):
 
         if self.sender() is not None:
             self.sender().data()()
-
-    def _check_all_sensors_upgraded(self):
-        for unit in self.sensor_log:
-            if unit.linked and unit.firmware_version != "0x75":
-                return False
-
-        return True
 
     def _close_browser(self):
         if self.browser:
@@ -541,7 +504,7 @@ class MainWindow(QMainWindow):
     def _get_sensor_count(self):
         return len(self.sensor_log)
 
-    def _set_sensor_table_field_background(self, color: QBrush, row: int, col: int):
+    def _set_sensor_table_widget_item_background(self, color: QBrush, row: int, col: int):
         item: QTableWidgetItem = self.sensor_table.item(row, col)
         item.setBackground(color)
 

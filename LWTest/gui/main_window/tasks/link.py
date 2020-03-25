@@ -1,9 +1,9 @@
 from functools import partial
 
-from PyQt5.QtCore import QSettings, Qt
+from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QMessageBox
 
-import LWTest.LWTConstants as LWT
+import LWTest.LWTConstants as LWT_constants
 from LWTest.sensor import SensorLog
 from LWTest.workers.link import LinkWorker
 
@@ -14,14 +14,14 @@ _link_activity = None
 
 
 def determine_link_status(sensor_log: SensorLog, sensor_table, thread_pool, parent, record_func):
-    link_worker = LinkWorker(sensor_log.get_serial_numbers(), LWT.URL_MODEM_STATUS)
+    link_worker = LinkWorker(sensor_log.get_serial_numbers(), LWT_constants.URL_MODEM_STATUS)
 
     global _link_error
-    _link_error = partial(_link_error_handler, parent, sensor_log.get_serial_numbers())
+    _link_error = partial(_link_error_handler, parent)
     link_worker.signals.url_read_exception.connect(_link_error)
 
     global _sensor_linked
-    _sensor_linked = partial(_sensor_linked_handler, parent, sensor_table, record_func)
+    _sensor_linked = partial(_sensor_linked_handler, parent, record_func)
     link_worker.signals.successful_link.connect(_sensor_linked)
 
     global _warn_not_linked
@@ -35,7 +35,7 @@ def determine_link_status(sensor_log: SensorLog, sensor_table, thread_pool, pare
     thread_pool.start(link_worker)
 
 
-def _link_error_handler(parent, serial_numbers: tuple, info):
+def _link_error_handler(parent, info):
     msg_box = QMessageBox(QMessageBox.Warning,
                           "LWTest",
                           "Error while checking link status.\n\n" +
@@ -51,13 +51,9 @@ def _link_error_handler(parent, serial_numbers: tuple, info):
                               parent.sensor_log.record_rssi_readings)
 
 
-def _sensor_linked_handler(parent, sensor_table, record_func, data):
+def _sensor_linked_handler(parent, record_func, data):
     serial_number = data[0]
     rssi = data[1]
-
-    items = sensor_table.findItems(serial_number, Qt.MatchExactly)
-    row = sensor_table.row(items[0])
-    parent._update_table_with_reading((row, 1), rssi)
 
     record_func(serial_number, rssi)
 

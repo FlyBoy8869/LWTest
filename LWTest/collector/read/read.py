@@ -2,11 +2,14 @@ from time import sleep
 
 from PyQt5.QtCore import pyqtSignal, QObject
 from selenium import webdriver
-from selenium.common.exceptions import StaleElementReferenceException
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.common.exceptions import StaleElementReferenceException, TimeoutException
 
 from LWTest import LWTConstants as LWT
 from LWTest.constants import dom
-from LWTest.utilities.misc import get_page_login_if_needed
+from LWTest.utilities.misc import get_page_login_if_needed, normalize_reading, x_is_what_percent_of_y, filter_out_na
 
 
 class Signals(QObject):
@@ -28,46 +31,45 @@ class Signals(QObject):
 
 
 class DataReader:
-    def __init__(self, url_1: str, url_2: str, browser: webdriver.Chrome, count: int, voltage_level: str):
+    _HIGH_LOW_THRESHOLD = 10500
+    _PERCENTAGE_HIGH_VOLTAGE_READINGS = 66.0
 
-        self.url_sensor_data = url_1
-        self.url_raw_configuration = url_2
-        self.browser = browser
-        self.count = count
-        self.voltage_level = voltage_level
+    def __init__(self, sensor_data_url: str, raw_config_url: str) -> None:
+        self._sensor_data_url = sensor_data_url
+        self._raw_configuration_url = raw_config_url
         self.signals = Signals()
 
-    def read(self):
-        self.browser.get(self.url_sensor_data)
+    def read(self, browser: webdriver.Chrome, count: int) -> None:
+        browser.get(self._sensor_data_url)
 
-        try:
+        try:  # readings gathered regardless of whether high or low voltage is dialed in
             voltage_readings = []
-            for index, element in enumerate(dom.phase_voltage[:self.count]):
-                field = self.browser.find_element_by_xpath(element)
+            for index, element in enumerate(dom.phase_voltage[:count]):
+                field = browser.find_element_by_xpath(element)
                 content = field.get_attribute("textContent")
                 voltage_readings.append(content)
 
             current_readings = []
-            for index, element in enumerate(dom.phase_current[:self.count]):
-                field = self.browser.find_element_by_xpath(element)
+            for index, element in enumerate(dom.phase_current[:count]):
+                field = browser.find_element_by_xpath(element)
                 content = field.get_attribute("textContent")
                 current_readings.append(content)
 
             factor_readings = []
-            for index, element in enumerate(dom.phase_power_factor[:self.count]):
-                field = self.browser.find_element_by_xpath(element)
+            for index, element in enumerate(dom.phase_power_factor[:count]):
+                field = browser.find_element_by_xpath(element)
                 content = field.get_attribute("textContent")
                 factor_readings.append(content)
 
             power_readings = []
-            for index, element in enumerate(dom.phase_real_power[:self.count]):
-                field = self.browser.find_element_by_xpath(element)
+            for index, element in enumerate(dom.phase_real_power[:count]):
+                field = browser.find_element_by_xpath(element)
                 content = field.get_attribute("textContent")
                 if content != 'NA':
-                    content = str(int(float(content.replace(",", "")) * 1000))
+                    content = str(int(float(normalize_reading(content)) * 1000))
                 power_readings.append(content)
 
-            if self.voltage_level == "13800":
+            if self._reading_high_voltage(voltage_readings):
                 self.signals.high_data_readings.emit((voltage_readings,
                                                      current_readings,
                                                      factor_readings,
@@ -75,30 +77,30 @@ class DataReader:
 
                 return
 
-            if self.voltage_level == "7200":
+            else:  # readings gathered only when low voltage is dialed in
                 temperature_readings = []
-                for index, element in enumerate(dom.phase_temperature[:self.count]):
-                    field = self.browser.find_element_by_xpath(element)
+                for index, element in enumerate(dom.phase_temperature[:count]):
+                    field = browser.find_element_by_xpath(element)
                     content = field.get_attribute("textContent")
                     temperature_readings.append(content)
 
-                get_page_login_if_needed(self.url_raw_configuration, self.browser)
+                get_page_login_if_needed(self._raw_configuration_url, browser)
 
                 scale_current_readings = []
-                for index, element in enumerate(dom.scale_current[:self.count]):
-                    field = self.browser.find_element_by_xpath(element)
+                for index, element in enumerate(dom.scale_current[:count]):
+                    field = browser.find_element_by_xpath(element)
                     content = field.get_attribute("value")
                     scale_current_readings.append(content)
 
                 scale_voltage_readings = []
-                for index, element in enumerate(dom.scale_voltage[:self.count]):
-                    field = self.browser.find_element_by_xpath(element)
+                for index, element in enumerate(dom.scale_voltage[:count]):
+                    field = browser.find_element_by_xpath(element)
                     content = field.get_attribute("value")
                     scale_voltage_readings.append(content)
 
                 correction_angle_readings = []
-                for index, element in enumerate(dom.raw_configuration_angle[:self.count]):
-                    field = self.browser.find_element_by_xpath(element)
+                for index, element in enumerate(dom.raw_configuration_angle[:count]):
+                    field = browser.find_element_by_xpath(element)
                     content = field.get_attribute("value")
                     correction_angle_readings.append(content)
 
@@ -114,8 +116,25 @@ class DataReader:
         except StaleElementReferenceException:
             pass
 
-        self.signals.finished.emit()
-        self.signals.resize_columns.emit()
+    @staticmethod
+    def _reading_high_voltage(readings: list) -> bool:
+        return True if DataReader._get_percentage_of_high_voltage_readings(readings)\
+                       >= DataReader._PERCENTAGE_HIGH_VOLTAGE_READINGS else False
+
+    @staticmethod
+    def _get_percentage_of_high_voltage_readings(readings: list) -> float:
+        filtered_readings = filter_out_na(readings)
+        number_of_readings = len(filtered_readings)
+        number_of_high_voltage_readings = DataReader._count_high_voltage_readings(filtered_readings)
+
+        return x_is_what_percent_of_y(number_of_high_voltage_readings, number_of_readings)
+
+    @staticmethod
+    def _count_high_voltage_readings(readings) -> int:
+        """Return the number of readings that are considered high voltage. Readings should not contain 'NA' values."""
+
+        return len([reading for reading in readings
+                    if float(normalize_reading(reading)) > DataReader._HIGH_LOW_THRESHOLD])
 
 
 class FaultCurrentReader:
@@ -193,14 +212,17 @@ class ReportingDataReader:
 
         self.browser.get(self.url)
 
-        element = dom.phase_voltage[self.line_position]
-        field = self.browser.find_element_by_xpath(element)
+        try:
+            element = WebDriverWait(self.browser, 10).until(
+                EC.presence_of_element_located((By.XPATH, dom.phase_voltage[self.line_position])))
 
-        value = field.get_attribute("textContent")
-        if value == "NA":
-            reporting_data = "Fail"
+            content = element.get_attribute("textContent")
+            if content == 'NA':
+                reporting_data = "Fail"
 
-        self.signals.data_reporting_data.emit(self.line_position, reporting_data)
+            self.signals.data_reporting_data.emit(self.line_position, reporting_data)
+        except TimeoutException:
+            pass
 
 
 class FirmwareVersionReader:
@@ -208,15 +230,19 @@ class FirmwareVersionReader:
 
     def __init__(self, index, url: str, browser: webdriver.Chrome):
         self.url = url
-        self.browser = browser
+        self.driver = browser
         self.index = index
         self.signals = Signals()
 
     def read(self):
-        self.browser.get(self.url)
+        self.driver.get(self.url)
 
-        field = self.browser.find_element_by_xpath(dom.firmware_version[self.index])
-        content = field.get_attribute("textContent")
+        try:
+            element = WebDriverWait(self.driver, 10).until(
+                EC.presence_of_element_located((By.XPATH, dom.firmware_version[self.index])))
+            content = element.get_attribute("textContent")
+            self.signals.firmware_version.emit((self.index, LWT.TableColumn.FIRMWARE), content)
+        except TimeoutException:
+            pass
 
-        self.signals.firmware_version.emit((self.index, LWT.TableColumn.FIRMWARE), content)
         self.signals.firmware_check_complete.emit(self.index)

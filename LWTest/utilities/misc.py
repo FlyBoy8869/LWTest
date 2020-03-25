@@ -85,3 +85,15 @@ def to_bool(value) -> bool:
         return True
     else:
         return False
+
+
+def normalize_reading(reading: str) -> str:
+    return reading.replace(",", "")
+
+
+def x_is_what_percent_of_y(dividend: int, divisor: int) -> float:
+    return dividend / divisor * 100
+
+
+def filter_out_na(readings: list) -> list:
+    return list(filter(lambda r: r != 'NA', readings))

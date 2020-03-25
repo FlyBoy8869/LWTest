@@ -102,7 +102,8 @@ if TESTING:
     URL_UPGRADE = "http://127.0.0.1:8080/LineWatch-M%20Website%20software%20upgrade.html"
     URL_UPGRADE_LOG = r"LWTest\tests\webpages\software upgrade example 1 mod 1.html"
     # URL_UPGRADE_LOG = r"LWTest\tests\webpages\software upgrade example of failure.html"
-    URL_SENSOR_DATA = "http://127.0.0.1:8080/LineWatch-M%20Website%20sensor%20data.html"
+    #URL_SENSOR_DATA = "http://127.0.0.1:8080/LineWatch-M%20Website%20sensor%20data.html"
+    URL_SENSOR_DATA = "http://127.0.0.1:8080/LineWatch-M%20Website%20sensor%20data%20high.html"
     URL_TEMPERATURE = "http://127.0.0.1:8080/LineWatch-M%20Website%20temperature%20scale.html"
     URL_RAW_CONFIGURATION = "http://127.0.0.1:8080/LineWatch-M%20Website%20raw%20configuration.html"
     URL_CALIBRATE = ""
@@ -121,7 +122,7 @@ else:
     URL_TEMPERATURE = "http://192.168.2.1/index.php/main/Temperature"
     URL_RAW_CONFIGURATION = "http://192.168.2.1/index.php/main/test"
     URL_CALIBRATE = "http://192.168.2.1/index.php/main/calibrate"
-    URL_FAULT_CURRENT = "http://192.168.2.1/index.php/main/viewdata/cbc"
+    URL_FAULT_CURRENT = "http://192.168.2.1/index.php/main/viewdata/fault_current"
     URL_VOLTAGE_RIDE_THROUGH = "http://192.168.2.1/index.php/snow_ctrl/config"
 
 VOLTAGE = 0

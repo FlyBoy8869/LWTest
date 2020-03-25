@@ -19,7 +19,6 @@ class MenuHelper:
         self.action_take_readings: QAction = None
         self.action_config_correction_angle: QAction = None
         self.action_fault_current: QAction = None
-        self.action_read_hi_or_low_voltage: QAction = None
         self.action_calibrate: QAction = None
         self.action_check_persistence: QAction = None
 
@@ -56,12 +55,6 @@ class MenuHelper:
         self.action_fault_current = QAction(QIcon("LWTest/resources/images/fault_current-02.png"),
                                             "Fault Current", window)
 
-        self.action_read_hi_or_low_voltage = QAction(QIcon("LWTest/resources/images/high_voltage.png"),
-                                                     "<- Meter will read 13800KV",window)
-        self.action_read_hi_or_low_voltage.setCheckable(True)
-        self.action_read_hi_or_low_voltage.setData("13800")
-        self.action_read_hi_or_low_voltage.triggered.connect(self.toggle_hi_low_label)
-
         self.action_calibrate = QAction(QIcon("LWTest/resources/images/calibrate.png"), "Calibrate Sensor", window)
 
         self.action_check_persistence = QAction("Check\npersistence", window)
@@ -75,8 +68,7 @@ class MenuHelper:
 
         self.actions = [self.action_upgrade, self.action_advanced_configuration,
                         self.action_calibrate, self.action_config_correction_angle,
-                        self.action_take_readings, self.action_read_hi_or_low_voltage,
-                        self.action_check_persistence, self.action_fault_current]
+                        self.action_take_readings, self.action_check_persistence, self.action_fault_current]
 
         return self
 
@@ -85,13 +77,3 @@ class MenuHelper:
         spacer = QAction("  :  ", parent)
         spacer.setEnabled(False)
         toolbar.addAction(spacer)
-
-    def toggle_hi_low_label(self):
-        if self.action_read_hi_or_low_voltage.data() == "13800":
-            self.action_read_hi_or_low_voltage.setIcon(QIcon("LWTest/resources/images/low_voltage.png"))
-            self.action_read_hi_or_low_voltage.setData("7200")
-            self.action_read_hi_or_low_voltage.setToolTip("<- Meter will read 7200KV")
-        else:
-            self.action_read_hi_or_low_voltage.setIcon(QIcon("LWTest/resources/images/high_voltage.png"))
-            self.action_read_hi_or_low_voltage.setData("13800")
-            self.action_read_hi_or_low_voltage.setToolTip("<- Meter will read 13800KV")

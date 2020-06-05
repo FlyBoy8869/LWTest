@@ -76,13 +76,13 @@ class MainWindow(QMainWindow):
         self.setWindowTitle("LWTest")
         self.setAcceptDrops(True)
         self.signals = signals.MainWindowSignals()
-        self.thread_pool = QThreadPool()
+        self.thread_pool = QThreadPool.globalInstance()
         self.sensor_log = sensor.SensorLog()
         self.firmware_upgrade_in_progress = False
         self.link_activity_string = ""
-        self.browser: webdriver.Chrome = None
+        self.browser: Optional[webdriver.Chrome] = None
         self.unsaved_test_results = False
-        self.spreadsheet_path = None
+        self.spreadsheet_path: str = ""
         self.room_temp: QDoubleSpinBox = QDoubleSpinBox(self)
 
         self.validator = validator.Validator(
@@ -103,16 +103,13 @@ class MainWindow(QMainWindow):
         self.panel_layout.addWidget(self.sensor_table)
 
         self._create_toolbar()
-        self.setCentralWidget(self.panel)
-        self.show()
 
         self.signals.file_dropped.connect(lambda data: print(f"dropped filename: {data}"))
         self.signals.file_dropped.connect(lambda filename: self._import_serial_numbers(filename, self.sensor_log))
         self.signals.serial_numbers_imported.connect(self.sensor_log.append_all)
 
-        self.browser: Optional[webdriver.Chrome] = None
-
-        self.activateWindow()
+        self.setCentralWidget(self.panel)
+        self.show()
 
     def closeEvent(self, closing_event: QCloseEvent):
         self.thread_pool.clear()
@@ -257,25 +254,23 @@ class MainWindow(QMainWindow):
                 break
 
     def _check_persistence(self):
-        QMessageBox.information(QMessageBox(self), "LWTest", "Unplug the collector.\nClick 'OK' when ready to proceed.",
-                                QMessageBox.Ok)
+        self._show_information_dialog("Unplug the collector.\nClick 'OK' when ready to proceed.")
 
         td = CountDownDialog(self, "Persistence",
                              "Please, wait before powering on the collector.\n" +
                              "'Cancel' will abort test.\t\t",
                              LWT.TimeOut.COLLECTOR_POWER_OFF_TIME.value)
 
-        result = td.exec_()
+        if QDialog.Accepted == td.exec_():
 
-        if result == QDialog.Accepted:
+            self._show_information_dialog("Plug in the collector.\nClick 'OK' when ready to proceed.")
 
-            QMessageBox.information(QMessageBox(self), "LWTest",
-                                    "Plug in the collector.\nClick 'OK' when ready to proceed.",
-                                    QMessageBox.Ok)
+            cb = PersistenceBootMonitor(self, self.thread_pool)
+            if QDialog.Rejected == cb.exec_():
+                print("timed out waiting for collector to boot.")
+                return
 
-            cb = PersistenceBootMonitor(self)
-            cb.exec_()
-
+            print("checking raw config values for persistence.")
             persistence = PersistenceReader(LWT.URL_RAW_CONFIGURATION,
                                             self._get_browser(),
                                             self.sensor_log.get_persistence_values_for_comparison())
@@ -484,3 +479,6 @@ class MainWindow(QMainWindow):
 
     def _start_worker(self, worker):
         self.thread_pool.start(worker)
+
+    def _show_information_dialog(self, message):
+        QMessageBox.information(self, dialog_title(), message, QMessageBox.Ok, QMessageBox.Ok)

@@ -21,23 +21,45 @@ import LWTest.utilities.time as util_time
 
 class Signals(QObject):
     collector_booted = pyqtSignal()
+    dialog_timed_out = pyqtSignal()
 
 
 class UpgradeSignals(QObject):
     cancelled = pyqtSignal()
 
 
+class PageReachable(QRunnable):
+    def __init__(self, url: str, timeout: int):
+        super().__init__()
+        self._url: str = url
+        self._timeout: int = timeout
+        self.signals = Signals()
+
+    def run(self):
+        while self._timeout > 0:
+            try:
+                if 200 == requests.get(self._url, timeout=LWT.TimeOut.URL_REQUEST.value).status_code:
+                    self.signals.collector_booted.emit()
+                    return
+            except requests.exceptions.RequestException:
+                pass
+
+            self._timeout -= 1
+
+        self.signals.dialog_timed_out.emit()
+
+
 class PersistenceBootMonitor(QDialog):
 
-    def __init__(self, parent):
+    def __init__(self, parent, thread_pool):
         super().__init__(parent=parent)
         self.setWindowTitle("Persistence")
 
         self.parent = parent
-        # self._url = LWT_constants.URL_RAW_CONFIGURATION
+        self._thread_pool = thread_pool
         self.timeout = LWT.TimeOut.COLLECTOR_BOOT_WAIT_TIME.value
 
-        self.thread_started = False
+        self._need_to_start_thread: bool = True
         self.main_layout = QVBoxLayout()
         self.button_layout = QHBoxLayout()
 
@@ -50,7 +72,8 @@ class PersistenceBootMonitor(QDialog):
         self.progress_bar.setMaximum(0)
         self.progress_bar.setTextVisible(False)
 
-        self.button_box = QDialogButtonBox(QDialogButtonBox.Cancel)
+        self.button_box = QDialogButtonBox(self)
+        self.button_box.addButton("Cancel", QDialogButtonBox.RejectRole)
         self.button_box.rejected.connect(self.reject)
 
         self.main_layout.addWidget(self.description_label)
@@ -59,60 +82,19 @@ class PersistenceBootMonitor(QDialog):
 
         self.setLayout(self.main_layout)
 
-        self.timer = QTimer(self)
-        self.timer.timeout.connect(self.timer_timeout)
-
-    def showEvent(self, QShowEvent):
-        if not self.timer.isActive():
-            self.timer.start(1000)
-
-        if not self.thread_started:
+    def showEvent(self, q_show_event):
+        if self._need_to_start_thread:
+            self._need_to_start_thread = False
             self._wait_for_collector_to_boot()
-            self.thread_started = True
-
-    def timer_timeout(self):
-        if self.timeout > 0:
-            self.timeout -= 1
-        else:
-            self._stop_timer()
-            self.accept()
 
     def _wait_for_collector_to_boot(self):
-        class PageReachable(QRunnable):
-            def __init__(self, url: str):
-                super().__init__()
-                self.url = url
-                self.signals = Signals()
-
-            def run(self):
-                while True:
-                    try:
-                        print(f"{__name__}._wait_for_collector_to_boot: loading page")
-                        page = requests.get(self.url, timeout=LWT.TimeOut.URL_REQUEST.value)
-
-                        if page.status_code == 200:
-                            print(f"{__name__}._wait_for_collector_to_boot: page successfully loaded")
-                            self.signals.collector_booted.emit()
-                            return
-                    except requests.exceptions.RequestException:
-                        print(f"{__name__}._wait_for_collector_to_boot: collector not ready, retrying...")
-                        pass
-
-                    sleep(1)
-
-        monitor = PageReachable(LWT.URL_RAW_CONFIGURATION)
-        # methods are executed inside a tuple to allow multiple statements inside the lambda
-        # then the tuple is just thrown away
-        monitor.signals.collector_booted.connect(lambda: (self._stop_timer(), self.accept()))
-        print("starting boot thread")
-        self.parent.thread_pool.start(monitor)
-
-    def _stop_timer(self):
-        self.timer.stop()
+        monitor = PageReachable(LWT.URL_RAW_CONFIGURATION, self.timeout)
+        monitor.signals.collector_booted.connect(self.accept)
+        monitor.signals.dialog_timed_out.connect(self.reject)
+        self._thread_pool.start(monitor)
 
 
 class ConfirmSerialConfigDialog(QDialog):
-
     def __init__(self, confirm_object: ConfirmSerialConfig, thread_pool, parent=None):
         super().__init__(parent)
         self.thread_started = False

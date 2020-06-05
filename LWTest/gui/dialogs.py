@@ -16,6 +16,7 @@ from LWTest.workers.confirm import ConfirmSerialConfigWorker
 from LWTest.workers.upgrade import UpgradeWorker
 from LWTest.spreadsheet.constants import phases, PhaseReadings
 import LWTest.utilities.returns as returns
+import LWTest.utilities.time as util_time
 
 
 class Signals(QObject):
@@ -148,51 +149,65 @@ class ConfirmSerialConfigDialog(QDialog):
 
 
 class CountDownDialog(QDialog):
+    progress_bar_stylesheet = "QProgressBar {min-height: 10px; max-height: 10px; " + \
+                              "margin-top:10px; margin-bottom: 10px}"
+
     def __init__(self, parent, title: str, message: str, timeout: int):
         super().__init__(parent=parent)
         self.setWindowTitle(title)
 
-        self.parent = parent
-        self.message = message
-        self.timeout = timeout
+        self._main_layout = QVBoxLayout()
+        self._button_layout = QHBoxLayout()
 
-        self.main_layout = QVBoxLayout()
-        self.button_layout = QHBoxLayout()
+        self._description_label = QLabel(message)
 
-        self.description_label = QLabel(self.message)
+        self._timeout = timeout
+        self._progress_bar = QProgressBar()
+        self._progress_bar.setStyleSheet(self.progress_bar_stylesheet)
+        self._progress_bar.setMinimum(0)
+        self._progress_bar.setMaximum(self._timeout)
+        self._progress_bar.setValue(self._timeout)
+        self._progress_bar.setTextVisible(False)
 
-        progress_bar_stylesheet = "QProgressBar {min-height: 10px; max-height: 10px; " + \
-                                  "margin-top:10px; margin-bottom: 10px}"
-        self.progress_bar = QProgressBar()
-        self.progress_bar.setStyleSheet(progress_bar_stylesheet)
-        self.progress_bar.setMinimum(0)
-        self.progress_bar.setMaximum(self.timeout)
-        self.progress_bar.setValue(self.timeout)
-        self.progress_bar.setTextVisible(False)
+        self._remaining_time_label = QLabel("")
 
-        self.button_box = QDialogButtonBox(QDialogButtonBox.Cancel)
-        self.button_box.rejected.connect(self.reject)
+        self._button_box = QDialogButtonBox(QDialogButtonBox.Cancel)
+        self._button_box.rejected.connect(self.reject)
 
-        self.main_layout.addWidget(self.description_label)
-        self.main_layout.addWidget(self.progress_bar)
-        self.main_layout.addWidget(self.button_box)
+        self._main_layout.addWidget(self._description_label)
+        self._main_layout.addWidget(self._progress_bar)
+        self._main_layout.addWidget(self._remaining_time_label, alignment=Qt.AlignHCenter)
+        self._main_layout.addWidget(self._button_box)
 
-        self.setLayout(self.main_layout)
+        self.setLayout(self._main_layout)
 
-        self.timer = QTimer(self)
-        self.timer.timeout.connect(self.timer_timeout)
+        self._timer = QTimer(self)
+        self._timer.timeout.connect(self._handle_timeout)
 
-    def showEvent(self, QShowEvent):
-        if not self.timer.isActive():
-            self.timer.start(1000)
+    def showEvent(self, q_show_event):
+        if not self._timer.isActive():
+            self._remaining_time_label.setText(util_time.format_seconds_to_minutes_and_seconds(self._timeout))
+            self._timer.start(1000)
 
-    def timer_timeout(self):
-        self.timeout -= 1
-        if self.timeout > 0:
-            self.progress_bar.setValue(self.timeout)
-        else:
-            self.timer.stop()
+    def _timer_expired(self):
+        return self._timeout <= 0
+
+    def _terminate_on_timer_expiration(self):
+        if self._timer_expired():
+            self._timer.stop()
             self.accept()
+
+    def _update_display(self):
+        self._progress_bar.setValue(self._timeout)
+        self._remaining_time_label.setText(util_time.format_seconds_to_minutes_and_seconds(self._timeout))
+
+    def _decrement_timer(self):
+        self._timeout -= 1
+
+    def _handle_timeout(self):
+        self._decrement_timer()
+        self._update_display()
+        self._terminate_on_timer_expiration()
 
 
 class UpgradeDialog(QDialog):
@@ -294,9 +309,12 @@ class SaveDataDialog(QDialog):
                                   "firmware_version", "reporting_data", "rssi", "calibrated",
                                   "temperature", "fault_current")
 
-    def __init__(self, parent, path: str, sensors: list, room_temperature: str):
+    file_name_prefix = "ATR-PRD#-"
+    file_name_serial_number_template = "-SN{}"
+
+    def __init__(self, parent, spreadsheet_path: str, sensors: iter, room_temperature: str):
         super().__init__(parent=parent)
-        self._path = path
+        self._spreadsheet_path = spreadsheet_path
         self._sensors = sensors
         self._room_temperature = room_temperature
 
@@ -342,20 +360,24 @@ class SaveDataDialog(QDialog):
             data_sets.append(dts)
             data = []
 
-        if not spreadsheet.save_sensor_data(self._path, data_sets, self._room_temperature):
+        if not spreadsheet.save_sensor_data(self._spreadsheet_path, data_sets, self._room_temperature):
             self.reject()
 
+        self._main_label.setText("Downloading log files from the collector.")
+        QCoreApplication.processEvents()  # so the change to the label above shows up
+
         result = self._download_log_files()
-        if not result:
+        if not result.success:
             self._report_log_file_download_failure(result.error)
             self.reject()
             return
 
+        spreadsheet.record_log_files_attached(self._spreadsheet_path)
+
         self.accept()
 
     def _download_log_files(self) -> returns.Result:
-        self._main_label.setText("Downloading log files from the collector.")
-        return file.download_log_files(file.create_log_filename_from_spreadsheet_path(self._path))
+        return file.download_log_files(file.create_log_filename_from_spreadsheet_path(self._spreadsheet_path))
 
     def _report_log_file_download_failure(self, detail_text):
         msg_box = QMessageBox(QMessageBox.Warning, "LWTest - Saving Log Files",

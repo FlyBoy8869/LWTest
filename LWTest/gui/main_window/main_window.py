@@ -1,14 +1,14 @@
+from datetime import datetime
 from functools import partial
+from typing import Optional
 
 from PyQt5.QtCore import QThreadPool, QSettings, QSize
 from PyQt5.QtGui import QIcon, QCloseEvent, QBrush, QColor
 from PyQt5.QtWidgets import QMainWindow, QTableWidget, QVBoxLayout, QWidget, QTableWidgetItem, QMessageBox, QToolBar, \
     QDialog, QDoubleSpinBox
 from selenium import webdriver
-from selenium.webdriver.chrome.service import Service
 
 import LWTest.LWTConstants as LWT
-import LWTest.utilities.file as file
 import LWTest.gui.main_window.sensortable as sensortable
 import LWTest.utilities as utilities
 import LWTest.utilities.misc as utilities_misc
@@ -24,17 +24,11 @@ from LWTest.gui.main_window.create_menus import MenuHelper
 from LWTest.gui.main_window.menu_help_handlers import menu_help_about_handler
 from LWTest.gui.main_window.tasks import link as link_task
 from LWTest.spreadsheet import spreadsheet
-from LWTest.spreadsheet.constants import phases, PhaseReadings
 from LWTest.workers import upgrade
 from LWTest.workers.fault import FaultCurrentWorker
 from LWTest.workers.persistence import PersistenceWorker
 from LWTest.workers.postlink import PostLinkCheckWorker
-from LWTest.workers.readings import ReadingsWorker
 from LWTest.workers.serial import configure_serial_numbers
-
-
-service = Service(QSettings().value("drivers/chromedriver"))
-service.start()
 
 _DATA_IN_TABLE_ORDER = ("rssi", "firmware_version", "reporting_data", "calibrated", "high_voltage", "high_current",
                         "high_power_factor", "high_real_power", "low_voltage", "low_current",
@@ -116,7 +110,7 @@ class MainWindow(QMainWindow):
         self.signals.file_dropped.connect(lambda filename: self._import_serial_numbers(filename, self.sensor_log))
         self.signals.serial_numbers_imported.connect(self.sensor_log.append_all)
 
-        self.browser: webdriver.Chrome
+        self.browser: Optional[webdriver.Chrome] = None
 
         self.activateWindow()
 
@@ -180,7 +174,7 @@ class MainWindow(QMainWindow):
 
     def _configure_collector_serial_numbers(self):
         worker = configure_serial_numbers(self.sensor_log.get_serial_numbers(), self._get_browser())
-        worker.signals.finished.connect(self.__start_confirm_serial_update)
+        worker.signals.finished.connect(self._start_confirm_serial_update)
         worker.signals.failed.connect(self._serial_config_failed)
 
         self.thread_pool.start(worker)
@@ -196,7 +190,7 @@ class MainWindow(QMainWindow):
             print("retrying to config the collector")
             self._configure_collector_serial_numbers()
 
-    def __start_confirm_serial_update(self):
+    def _start_confirm_serial_update(self):
         confirm_serial_config = ConfirmSerialConfig(self.sensor_log.get_serial_numbers(), LWT.URL_MODEM_STATUS)
         confirm_serial_config.signals.confirmed.connect(self._determine_link_status)
 
@@ -370,48 +364,32 @@ class MainWindow(QMainWindow):
         self.sensor_log.get_sensor_by_line_position(index).fault_current = result
 
     def _save_data(self):
-        save_data_dialog = SaveDataDialog(self, self.spreadsheet_path, [sensor for sensor in self.sensor_log],
+        save_data_dialog = SaveDataDialog(self, self.spreadsheet_path, iter(self.sensor_log),
                                           self.sensor_log.room_temperature)
         result = save_data_dialog.exec()
 
         if result == QDialog.Accepted:
             self.unsaved_test_results = False
 
-    def _update_table_with_reading(self, location, content):
-        if self.sensor_log.get_sensor_by_line_position(location[0]).linked:
-            item: QTableWidgetItem = self.sensor_table.item(location[0], location[1])
-            item.setText(content)
-
     def _update_from_model(self):
         for index, sensor in enumerate(self.sensor_log):
             for j in range(LWT.TableColumn.RSSI.value, LWT.TableColumn.FAULT_CURRENT.value + 1):
 
                 if j == LWT.TableColumn.FAULT_CURRENT.value:
-                    self._update_fault_current_cell(CellLocation(index, LWT.TableColumn.FAULT_CURRENT.value),
+                    self._update_combo_box(CellLocation(index, LWT.TableColumn.FAULT_CURRENT.value),
                                                     sensor.fault_current)
                 elif j == LWT.TableColumn.CALIBRATION.value:
-                    self._update_calibration_cell(CellLocation(index, LWT.TableColumn.CALIBRATION.value),
-                                                  sensor.calibrated)
+                    self._update_combo_box(CellLocation(index, LWT.TableColumn.CALIBRATION.value),
+                                           sensor.calibrated)
                 else:
                     self.sensor_table.item(index, j).setText(sensor.__getattribute__(_DATA_IN_TABLE_ORDER[j - 1]))
 
         self.sensor_table.resizeColumnsToContents()
 
-    def _update_calibration_cell(self, cell_location: CellLocation, text: str) -> None:
-        self._update_combo_box_cell(cell_location, text)
-
-    def _update_fault_current_cell(self, cell_location: CellLocation, text: str) -> None:
-        self._update_combo_box_cell(cell_location, text)
-
-    def _update_combo_box_cell(self, cell_location: CellLocation, text: str) -> None:
+    def _update_combo_box(self, cell_location: CellLocation, text: str) -> None:
         def _determine_index(result: str) -> int:
-            index = 0
-            if result == "Pass":
-                index = 1
-            elif result == "Fail":
-                index = 2
-
-            return index
+            indexes = {"Pass": 1, "Fail": 2}
+            return indexes.get(result, 0)
 
         self.sensor_table.cellWidget(cell_location.row, cell_location.col).setCurrentIndex(_determine_index(text))
 
@@ -424,7 +402,6 @@ class MainWindow(QMainWindow):
         self.menu_helper.action_configure.setData(self._configure_collector_serial_numbers)
         self.menu_helper.action_configure.triggered.connect(self._action_router)
 
-        toolbar.addAction(self.menu_helper.action_upgrade)
         self.menu_helper.action_upgrade.setData(lambda: self._upgrade_sensor(
             self.sensor_table.currentRow()))
         self.menu_helper.action_upgrade.triggered.connect(self._action_router)
@@ -494,10 +471,7 @@ class MainWindow(QMainWindow):
 
     def _get_browser(self):
         if self.browser is None:
-            # self._driver = webdriver.Chrome(executable_path=self.settings.value("drivers/chromedriver"))
-            self.browser = webdriver.Remote(service.service_url)
-            # self._driver.minimize_window()
-            # self._driver = chrome_worker.get_browser()
+            self.browser = webdriver.Chrome(executable_path=QSettings().value("drivers/chromedriver"))
 
         return self.browser
 

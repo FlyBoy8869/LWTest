@@ -72,7 +72,7 @@ UPGRADE_FAILURE_TEXT = "Failed to enter program mode"
 
 if TESTING:
     class TimeOut(Enum):
-        COLLECTOR_POWER_OFF_TIME = 5
+        COLLECTOR_POWER_OFF_TIME = 15
         URL_REQUEST = 10
         URL_READ_INTERVAL = 2
         CONFIRM_SERIAL_CONFIG = 5
@@ -85,7 +85,7 @@ if TESTING:
 else:
     class TimeOut(Enum):
         COLLECTOR_POWER_OFF_TIME = 300  # time to wait while collector is powered off
-        URL_REQUEST = 5  # timeout passed to urllib.get
+        URL_REQUEST = 5  # _timeout passed to urllib.get
         URL_READ_INTERVAL = 2  # time to wait between successive _url requests
         CONFIRM_SERIAL_CONFIG = 300  # time to wait for collector to update serial number list
         COLLECTOR_BOOT_WAIT_TIME = 180  # time to wait for collector to reboot and start serving data
@@ -102,8 +102,8 @@ if TESTING:
     URL_UPGRADE = "http://127.0.0.1:8080/LineWatch-M%20Website%20software%20upgrade.html"
     URL_UPGRADE_LOG = r"LWTest\tests\webpages\software upgrade example 1 mod 1.html"
     # URL_UPGRADE_LOG = r"LWTest\tests\webpages\software upgrade example of failure.html"
-    #URL_SENSOR_DATA = "http://127.0.0.1:8080/LineWatch-M%20Website%20sensor%20data.html"
-    URL_SENSOR_DATA = "http://127.0.0.1:8080/LineWatch-M%20Website%20sensor%20data%20high.html"
+    URL_SENSOR_DATA = "http://127.0.0.1:8080/LineWatch-M%20Website%20sensor%20data.html"
+    #URL_SENSOR_DATA = "http://127.0.0.1:8080/LineWatch-M%20Website%20sensor%20data%20high.html"
     URL_TEMPERATURE = "http://127.0.0.1:8080/LineWatch-M%20Website%20temperature%20scale.html"
     URL_RAW_CONFIGURATION = "http://127.0.0.1:8080/LineWatch-M%20Website%20raw%20configuration.html"
     URL_CALIBRATE = ""

@@ -52,5 +52,11 @@ phases = (phase_1, phase_2, phase_3, phase_4, phase_5, phase_6)
 
 temperature_reference = 'C17'
 
+WATCHDOG_LOG = 'C43'
+SENSOR_COMM_LOG = 'C44'
+UPDATER_LOG = 'C45'
+
+LOG_FILE_CELLS = [WATCHDOG_LOG, SENSOR_COMM_LOG, UPDATER_LOG]
+
 tested_by = 'E43'
 test_date = 'I43'

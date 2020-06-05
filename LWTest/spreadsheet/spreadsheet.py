@@ -2,6 +2,7 @@
 import datetime
 import logging
 import sys
+from pathlib import Path
 from typing import Tuple
 
 import openpyxl
@@ -27,7 +28,7 @@ def get_serial_numbers(path: str) -> Tuple[str]:
     Parameters
     ----------
     path: str
-        path to spreadsheet
+        spreadsheet_path to spreadsheet
     Returns
     -------
         tuple[str]
@@ -60,6 +61,14 @@ def save_sensor_data(workbook_path, data_sets, temperature_reference: str) -> bo
     _save_workbook(workbook_path)
 
     return True
+
+
+def record_log_files_attached(workbook_path: str):
+    worksheet = _get_worksheet_from_workbook(workbook_path)
+    for cell in constants.LOG_FILE_CELLS:
+        worksheet[cell] = str('Yes')
+
+    _save_workbook(workbook_path)
 
 
 def save_test_results(workbook_path: str, results: Tuple[str]):
@@ -140,3 +149,20 @@ def _close_workbook():
 
     _workbook.close()
     _workbook = None
+
+
+class Spreadsheet:
+    def __init__(self, path: Path, worksheet_name: str):
+        self._path = path
+        self._worksheet_name = worksheet_name
+
+    def get_serial_numbers(self) -> list:
+        raise NotImplementedError("Not yet.")
+
+    def _extract_serial_numbers_from_worksheet(self, serial_locations: tuple) -> Tuple[str]:
+        serial_numbers = [str(self._worksheet_name[serial_location].value) for serial_location in serial_locations
+                          if str(self._worksheet_name[serial_location].value) != 'None']
+
+        _close_workbook()
+
+        return tuple(serial_numbers)

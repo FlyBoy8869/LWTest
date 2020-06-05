@@ -2,7 +2,7 @@
 import datetime
 
 
-def format_seconds_to_minutes_seconds(seconds):
+def format_seconds_to_minutes_and_seconds(seconds):
     return f"{seconds // 60:02d}:{seconds % 60:02d}"
 
 

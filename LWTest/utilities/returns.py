@@ -17,7 +17,14 @@ class Result:
         return self._error
 
     def __bool__(self):
-        if self._success:
-            return True
+        assert False, "You must test for Result.success."
 
-        return False
+
+if __name__ == '__main__':
+    result = Result(True, "6969")
+
+    if result.success:
+        print(f"The result of testing 'result.success' is {result.value}.")
+
+    if result:
+        print("This should not print.")

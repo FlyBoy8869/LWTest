@@ -61,6 +61,7 @@ class MenuHelper:
         self.action_check_persistence.setEnabled(False)
 
         # add actions to menu
+        self.menu_file.addAction(self.action_upgrade)
         self.menu_file.addAction(self.action_save)
         self.menu_file.addSeparator()
         self.menu_file.addAction(self.action_exit)

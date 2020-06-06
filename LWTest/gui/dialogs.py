@@ -37,13 +37,16 @@ class PageReachable(QRunnable):
 
     def run(self):
         while self._timeout > 0:
+            print(f"timeout = {self._timeout}")
             try:
                 if 200 == requests.get(self._url, timeout=LWT.TimeOut.URL_REQUEST.value).status_code:
                     self.signals.collector_booted.emit()
+                    sleep(1)
                     return
             except requests.exceptions.RequestException:
-                pass
+                print("unable to load raw config page")
 
+            sleep(1)
             self._timeout -= 1
 
         self.signals.dialog_timed_out.emit()
@@ -65,20 +68,14 @@ class PersistenceBootMonitor(QDialog):
 
         self.description_label = QLabel("Please, wait for the collector to boot.\t\t")
 
-        progress_bar_stylesheet = "QProgressBar {min-height: 10px; max-height: 10px}"
         self.progress_bar = QProgressBar()
-        self.progress_bar.setStyleSheet(progress_bar_stylesheet)
+        self.progress_bar.setStyleSheet("QProgressBar {min-height: 10px; max-height: 10px}")
         self.progress_bar.setMinimum(0)
         self.progress_bar.setMaximum(0)
         self.progress_bar.setTextVisible(False)
 
-        self.button_box = QDialogButtonBox(self)
-        self.button_box.addButton("Cancel", QDialogButtonBox.RejectRole)
-        self.button_box.rejected.connect(self.reject)
-
         self.main_layout.addWidget(self.description_label)
         self.main_layout.addWidget(self.progress_bar)
-        self.main_layout.addWidget(self.button_box)
 
         self.setLayout(self.main_layout)
 

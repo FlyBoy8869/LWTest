@@ -22,3 +22,6 @@ def load(path: str, settings: QSettings):
 def process_command_line_args(args: list, settings: QSettings):
     debug = True if "DEBUG" in args else False
     settings.setValue("DEBUG", debug)
+
+    remote = True if "REMOTE" in args else False
+    settings.setValue("REMOTE", remote)

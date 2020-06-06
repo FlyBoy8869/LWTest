@@ -1,4 +1,4 @@
-from datetime import datetime
+from functools import partial
 from functools import partial
 from typing import Optional
 
@@ -253,6 +253,31 @@ class MainWindow(QMainWindow):
             else:
                 break
 
+    def _verify_persistence_of_raw_configuration_readings(self):
+        persistence = PersistenceReader(LWT.URL_RAW_CONFIGURATION,
+                                        self._get_browser(),
+                                        self.sensor_log.get_persistence_values_for_comparison())
+
+        persistence.signals.data_persisted.connect(self.sensor_log.record_persistence_readings)
+        persistence.signals.finished.connect(self._update_from_model)
+
+        worker = PersistenceWorker(persistence)
+        self.thread_pool.start(worker)
+
+    def _handle_persistence_boot_monitor_finished_signal(self, result_code):
+        if result_code == QDialog.Accepted:
+            self._verify_persistence_of_raw_configuration_readings()
+
+    def _wait_for_collector_to_boot(self):
+        cb = PersistenceBootMonitor(self, self.thread_pool)
+        cb.finished.connect(self._handle_persistence_boot_monitor_finished_signal)
+        cb.open()
+
+    def _handle_persistence_countdown_dialog_finished_signal(self, result_code):
+        if result_code == QDialog.Accepted:
+            self._show_information_dialog("Plug in the collector.\nClick 'OK' when ready to proceed.")
+            self._wait_for_collector_to_boot()
+
     def _check_persistence(self):
         self._show_information_dialog("Unplug the collector.\nClick 'OK' when ready to proceed.")
 
@@ -260,26 +285,8 @@ class MainWindow(QMainWindow):
                              "Please, wait before powering on the collector.\n" +
                              "'Cancel' will abort test.\t\t",
                              LWT.TimeOut.COLLECTOR_POWER_OFF_TIME.value)
-
-        if QDialog.Accepted == td.exec_():
-
-            self._show_information_dialog("Plug in the collector.\nClick 'OK' when ready to proceed.")
-
-            cb = PersistenceBootMonitor(self, self.thread_pool)
-            if QDialog.Rejected == cb.exec_():
-                print("timed out waiting for collector to boot.")
-                return
-
-            print("checking raw config values for persistence.")
-            persistence = PersistenceReader(LWT.URL_RAW_CONFIGURATION,
-                                            self._get_browser(),
-                                            self.sensor_log.get_persistence_values_for_comparison())
-
-            persistence.signals.data_persisted.connect(self.sensor_log.record_persistence_readings)
-            persistence.signals.finished.connect(self._update_from_model)
-
-            worker = PersistenceWorker(persistence)
-            self.thread_pool.start(worker)
+        td.finished.connect(self._handle_persistence_countdown_dialog_finished_signal)
+        td.open()
 
     def _read_post_link_data(self, serial_number):
         index = self.sensor_log[serial_number].line_position

@@ -5,6 +5,7 @@ from PyQt5.QtCore import QSettings
 
 
 TESTING = True if QSettings().value("DEBUG") == 'true' else False
+REMOTE = True if QSettings().value("REMOTE") == 'true' else False
 
 
 class TestID(Enum):
@@ -73,7 +74,7 @@ UPGRADE_FAILURE_TEXT = "Failed to enter program mode"
 if TESTING:
     class TimeOut(Enum):
         COLLECTOR_POWER_OFF_TIME = 2
-        URL_REQUEST = 10
+        URL_REQUEST = 5
         URL_READ_INTERVAL = 2
         CONFIRM_SERIAL_CONFIG = 5
         COLLECTOR_BOOT_WAIT_TIME = 10
@@ -95,20 +96,21 @@ else:
         UPGRADE_LOG_LOAD_INTERVAL = 1
         TIME_BETWEEN_CONFIGURATION_PAGES = 3
 
-
 if TESTING:
-    URL_CONFIGURATION = "http://127.0.0.1:8080/LineWatch-M Website configuration.html"
-    URL_MODEM_STATUS = "http://127.0.0.1:8080/LineWatch-M Website modem status.html"
-    URL_UPGRADE = "http://127.0.0.1:8080/LineWatch-M%20Website%20software%20upgrade.html"
+    _web_server = "10.0.0.106" if REMOTE else "127.0.0.1"
+
+    URL_CONFIGURATION = f"http://{_web_server}:8080/LineWatch-M Website configuration.html"
+    URL_MODEM_STATUS = f"http://{_web_server}:8080/LineWatch-M Website modem status.html"
+    URL_UPGRADE = f"http://{_web_server}:8080/LineWatch-M%20Website%20software%20upgrade.html"
     URL_UPGRADE_LOG = r"LWTest\tests\webpages\software upgrade example 1 mod 1.html"
     # URL_UPGRADE_LOG = r"LWTest\tests\webpages\software upgrade example of failure.html"
-    URL_SENSOR_DATA = "http://127.0.0.1:8080/LineWatch-M%20Website%20sensor%20data.html"
-    #URL_SENSOR_DATA = "http://127.0.0.1:8080/LineWatch-M%20Website%20sensor%20data%20high.html"
-    URL_TEMPERATURE = "http://127.0.0.1:8080/LineWatch-M%20Website%20temperature%20scale.html"
-    URL_RAW_CONFIGURATION = "http://127.0.0.1:8080/LineWatch-M%20Website%20raw%20configuration.html"
+    URL_SENSOR_DATA = f"http://{_web_server}:8080/LineWatch-M%20Website%20sensor%20data.html"
+    # URL_SENSOR_DATA = f"http://{_web_server}:8080/LineWatch-M%20Website%20sensor%20data%20high.html"
+    URL_TEMPERATURE = f"http://{_web_server}:8080/LineWatch-M%20Website%20temperature%20scale.html"
+    URL_RAW_CONFIGURATION = f"http://{_web_server}:8080/LineWatch-M%20Website%20raw%20configuration.html"
     URL_CALIBRATE = ""
-    URL_FAULT_CURRENT = "http://127.0.0.1:8080/LineWatch-M%20Website%20fault_current.html"
-    URL_VOLTAGE_RIDE_THROUGH = "http://127.0.0.1:8080/LineWatch-M%20Website%20voltage%20ride%20through%200305327.html"
+    URL_FAULT_CURRENT = f"http://{_web_server}:8080/LineWatch-M%20Website%20fault_current.html"
+    URL_VOLTAGE_RIDE_THROUGH = f"http://{_web_server}:8080/LineWatch-M%20Website%20voltage%20ride%20through%200305327.html"
 else:
     URL_CONFIGURATION = "http://192.168.2.1/index.php/main/configuration"
     URL_MODEM_STATUS = "http://192.168.2.1/index.php/main/modem_status"

@@ -13,7 +13,7 @@ _warn_not_linked = None
 _link_activity = None
 
 
-def determine_link_status(sensor_log: SensorLog, sensor_table, thread_pool, parent, record_func):
+def determine_link_status(sensor_log: SensorLog, sensor_table, thread_pool, record_func, parent):
     link_worker = LinkWorker(sensor_log.get_serial_numbers(), LWT_constants.URL_MODEM_STATUS)
 
     global _link_error
@@ -57,7 +57,7 @@ def _sensor_linked_handler(parent, record_func, data):
 
     record_func(serial_number, rssi)
 
-    parent._read_post_link_data(serial_number)
+    parent._start_sensor_link_data_collection(serial_number)
 
 
 def _warn_sensors_not_linked_handler(parent, sensor_table, serial_numbers):
@@ -70,7 +70,7 @@ def _warn_sensors_not_linked_handler(parent, sensor_table, serial_numbers):
 
             parent.sensor_log.record_rssi_readings(serial_number, "Not Linked")
 
-            parent._read_post_link_data(serial_number)
+            parent._start_sensor_link_data_collection(serial_number)
 
 
 def _link_activity_handler(sensor_table, serial_numbers, indicator):

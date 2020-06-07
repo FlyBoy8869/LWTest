@@ -1,4 +1,6 @@
 # settings.py
+import re
+
 from PyQt5.QtCore import QSettings, QCoreApplication
 
 
@@ -23,5 +25,10 @@ def process_command_line_args(args: list, settings: QSettings):
     debug = True if "DEBUG" in args else False
     settings.setValue("DEBUG", debug)
 
-    remote = True if "REMOTE" in args else False
-    settings.setValue("REMOTE", remote)
+    server = "127.0.0.1"
+    pattern = re.compile(r"server=(\d+.\d+.\d+.\d+)")
+    for arg in args:
+        match = pattern.match(arg)
+        if match:
+            server = match[1]
+    settings.setValue("server", server)

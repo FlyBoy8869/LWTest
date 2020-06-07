@@ -195,8 +195,11 @@ class MainWindow(QMainWindow):
         confirm_dialog.exec_()
 
     def _determine_link_status(self):
-        link_task.determine_link_status(self.sensor_log, self.sensor_table, self.thread_pool, self,
-                                        self.sensor_log.record_rssi_readings)
+        link_task.determine_link_status(self.sensor_log,
+                                        self.sensor_table,
+                                        self.thread_pool,
+                                        self.sensor_log.record_rssi_readings,
+                                        parent=self)
 
     def _upgrade_sensor(self, row: int):
         if not self.firmware_upgrade_in_progress:
@@ -253,7 +256,7 @@ class MainWindow(QMainWindow):
             else:
                 break
 
-    def _verify_persistence_of_raw_configuration_readings(self):
+    def _verify_raw_configuration_readings_persist(self):
         persistence = PersistenceReader(LWT.URL_RAW_CONFIGURATION,
                                         self._get_browser(),
                                         self.sensor_log.get_persistence_values_for_comparison())
@@ -266,19 +269,19 @@ class MainWindow(QMainWindow):
 
     def _handle_persistence_boot_monitor_finished_signal(self, result_code):
         if result_code == QDialog.Accepted:
-            self._verify_persistence_of_raw_configuration_readings()
+            self._verify_raw_configuration_readings_persist()
 
     def _wait_for_collector_to_boot(self):
-        cb = PersistenceBootMonitor(self, self.thread_pool)
-        cb.finished.connect(self._handle_persistence_boot_monitor_finished_signal)
-        cb.open()
+        pbm = PersistenceBootMonitor(self, self.thread_pool)
+        pbm.finished.connect(self._handle_persistence_boot_monitor_finished_signal)
+        pbm.open()
 
     def _handle_persistence_countdown_dialog_finished_signal(self, result_code):
         if result_code == QDialog.Accepted:
-            self._show_information_dialog("Plug in the collector.\nClick 'OK' when ready to proceed.")
+            self._show_information_dialog("Plug in the collector.\nClick 'OK' when ready.")
             self._wait_for_collector_to_boot()
 
-    def _check_persistence(self):
+    def _start_persistence_test(self):
         self._show_information_dialog("Unplug the collector.\nClick 'OK' when ready to proceed.")
 
         td = CountDownDialog(self, "Persistence",
@@ -288,32 +291,40 @@ class MainWindow(QMainWindow):
         td.finished.connect(self._handle_persistence_countdown_dialog_finished_signal)
         td.open()
 
-    def _read_post_link_data(self, serial_number):
-        index = self.sensor_log[serial_number].line_position
+    def _get_reporting_reader(self, index, url, browser):
+        reporting_reader = ReportingDataReader(index, url, browser)
+        reporting_reader.signals.data_reporting_data.connect(self.sensor_log.record_reporting_data)
+        return reporting_reader
 
-        firmware_reader = FirmwareVersionReader(index, LWT.URL_UPGRADE, self._get_browser())
+    def _get_firmware_reader(self, index, serial_number, url, browser):
+        firmware_reader = FirmwareVersionReader(index, url, browser)
         firmware_reader.signals.firmware_version.connect(
             lambda i, version: self.sensor_log.record_firmware_version(serial_number, version))
+        return firmware_reader
 
-        reporting_reader = ReportingDataReader(index, LWT.URL_SENSOR_DATA, self._get_browser())
-        reporting_reader.signals.data_reporting_data.connect(self.sensor_log.record_reporting_data)
+    def _get_sensor_link_data_readers(self, index, serial_number):
+        firmware_reader = self._get_firmware_reader(index, serial_number, LWT.URL_UPGRADE, self._get_browser())
+        reporting_reader = self._get_reporting_reader(index, LWT.URL_SENSOR_DATA, self._get_browser())
+        return firmware_reader, reporting_reader
 
-        worker = PostLinkCheckWorker((firmware_reader, reporting_reader))
+    def _get_sensor_line_position(self, serial_number):
+        return self.sensor_log[serial_number].line_position
+
+    def _start_sensor_link_data_collection(self, serial_number):
+        readers = self._get_sensor_link_data_readers(self._get_sensor_line_position(serial_number), serial_number)
+        worker = PostLinkCheckWorker(readers)
         worker.signals.finished.connect(self._update_from_model)
-
         self.thread_pool.start(worker)
 
     def _read_fault_current(self):
         fault_current = FaultCurrentReader(LWT.URL_FAULT_CURRENT, self._get_browser())
         fault_current.signals.data_fault_current.connect(self.sensor_log.record_fault_current_readings)
         fault_current.signals.finished.connect(self._update_from_model)
-
         worker = FaultCurrentWorker(fault_current)
         self.thread_pool.start(worker)
 
     def _take_readings(self):
         data_reader = DataReader(LWT.URL_SENSOR_DATA, LWT.URL_RAW_CONFIGURATION)
-
         data_reader.signals.high_data_readings.connect(self._process_high_data_readings)
         data_reader.signals.low_data_readings.connect(self._process_low_data_readings)
 
@@ -441,7 +452,7 @@ class MainWindow(QMainWindow):
         self.menu_helper.action_take_readings.triggered.connect(self._action_router)
 
         toolbar.addAction(self.menu_helper.action_check_persistence)
-        self.menu_helper.action_check_persistence.setData(self._check_persistence)
+        self.menu_helper.action_check_persistence.setData(self._start_persistence_test)
         self.menu_helper.action_check_persistence.triggered.connect(self._action_router)
 
         self.menu_helper.insert_spacer(toolbar, self)

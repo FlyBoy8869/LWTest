@@ -5,7 +5,6 @@ from PyQt5.QtCore import QSettings
 
 
 TESTING = True if QSettings().value("DEBUG") == 'true' else False
-REMOTE = True if QSettings().value("REMOTE") == 'true' else False
 
 
 class TestID(Enum):
@@ -97,7 +96,7 @@ else:
         TIME_BETWEEN_CONFIGURATION_PAGES = 3
 
 if TESTING:
-    _web_server = "10.0.0.106" if REMOTE else "127.0.0.1"
+    _web_server = QSettings().value("server")
 
     URL_CONFIGURATION = f"http://{_web_server}:8080/LineWatch-M Website configuration.html"
     URL_MODEM_STATUS = f"http://{_web_server}:8080/LineWatch-M Website modem status.html"

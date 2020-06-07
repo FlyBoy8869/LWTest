@@ -1,3 +1,4 @@
+import re
 import sys
 import traceback
 from time import sleep
@@ -17,6 +18,9 @@ class LinkWorker(QRunnable):
         self.url = url
         self.signals = WorkerSignals()
 
+        # zero or more whitespace \s* followed by 7 digits \d{7}
+        self._serial_number_pattern = re.compile(r"\s*\d{7}")
+
         self.time_to_sleep = LWT.TimeOut.LINK_PAGE_LOAD_INTERVAL.value
         self.elapsed_time = 0
         self.timeout = LWT.TimeOut.LINK_CHECK.value
@@ -33,9 +37,12 @@ class LinkWorker(QRunnable):
 
         self.signals.url_read_exception.emit((None, None, message))
 
-    def _timed_out_waiting_for_sensors_to_link(self, serial_numbers):
+    def _emit_not_linked_signal_for_these_serial_numbers(self, serial_numbers):
         self.signals.link_timeout.emit(tuple(serial_numbers))
         print("timed out waiting for sensors to link")
+
+    def _handle_timeout(self):
+        self._emit_not_linked_signal_for_these_serial_numbers(self.serial_numbers)
 
     def _page_loaded_successfully(self, status_code):
         return status_code == 200
@@ -46,20 +53,25 @@ class LinkWorker(QRunnable):
     def _wait_time_expired(self):
         return self.elapsed_time >= self.timeout
 
-    def _check_for_link(self, page_text):
-        for line in page_text.split("\n"):
-            line = line.strip()
-            if line and line[0].isdigit():
-                for _ in range(len(self.serial_numbers)):
-                    if (serial_number := self.serial_numbers.pop(0)) in line:
-                        data = [datum.strip() for datum in line.split(" ") if datum]
-                        if len(data) > 3:
-                            self.signals.successful_link.emit((data[0], data[3]))  # serial number, rssi
-                        else:
-                            self.serial_numbers.append(serial_number)
-                    else:
-                        self.serial_numbers.append(serial_number)
+    def _emit_signal_if_linked(self, data):
+        if data[0] in self.serial_numbers and len(data) > 3:
+            self.signals.successful_link.emit((data[0], data[3]))  # serial number, rssi
+            self.serial_numbers.pop(0)
 
+    def _process_line(self, line):
+        data = [datum.strip() for datum in line.split(" ") if datum]
+        self._emit_signal_if_linked(data)
+
+    def _line_starts_with_serial_number(self, line: str):
+        return self._serial_number_pattern.match(line)
+
+    def _process_lines_starting_with_serial_number(self, line):
+        if self._line_starts_with_serial_number(line):
+            self._process_line(line)
+
+    def _process_page(self, page_text):
+        for line in page_text.split("\n"):
+            self._process_lines_starting_with_serial_number(line)
             self._show_activity(self.serial_numbers)
 
     def _get_page(self):
@@ -87,9 +99,9 @@ class LinkWorker(QRunnable):
                 return
 
             if self._page_loaded_successfully(page.status_code):
-                self._check_for_link(page.text)
+                self._process_page(page.text)
 
             sleep(self.time_to_sleep)
             self.elapsed_time += self.time_to_sleep
 
-        self._timed_out_waiting_for_sensors_to_link(self.serial_numbers)
+        self._handle_timeout()

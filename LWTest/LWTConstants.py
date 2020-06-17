@@ -98,15 +98,14 @@ else:
 if TESTING:
     _web_server = QSettings().value("server")
 
-    URL_CONFIGURATION = f"http://{_web_server}:8080/LineWatch-M Website configuration.html"
-    URL_MODEM_STATUS = f"http://{_web_server}:8080/LineWatch-M Website modem status.html"
-    URL_UPGRADE = f"http://{_web_server}:8080/LineWatch-M%20Website%20software%20upgrade.html"
+    URL_CONFIGURATION = "http://localhost:5000/configuration"
+    URL_MODEM_STATUS = "http://localhost:5000/modemstatus"
+    URL_UPGRADE = "http://localhost:5000/softwareupgrade"
     URL_UPGRADE_LOG = r"LWTest\tests\webpages\software upgrade example 1 mod 1.html"
     # URL_UPGRADE_LOG = r"LWTest\tests\webpages\software upgrade example of failure.html"
-    URL_SENSOR_DATA = f"http://{_web_server}:8080/LineWatch-M%20Website%20sensor%20data.html"
-    # URL_SENSOR_DATA = f"http://{_web_server}:8080/LineWatch-M%20Website%20sensor%20data%20high.html"
-    URL_TEMPERATURE = f"http://{_web_server}:8080/LineWatch-M%20Website%20temperature%20scale.html"
-    URL_RAW_CONFIGURATION = f"http://{_web_server}:8080/LineWatch-M%20Website%20raw%20configuration.html"
+    URL_SENSOR_DATA = "http://localhost:5000/sensordata"
+    URL_TEMPERATURE = "http://localhost:5000/temperaturescale"
+    URL_RAW_CONFIGURATION = "http://localhost:5000/rawconfig"
     URL_CALIBRATE = ""
     URL_FAULT_CURRENT = f"http://{_web_server}:8080/LineWatch-M%20Website%20fault_current.html"
     URL_VOLTAGE_RIDE_THROUGH = f"http://{_web_server}:8080/LineWatch-M%20Website%20voltage%20ride%20through%200305327.html"

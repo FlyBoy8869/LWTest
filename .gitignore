@@ -247,3 +247,5 @@ $RECYCLE.BIN/
 *.lnk
 
 .idea/sonarlint/
+!/LWTest/My Scratchies/
+LWTest/My Scratchies/

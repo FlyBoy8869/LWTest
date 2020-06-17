@@ -1,3 +1,4 @@
+import datetime
 import re
 import sys
 import traceback
@@ -11,6 +12,29 @@ from LWTest.signals import WorkerSignals
 from LWTest.utilities.misc import indicator
 
 
+class ModemStatusPageLoader:
+    def __init__(self, url: str):
+        self._url = url
+
+    @property
+    def page(self):
+        return self._get_page()
+
+    def _get_page(self):
+        try:
+            page = requests.get(self._url, timeout=5)
+            if page.status_code != 200:
+                page = None
+        except requests.exceptions.ConnectTimeout:
+            # self.signals.url_read_exception.emit((exc_type, "Connection timed out.", value))
+            page = None
+        except requests.exceptions.ConnectionError:
+            # self.signals.url_read_exception.emit((exc_type, "Connection error", value))
+            page = None
+
+        return page
+
+
 class LinkWorker(QRunnable):
     def __init__(self, serial_numbers: tuple, url):
         super().__init__()
@@ -18,13 +42,14 @@ class LinkWorker(QRunnable):
         self.url = url
         self.signals = WorkerSignals()
 
+        self._page_loader = ModemStatusPageLoader(self.url)
+
         # zero or more whitespace \s* followed by 7 digits \d{7}
         self._serial_number_pattern = re.compile(r"\s*\d{7}")
 
         self.time_to_sleep = LWT.TimeOut.LINK_PAGE_LOAD_INTERVAL.value
-        self.elapsed_time = 0
+        self._seconds_elapsed = None
         self.timeout = LWT.TimeOut.LINK_CHECK.value
-
         self.link_indicator = indicator()
 
     def _show_activity(self, serial_numbers):
@@ -50,58 +75,47 @@ class LinkWorker(QRunnable):
     def _page_not_found(self, status_code):
         return status_code == 404
 
-    def _wait_time_expired(self):
-        return self.elapsed_time >= self.timeout
+    def _elapsed_seconds_generator(self):
+        start_time = datetime.datetime.now()
+        while True:
+            yield (datetime.datetime.now() - start_time).seconds
+
+    def _timed_out(self):
+        return next(self._seconds_elapsed) >= self.timeout
 
     def _emit_signal_if_linked(self, data):
-        if data[0] in self.serial_numbers and len(data) > 3:
+        if len(data) > 3:
             self.signals.successful_link.emit((data[0], data[3]))  # serial number, rssi
-            self.serial_numbers.pop(0)
-
-    def _process_line(self, line):
-        data = [datum.strip() for datum in line.split(" ") if datum]
-        self._emit_signal_if_linked(data)
+            self.serial_numbers.remove(data[0])
 
     def _line_starts_with_serial_number(self, line: str):
         return self._serial_number_pattern.match(line)
 
-    def _process_lines_starting_with_serial_number(self, line):
-        if self._line_starts_with_serial_number(line):
-            self._process_line(line)
+    def _extract_sensors_from_page(self, text):
+        sensors = [line.split() for line in text.split('\n') if self._line_starts_with_serial_number(line)]
+        return [sensor for sensor in sensors if sensor[0] in self.serial_numbers]
 
-    def _process_page(self, page_text):
-        for line in page_text.split("\n"):
-            self._process_lines_starting_with_serial_number(line)
-            self._show_activity(self.serial_numbers)
+    def _all_sensors_linked(self):
+        return len(self.serial_numbers) == 0
 
-    def _get_page(self):
-        try:
-            page = requests.get(self.url, timeout=5)
-        except requests.exceptions.ConnectTimeout:
-            print(traceback.format_exc())
-            exc_type, value = sys.exc_info()[:2]
-            self.signals.url_read_exception.emit((exc_type, "Connection timed out.", value))
-            page = None
-        except requests.exceptions.ConnectionError:
-            print(traceback.format_exc())
-            exc_type, value = sys.exc_info()[:2]
-            self.signals.url_read_exception.emit((exc_type, "Connection error", value))
-            page = None
-
-        return page
+    def _process_sensors(self, sensors):
+        for sensor in sensors:
+            self._emit_signal_if_linked(sensor)
 
     def run(self):
-        while not self._wait_time_expired():
-            page = self._get_page()
+        self._seconds_elapsed = self._elapsed_seconds_generator()
 
-            if page is None or self._page_not_found(page.status_code):
+        while not self._timed_out():
+
+            if (page := self._page_loader.page) is None or self._page_not_found(page.status_code):
                 self._notify_page_not_found()
                 return
 
             if self._page_loaded_successfully(page.status_code):
-                self._process_page(page.text)
+                self._process_sensors(self._extract_sensors_from_page(page.text))
+                if self._all_sensors_linked():
+                    return
 
             sleep(self.time_to_sleep)
-            self.elapsed_time += self.time_to_sleep
-
-        self._handle_timeout()
+        else:
+            self._handle_timeout()

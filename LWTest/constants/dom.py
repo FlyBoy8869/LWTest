@@ -1,4 +1,8 @@
 # config.dom.dom.py
+from PyQt5.QtCore import QSettings
+
+
+TESTING = True if QSettings().value("DEBUG") == 'true' else False
 
 login_header = '/html/body/div/h1'
 login_username_field = '//*[@id="username"]'
@@ -25,7 +29,11 @@ configuration_frequency = '//*[@id="maindiv"]/form/div[3]/div[2]/div[3]/input'
 voltage_ride_through = '//*[@id="singlephase"]'  # use .is_selected() to determine if it needs to be clicked
 
 configuration_password = '//*[@id="password"]/div/input'
-configuration_save_changes = '//*[@id="saveconfig"]'
+
+if TESTING:
+    configuration_save_changes = '//*[@id="password"]/div/input[2]'
+else:
+    configuration_save_changes = '//*[@id="saveconfig"]'
 
 #
 # raw configuration data

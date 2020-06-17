@@ -1,5 +1,4 @@
 from functools import partial
-from functools import partial
 from typing import Optional
 
 from PyQt5.QtCore import QThreadPool, QSettings, QSize
@@ -24,11 +23,12 @@ from LWTest.gui.main_window.create_menus import MenuHelper
 from LWTest.gui.main_window.menu_help_handlers import menu_help_about_handler
 from LWTest.gui.main_window.tasks import link as link_task
 from LWTest.spreadsheet import spreadsheet
+from LWTest.utilities import misc
 from LWTest.workers import upgrade
 from LWTest.workers.fault import FaultCurrentWorker
 from LWTest.workers.persistence import PersistenceWorker
 from LWTest.workers.postlink import PostLinkCheckWorker
-from LWTest.workers.serial import configure_serial_numbers
+from LWTest.serial import ConfigureSerialNumbers
 
 _DATA_IN_TABLE_ORDER = ("rssi", "firmware_version", "reporting_data", "calibrated", "high_voltage", "high_current",
                         "high_power_factor", "high_real_power", "low_voltage", "low_current",
@@ -170,22 +170,21 @@ class MainWindow(QMainWindow):
         self._update_from_model()
 
     def _configure_collector_serial_numbers(self):
-        worker = configure_serial_numbers(self.sensor_log.get_serial_numbers(), self._get_browser())
-        worker.signals.finished.connect(self._start_confirm_serial_update)
-        worker.signals.failed.connect(self._serial_config_failed)
+        configurator = ConfigureSerialNumbers(misc.ensure_six_numbers(self.sensor_log.get_serial_numbers()),
+                                              QSettings().value("main/config_password"),
+                                              self._get_browser(),
+                                              LWT.URL_CONFIGURATION
+                                              )
 
-        self.thread_pool.start(worker)
+        configurator.signals.finished.connect(self._start_confirm_serial_update)
+        configurator.signals.failed.connect(self._handle_serial_number_configuration_failure)
+        configurator.configure()
 
-    def _serial_config_failed(self):
-        button = QMessageBox.warning(self, "LWTest - Page Load Error\t\t\t\t\t\t\t\t",
-                                     f"An error occurred trying to send the serial numbers to the collector.\n\n" +
-                                     "Make sure the ethernet cable is connected and the collector is booted,\n" +
-                                     "then click 'Ok' to retry or 'Cancel' to abort.",
-                                     QMessageBox.Ok | QMessageBox.Cancel)
-
-        if button == QMessageBox.Ok:
-            print("retrying to config the collector")
-            self._configure_collector_serial_numbers()
+    def _handle_serial_number_configuration_failure(self):
+        QMessageBox.warning(self, "LWTest - Warning\t\t\t\t\t\t\t\t",
+                            f"An error occurred trying to configure the collector with the serial numbers." +
+                            "\n\nMake sure the ethernet cable is connected and the collector is booted.",
+                            QMessageBox.Ok)
 
     def _start_confirm_serial_update(self):
         confirm_serial_config = ConfirmSerialConfig(self.sensor_log.get_serial_numbers(), LWT.URL_MODEM_STATUS)

@@ -1,11 +1,11 @@
 # sensor.py
-from typing import Optional
+from typing import Optional, List, Tuple
 
 
 class Sensor:
     def __init__(self, line_position: int, serial_number: str):
         self.line_position = line_position
-        self.serial_number = serial_number
+        self.serial_number: str = serial_number
 
         self.result = "Not Tested"
         self.rssi = "Not Linked"
@@ -65,11 +65,11 @@ class SensorLog:
         for index, number in enumerate(iterable):
             self._append(Sensor(index, number))
 
-    def get_serial_numbers(self) -> tuple:
+    def get_serial_numbers_as_tuple(self) -> Tuple[str]:
         return tuple([sensor.serial_number for sensor in self._log.values()])
 
-    # def get_line_position(self, serial_number: str) -> int:
-    #     return self._find_sensor(serial_number).line_position
+    def get_serial_numbers_as_list(self) -> List[str]:
+        return [sensor.serial_number for sensor in self._log.values()]
 
     def get_persistence_values_for_comparison(self):
         values = []
@@ -204,6 +204,10 @@ class SensorLog:
     def record_rssi_readings(self, serial_number, rssi):
         self._log[serial_number].rssi = rssi
 
+    def record_non_linked_sensors(self, serial_numbers):
+        for serial_number in serial_numbers:
+            self._log[serial_number].rssi = "Not Linked"
+
     def set_test_result(self, serial_number: str, result: str):
         sensor = self._find_sensor(serial_number)
         sensor.result = result
@@ -229,7 +233,7 @@ class SensorLog:
         return len(self._log)
 
     def __repr__(self):
-        return f"SensorLog({self.get_serial_numbers()})"
+        return f"SensorLog({self.get_serial_numbers_as_tuple()})"
 
 
 if __name__ == '__main__':
@@ -238,5 +242,5 @@ if __name__ == '__main__':
     sensor_log.append_all(numbers)
 
     assert len(sensor_log) == 6, "sensor_log should have 6 elements"
-    assert sensor_log.get_serial_numbers() == tuple(numbers), "serial numbers don't match"
+    assert sensor_log.get_serial_numbers_as_tuple() == tuple(numbers), "serial numbers don't match"
     assert sensor_log.get_line_position(numbers[3]) == 3, "incorrect line position"

@@ -1,7 +1,7 @@
 from functools import partial
 from typing import Optional
 
-from PyQt5.QtCore import QThreadPool, QSettings, QSize
+from PyQt5.QtCore import QThreadPool, QSettings, QSize, Qt
 from PyQt5.QtGui import QIcon, QCloseEvent, QBrush, QColor
 from PyQt5.QtWidgets import QMainWindow, QTableWidget, QVBoxLayout, QWidget, QTableWidgetItem, QMessageBox, QToolBar, \
     QDialog, QDoubleSpinBox
@@ -14,21 +14,19 @@ import LWTest.utilities.misc as utilities_misc
 import LWTest.validator as validator
 from LWTest import sensor, signals
 from LWTest.collector import configure
-from LWTest.collector.read.confirm import ConfirmSerialConfig
 from LWTest.collector.read.read import DataReader, FaultCurrentReader, PersistenceReader, FirmwareVersionReader, \
     ReportingDataReader
 from LWTest.gui.dialogs import PersistenceBootMonitor, ConfirmSerialConfigDialog, CountDownDialog, UpgradeDialog, \
-    SaveDataDialog
+    SaveDataDialog, SpinDialog
 from LWTest.gui.main_window.create_menus import MenuHelper
 from LWTest.gui.main_window.menu_help_handlers import menu_help_about_handler
-from LWTest.gui.main_window.tasks import link as link_task
+from LWTest.serial import ConfigureSerialNumbers
 from LWTest.spreadsheet import spreadsheet
 from LWTest.utilities import misc
-from LWTest.workers import upgrade
+from LWTest.workers import upgrade, link
 from LWTest.workers.fault import FaultCurrentWorker
 from LWTest.workers.persistence import PersistenceWorker
 from LWTest.workers.postlink import PostLinkCheckWorker
-from LWTest.serial import ConfigureSerialNumbers
 
 _DATA_IN_TABLE_ORDER = ("rssi", "firmware_version", "reporting_data", "calibrated", "high_voltage", "high_current",
                         "high_power_factor", "high_real_power", "low_voltage", "low_current",
@@ -127,15 +125,21 @@ class MainWindow(QMainWindow):
             closing_event.ignore()
 
     def dragEnterEvent(self, event):
-        if event.mimeData().hasFormat("FileName"):
+        if event.mimeData().hasUrls:
+            event.setDropAction(Qt.CopyAction)
             event.accept()
         else:
             event.ignore()
 
     def dropEvent(self, event):
-        filename = event.mimeData().urls()[0].toLocalFile()
-        self.spreadsheet_path = filename
-        self.signals.file_dropped.emit(filename)
+        if event.mimeData().hasUrls:
+            event.setDropAction(Qt.CopyAction)
+            event.accept()
+            filename = event.mimeData().urls()[0].toLocalFile()
+            self.spreadsheet_path = filename
+            self.signals.file_dropped.emit(filename)
+        else:
+            event.ignore()
 
     def _discard_test_results(self, clear_flag=True):
         if self.unsaved_test_results:
@@ -163,14 +167,14 @@ class MainWindow(QMainWindow):
 
     def _setup_sensor_table(self):
         print(f"room temperature = {self.sensor_log.room_temperature}")
-        sensortable.setup_table_widget(self, self.sensor_log.get_serial_numbers(), self.sensor_table,
+        sensortable.setup_table_widget(self, self.sensor_log.get_serial_numbers_as_tuple(), self.sensor_table,
                                        self._manually_override_calibration_result,
                                        self._manually_override_fault_current_result)
 
         self._update_from_model()
 
     def _configure_collector_serial_numbers(self):
-        configurator = ConfigureSerialNumbers(misc.ensure_six_numbers(self.sensor_log.get_serial_numbers()),
+        configurator = ConfigureSerialNumbers(misc.ensure_six_numbers(self.sensor_log.get_serial_numbers_as_list()),
                                               QSettings().value("main/config_password"),
                                               self._get_browser(),
                                               LWT.URL_CONFIGURATION
@@ -187,18 +191,25 @@ class MainWindow(QMainWindow):
                             QMessageBox.Ok)
 
     def _start_confirm_serial_update(self):
-        confirm_serial_config = ConfirmSerialConfig(self.sensor_log.get_serial_numbers(), LWT.URL_MODEM_STATUS)
-        confirm_serial_config.signals.confirmed.connect(self._determine_link_status)
+        # pop dialog
+        # load modem status page
+        # scan page for linked sensors
+        #   extract serial number and rssi
+        #   save them
+        # sleep for a bit
+        # repeat until timeout
+        dialog = SpinDialog(self, "Collecting startup data...\t\t\t", 0)
+        dialog.show()
+        dialog.raise_()
+        dialog.activateWindow()
 
-        confirm_dialog = ConfirmSerialConfigDialog(confirm_serial_config, self.thread_pool, self)
-        confirm_dialog.exec_()
-
-    def _determine_link_status(self):
-        link_task.determine_link_status(self.sensor_log,
-                                        self.sensor_table,
-                                        self.thread_pool,
-                                        self.sensor_log.record_rssi_readings,
-                                        parent=self)
+        link_worker = link.LinkWorker(self.sensor_log.get_serial_numbers_as_tuple(), LWT.URL_MODEM_STATUS)
+        link_worker.signals.successful_link.connect(lambda d: self.sensor_log.record_rssi_readings(d[0], d[1]))
+        link_worker.signals.successful_link.connect(lambda d: self._start_sensor_link_data_collection(d[0]))
+        link_worker.signals.link_timeout.connect(lambda nls: self.sensor_log.record_non_linked_sensors(nls))
+        link_worker.signals.finished.connect(lambda: dialog.done(QDialog.Accepted))
+        link_worker.signals.finished.connect(self._update_from_model)
+        self.thread_pool.start(link_worker)
 
     def _upgrade_sensor(self, row: int):
         if not self.firmware_upgrade_in_progress:

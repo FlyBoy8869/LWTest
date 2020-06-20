@@ -1,15 +1,20 @@
 import datetime
 import re
-import sys
-import traceback
-from time import sleep
 
 import requests
-from PyQt5.QtCore import QRunnable
+from PyQt5.QtCore import QRunnable, QObject, pyqtSignal
+from time import sleep
 
 import LWTest.LWTConstants as LWT
-from LWTest.signals import WorkerSignals
 from LWTest.utilities.misc import indicator
+
+linked_regex = r"\s*\d{7}\s*\d{7}\s*\d{7}\s*-?\d{2}"
+
+
+class Signals(QObject):
+    successful_link = pyqtSignal(tuple)
+    link_timeout = pyqtSignal(tuple)  # emits the serial numbers that did not link to the collector
+    finished = pyqtSignal()
 
 
 class ModemStatusPageLoader:
@@ -40,7 +45,7 @@ class LinkWorker(QRunnable):
         super().__init__()
         self.serial_numbers = list(serial_numbers)
         self.url = url
-        self.signals = WorkerSignals()
+        self.signals = Signals()
 
         self._page_loader = ModemStatusPageLoader(self.url)
 
@@ -68,6 +73,7 @@ class LinkWorker(QRunnable):
 
     def _handle_timeout(self):
         self._emit_not_linked_signal_for_these_serial_numbers(self.serial_numbers)
+        self.signals.finished.emit()
 
     def _page_loaded_successfully(self, status_code):
         return status_code == 200
@@ -85,6 +91,7 @@ class LinkWorker(QRunnable):
 
     def _emit_signal_if_linked(self, data):
         if len(data) > 3:
+            print(f"found a link for sensor {data[0]} with an rssi of {data[3]}")
             self.signals.successful_link.emit((data[0], data[3]))  # serial number, rssi
             self.serial_numbers.remove(data[0])
 
@@ -100,6 +107,7 @@ class LinkWorker(QRunnable):
 
     def _process_sensors(self, sensors):
         for sensor in sensors:
+            print(f"processing sensor {sensor} for a link")
             self._emit_signal_if_linked(sensor)
 
     def run(self):
@@ -114,6 +122,7 @@ class LinkWorker(QRunnable):
             if self._page_loaded_successfully(page.status_code):
                 self._process_sensors(self._extract_sensors_from_page(page.text))
                 if self._all_sensors_linked():
+                    self.signals.finished.emit()
                     return
 
             sleep(self.time_to_sleep)

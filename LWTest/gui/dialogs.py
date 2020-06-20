@@ -1,22 +1,19 @@
-from time import sleep
 from typing import Callable
 
 import requests
 from PyQt5.QtCore import QTimer, QRunnable, QObject, pyqtSignal, Qt, QSettings, QCoreApplication
 from PyQt5.QtGui import QPalette
-from PyQt5.QtWidgets import QDialog, QVBoxLayout, QProgressBar, QLabel, QHBoxLayout, QDialogButtonBox, QMessageBox, \
-    QWidget
+from PyQt5.QtWidgets import QDialog, QVBoxLayout, QProgressBar, QLabel, QHBoxLayout, QDialogButtonBox, QMessageBox
+from time import sleep
 
-import LWTest.spreadsheet.spreadsheet as spreadsheet
 import LWTest.LWTConstants as LWT
-from LWTest.collector.read.confirm import ConfirmSerialConfig
-from LWTest.constants import dom
-from LWTest.utilities import file
-from LWTest.workers.confirm import ConfirmSerialConfigWorker
-from LWTest.workers.upgrade import UpgradeWorker
-from LWTest.spreadsheet.constants import phases, PhaseReadings
+import LWTest.spreadsheet.spreadsheet as spreadsheet
 import LWTest.utilities.returns as returns
 import LWTest.utilities.time as util_time
+from LWTest.constants import dom
+from LWTest.spreadsheet.constants import phases, PhaseReadings
+from LWTest.utilities import file
+from LWTest.workers.upgrade import UpgradeWorker
 
 
 class Signals(QObject):
@@ -92,13 +89,8 @@ class PersistenceBootMonitor(QDialog):
 
 
 class ConfirmSerialConfigDialog(QDialog):
-    def __init__(self, confirm_object: ConfirmSerialConfig, thread_pool, parent=None):
+    def __init__(self, parent):
         super().__init__(parent)
-        self.thread_started = False
-
-        confirm_object.signals.confirmed.connect(self.accept)
-        self.worker = ConfirmSerialConfigWorker(confirm_object)
-
         self.setWindowTitle("LWTest - Serial Config")
 
         self.main_layout = QVBoxLayout()
@@ -123,8 +115,6 @@ class ConfirmSerialConfigDialog(QDialog):
         self.main_layout.addLayout(self.button_layout)
 
         self.setLayout(self.main_layout)
-
-        thread_pool.start(self.worker)
 
 
 class CountDownDialog(QDialog):
@@ -270,9 +260,12 @@ class SpinDialog(QDialog):
         self.timer = QTimer(self)
         self.timer.timeout.connect(self._timer_timeout)
 
-    def showEvent(self, QShowEvent):
-        if not self.timer.isActive():
+    def showEvent(self, q_show_event):
+        if self.timeout != 0 and not self.timer.isActive():
             self.timer.start(1000)
+
+    def go_away(self):
+        self.done(QDialog.Accepted)
 
     def _timer_timeout(self):
         self.timeout -= 1

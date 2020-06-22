@@ -144,7 +144,7 @@ class MainWindow(QMainWindow):
 
     def _discard_test_results(self, clear_flag=True):
         if self.unsaved_test_results:
-            result = QMessageBox.question(QMessageBox(self), f"{dialog_title()} - Unsaved Test Results",
+            result = QMessageBox.question(self, f"{dialog_title()} - Unsaved Test Results",
                                           "Discard results?\t\t\t\t",
                                           QMessageBox.Yes | QMessageBox.No,
                                           QMessageBox.No)

@@ -3,13 +3,14 @@ from enum import Enum, auto, unique, IntEnum
 
 from PyQt5.QtCore import QSettings
 
-from laboot import oscomp
-from laboot.oscomp import QSettingsAdapter, OSType
+from LWTest.common import oscomp
+from LWTest.common.oscomp import QSettingsAdapter, OSType
 
 TESTING = True if QSettingsAdapter.value("DEBUG") == 'true' else False
 print(f"TESTING = {TESTING}")
 
 NO_DATA = "N/A"
+
 
 class TestID(Enum):
     RSSI = auto()
@@ -79,9 +80,9 @@ if TESTING:
         COLLECTOR_POWER_OFF_TIME = 2
         URL_REQUEST = 5
         URL_READ_INTERVAL = 2
-        CONFIRM_SERIAL_CONFIG = 5
+        CONFIRM_SERIAL_CONFIG = 20
         COLLECTOR_BOOT_WAIT_TIME = 10
-        LINK_CHECK = 5
+        LINK_CHECK = 20
         LINK_PAGE_LOAD_INTERVAL = 1
         WAIT_FOR_COLLECTOR_TO_START_UPDATING_LOG_FILE = 1
         UPGRADE_LOG_LOAD_INTERVAL = 0.1

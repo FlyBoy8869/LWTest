@@ -1,6 +1,6 @@
 from time import sleep
 
-from PyQt5.QtCore import pyqtSignal, QObject
+from PyQt5.QtCore import pyqtSignal, QObject, QRunnable
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
@@ -16,7 +16,10 @@ class Signals(QObject):
     data_fault_current = pyqtSignal(str)
     data_persisted = pyqtSignal(list)
     data_reading_persisted = pyqtSignal(str, int, int)
+
     data_reporting_data = pyqtSignal(int, str)
+    data_reporting_data_complete = pyqtSignal()
+
     data_reading = pyqtSignal(tuple, str)
     data_readings_complete = pyqtSignal()
 
@@ -134,7 +137,9 @@ class DataReader:
         """Return the number of readings that are considered high voltage. Readings should not contain 'NA' values."""
 
         return len([reading for reading in readings
-                    if float(normalize_reading(reading)) > DataReader._HIGH_LOW_THRESHOLD])
+                    if
+                    float(normalize_reading(reading)) > DataReader._HIGH_LOW_THRESHOLD
+                    ])
 
 
 class FaultCurrentReader:
@@ -202,6 +207,7 @@ class PersistenceReader:
 
 class ReportingDataReader:
     def __init__(self, line_position, url: str, browser: webdriver.Chrome):
+        super().__init__()
         self.line_position = line_position
         self.url = url
         self.browser = browser
@@ -217,30 +223,35 @@ class ReportingDataReader:
                 EC.presence_of_element_located((By.XPATH, dom.phase_voltage[self.line_position])))
 
             content = element.get_attribute("textContent")
-            if content == 'NA':
+            if content == LWT.NO_DATA:
                 reporting_data = "Fail"
 
             self.signals.data_reporting_data.emit(self.line_position, reporting_data)
         except TimeoutException:
             pass
 
+        self.signals.data_reporting_data_complete.emit()
+
 
 class FirmwareVersionReader:
     """Used every time a sensor joins and links to the Collector."""
 
     def __init__(self, index, url: str, browser: webdriver.Chrome):
+        super().__init__()
         self.url = url
         self.driver = browser
         self.index = index
         self.signals = Signals()
 
     def read(self):
+        print(f"FirmwareVersionReader.run() called for index {self.index}")
         self.driver.get(self.url)
 
         try:
             element = WebDriverWait(self.driver, 10).until(
                 EC.presence_of_element_located((By.XPATH, dom.firmware_version[self.index])))
             content = element.get_attribute("textContent")
+            print(f"Firmware for index {self.index} = {content}")
             self.signals.firmware_version.emit((self.index, LWT.TableColumn.FIRMWARE), content)
         except TimeoutException:
             pass

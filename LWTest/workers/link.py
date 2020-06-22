@@ -1,5 +1,6 @@
 import datetime
 import re
+import time
 
 import requests
 from PyQt5.QtCore import QRunnable, QObject, pyqtSignal
@@ -90,7 +91,7 @@ class LinkWorker(QRunnable):
         return next(self._seconds_elapsed) >= self.timeout
 
     def _emit_signal_if_linked(self, data):
-        print(f"found a link for sensor {data[0]} with an rssi of {data[3]}")
+        print(f"{time.time()} found a link for sensor {data[0]} with an rssi of {data[3]}")
         self.signals.successful_link.emit((data[0], data[3]))  # serial number, rssi
 
     def _line_starts_with_serial_number(self, line: str):

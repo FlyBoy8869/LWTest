@@ -8,7 +8,7 @@ class Sensor:
         self.serial_number: str = serial_number
 
         self.result = "Not Tested"
-        self.rssi = "Not Linked"
+        self.rssi = "----"
         self.firmware_version = "NA"
         self.reporting_data = "NA"
         self.calibrated = "NA"

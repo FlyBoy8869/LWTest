@@ -13,7 +13,7 @@ import LWTest.gui.main_window.sensortable as sensortable
 import LWTest.utilities as utilities
 import LWTest.utilities.misc as utilities_misc
 import LWTest.validate as validator
-from LWTest import sensor, signals
+from LWTest import sensor, signals, common
 from LWTest.collector import configure
 from LWTest.collector.read.read import DataReader, FaultCurrentReader, PersistenceReader, FirmwareVersionReader, \
     ReportingDataReader
@@ -80,9 +80,10 @@ class MainWindow(QMainWindow):
         self.firmware_upgrade_in_progress = False
         self.link_activity_string = ""
         self.browser: Optional[webdriver.Chrome] = None
-        self.unsaved_test_results = False
         self.spreadsheet_path: str = ""
         self.room_temp: QDoubleSpinBox = QDoubleSpinBox(self)
+
+        self.changes = common.confimation.ChangeTracker()
 
         self.validator = validator.Validator(
             partial(self._set_sensor_table_widget_item_background, QBrush(QColor(Qt.transparent))),
@@ -113,7 +114,7 @@ class MainWindow(QMainWindow):
     def closeEvent(self, closing_event: QCloseEvent):
         self.thread_pool.clear()
 
-        if self._discard_test_results():
+        if self.changes.discard_test_results(self):
             self._close_browser()
 
             width = self.width()
@@ -142,29 +143,15 @@ class MainWindow(QMainWindow):
         else:
             event.ignore()
 
-    def _discard_test_results(self, clear_flag=True):
-        if self.unsaved_test_results:
-            result = QMessageBox.question(self, f"{dialog_title()} - Unsaved Test Results",
-                                          "Discard results?\t\t\t\t",
-                                          QMessageBox.Yes | QMessageBox.No,
-                                          QMessageBox.No)
-
-            if result == QMessageBox.No:
-                return False
-
-        if clear_flag:
-            self.unsaved_test_results = False
-
-        return True
-
     def _import_serial_numbers(self, filename: str, sensor_log):
         # listens for MainWindow().signals.file_dropped
 
-        if self._discard_test_results():
+        if self.changes.discard_test_results(self):
             sensor_log.append_all(spreadsheet.get_serial_numbers(filename))
             self._setup_sensor_table()
+            self.changes.clear_change_flag()
 
-        self.unsaved_test_results = False
+        # self.changes.set_change_flag()
 
     def _setup_sensor_table(self):
         print(f"room temperature = {self.sensor_log.room_temperature}")
@@ -206,7 +193,7 @@ class MainWindow(QMainWindow):
 
         link_thread = link.LinkWorker(self.sensor_log.get_serial_numbers_as_tuple(), LWT.URL_MODEM_STATUS)
         link_thread.signals.successful_link.connect(lambda d: self.sensor_log.record_rssi_readings(d[0], d[1]))
-        link_thread.signals.successful_link.connect(lambda d: self._start_sensor_link_data_collection(d[0]))
+        link_thread.signals.successful_link.connect(lambda d: self._get_sensor_link_data(d[0]))
         link_thread.signals.link_timeout.connect(lambda nls: self.sensor_log.record_non_linked_sensors(nls))
         link_thread.signals.finished.connect(lambda: dialog.done(QDialog.Accepted))
         link_thread.signals.finished.connect(self._update_from_model)
@@ -321,7 +308,7 @@ class MainWindow(QMainWindow):
     def _get_sensor_line_position(self, serial_number):
         return self.sensor_log[serial_number].line_position
 
-    def _start_sensor_link_data_collection(self, serial_number):
+    def _get_sensor_link_data(self, serial_number):
         readers = self._get_sensor_link_data_readers(self._get_sensor_line_position(serial_number), serial_number)
         worker = PostLinkCheckWorker(readers)
         worker.signals.finished.connect(self._update_from_model)
@@ -341,7 +328,7 @@ class MainWindow(QMainWindow):
 
         data_reader.read(self._get_browser(), self._get_sensor_count())
 
-        self.unsaved_test_results = True
+        self.changes.set_change_flag()
 
     def _process_high_data_readings(self, readings: tuple):
         """Receives data in the following order: voltage, current, factors, power."""
@@ -393,7 +380,7 @@ class MainWindow(QMainWindow):
         result = save_data_dialog.exec()
 
         if result == QDialog.Accepted:
-            self.unsaved_test_results = False
+            self.changes.clear_change_flag()
 
     def _update_from_model(self):
         for index, sensor in enumerate(self.sensor_log):

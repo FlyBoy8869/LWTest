@@ -243,4 +243,3 @@ if __name__ == '__main__':
 
     assert len(sensor_log) == 6, "sensor_log should have 6 elements"
     assert sensor_log.get_serial_numbers_as_tuple() == tuple(numbers), "serial numbers don't match"
-    assert sensor_log.get_line_position(numbers[3]) == 3, "incorrect line position"

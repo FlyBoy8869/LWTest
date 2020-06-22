@@ -3,6 +3,7 @@
   <component name="ProjectModuleManager">
     <modules>
       <module fileurl="file://$PROJECT_DIR$/.idea/LWTest.iml" filepath="$PROJECT_DIR$/.idea/LWTest.iml" />
+      <module fileurl="file://$PROJECT_DIR$/../laboot/.idea/laboot.iml" filepath="$PROJECT_DIR$/../laboot/.idea/laboot.iml" />
       <module fileurl="file://$PROJECT_DIR$/../mockcollector/.idea/mockcollector.iml" filepath="$PROJECT_DIR$/../mockcollector/.idea/mockcollector.iml" />
     </modules>
   </component>

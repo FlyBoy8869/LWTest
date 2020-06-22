@@ -65,7 +65,7 @@ class DataReader:
             for index, element in enumerate(dom.phase_real_power[:count]):
                 field = browser.find_element_by_xpath(element)
                 content = field.get_attribute("textContent")
-                if content != 'NA':
+                if content != LWT.NO_DATA:
                     content = str(int(float(normalize_reading(content)) * 1000))
                 power_readings.append(content)
 

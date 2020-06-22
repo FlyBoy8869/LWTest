@@ -3,9 +3,13 @@ from enum import Enum, auto, unique, IntEnum
 
 from PyQt5.QtCore import QSettings
 
+from laboot import oscomp
+from laboot.oscomp import QSettingsAdapter, OSType
 
-TESTING = True if QSettings().value("DEBUG") == 'true' else False
+TESTING = True if QSettingsAdapter.value("DEBUG") == 'true' else False
+print(f"TESTING = {TESTING}")
 
+NO_DATA = "N/A"
 
 class TestID(Enum):
     RSSI = auto()
@@ -133,5 +137,10 @@ SCALE_CURRENT = 4
 SCALE_VOLTAGE = 5
 CORRECTION_ANGLE = 6
 TEMPERATURE = 7
+
+if oscomp.os_type == OSType.WINDOWS:
+    chromedriver_path = "LWTest/resources/drivers/chromedriver/windows/version_83_0_4103_39/chromedriver.exe"
+elif oscomp.os_type == OSType.MAC:
+    chromedriver_path = "LWTest/resources/drivers/chromedriver/macos/version-83_0_4103_39/chromedriver"
 
 print(f"using {URL_UPGRADE_LOG} to monitor firmware upgrade")

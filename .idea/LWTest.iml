@@ -9,5 +9,6 @@
     <orderEntry type="jdk" jdkName="Python 3.8 (LWTest)" jdkType="Python SDK" />
     <orderEntry type="sourceFolder" forTests="false" />
     <orderEntry type="module" module-name="mockcollector" />
+    <orderEntry type="module" module-name="laboot" />
   </component>
 </module>

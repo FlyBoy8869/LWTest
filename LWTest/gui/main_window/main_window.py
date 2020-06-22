@@ -1,3 +1,4 @@
+import time
 from functools import partial
 from typing import Optional
 
@@ -11,7 +12,7 @@ import LWTest.LWTConstants as LWT
 import LWTest.gui.main_window.sensortable as sensortable
 import LWTest.utilities as utilities
 import LWTest.utilities.misc as utilities_misc
-import LWTest.validator as validator
+import LWTest.validate as validator
 from LWTest import sensor, signals
 from LWTest.collector import configure
 from LWTest.collector.read.read import DataReader, FaultCurrentReader, PersistenceReader, FirmwareVersionReader, \
@@ -84,7 +85,7 @@ class MainWindow(QMainWindow):
         self.room_temp: QDoubleSpinBox = QDoubleSpinBox(self)
 
         self.validator = validator.Validator(
-            partial(self._set_sensor_table_widget_item_background, QBrush(QColor(255, 255, 255, 255))),
+            partial(self._set_sensor_table_widget_item_background, QBrush(QColor(Qt.transparent))),
             partial(self._set_sensor_table_widget_item_background, QBrush(QColor(255, 0, 0, 50)))
         )
 
@@ -203,13 +204,13 @@ class MainWindow(QMainWindow):
         dialog.raise_()
         dialog.activateWindow()
 
-        link_worker = link.LinkWorker(self.sensor_log.get_serial_numbers_as_tuple(), LWT.URL_MODEM_STATUS)
-        link_worker.signals.successful_link.connect(lambda d: self.sensor_log.record_rssi_readings(d[0], d[1]))
-        link_worker.signals.successful_link.connect(lambda d: self._start_sensor_link_data_collection(d[0]))
-        link_worker.signals.link_timeout.connect(lambda nls: self.sensor_log.record_non_linked_sensors(nls))
-        link_worker.signals.finished.connect(lambda: dialog.done(QDialog.Accepted))
-        link_worker.signals.finished.connect(self._update_from_model)
-        self.thread_pool.start(link_worker)
+        link_thread = link.LinkWorker(self.sensor_log.get_serial_numbers_as_tuple(), LWT.URL_MODEM_STATUS)
+        link_thread.signals.successful_link.connect(lambda d: self.sensor_log.record_rssi_readings(d[0], d[1]))
+        link_thread.signals.successful_link.connect(lambda d: self._start_sensor_link_data_collection(d[0]))
+        link_thread.signals.link_timeout.connect(lambda nls: self.sensor_log.record_non_linked_sensors(nls))
+        link_thread.signals.finished.connect(lambda: dialog.done(QDialog.Accepted))
+        link_thread.signals.finished.connect(self._update_from_model)
+        self.thread_pool.start(link_thread)
 
     def _upgrade_sensor(self, row: int):
         if not self.firmware_upgrade_in_progress:
@@ -400,14 +401,12 @@ class MainWindow(QMainWindow):
 
                 if j == LWT.TableColumn.FAULT_CURRENT.value:
                     self._update_combo_box(CellLocation(index, LWT.TableColumn.FAULT_CURRENT.value),
-                                                    sensor.fault_current)
+                                           sensor.fault_current)
                 elif j == LWT.TableColumn.CALIBRATION.value:
                     self._update_combo_box(CellLocation(index, LWT.TableColumn.CALIBRATION.value),
                                            sensor.calibrated)
                 else:
                     self.sensor_table.item(index, j).setText(sensor.__getattribute__(_DATA_IN_TABLE_ORDER[j - 1]))
-
-        self.sensor_table.resizeColumnsToContents()
 
     def _update_combo_box(self, cell_location: CellLocation, text: str) -> None:
         def _determine_index(result: str) -> int:
@@ -494,7 +493,7 @@ class MainWindow(QMainWindow):
 
     def _get_browser(self):
         if self.browser is None:
-            self.browser = webdriver.Chrome(executable_path=QSettings().value("drivers/chromedriver"))
+            self.browser = webdriver.Chrome(executable_path=LWT.chromedriver_path)
 
         return self.browser
 

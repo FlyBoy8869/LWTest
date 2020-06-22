@@ -90,25 +90,24 @@ class LinkWorker(QRunnable):
         return next(self._seconds_elapsed) >= self.timeout
 
     def _emit_signal_if_linked(self, data):
-        if len(data) > 3:
-            print(f"found a link for sensor {data[0]} with an rssi of {data[3]}")
-            self.signals.successful_link.emit((data[0], data[3]))  # serial number, rssi
-            self.serial_numbers.remove(data[0])
+        print(f"found a link for sensor {data[0]} with an rssi of {data[3]}")
+        self.signals.successful_link.emit((data[0], data[3]))  # serial number, rssi
 
     def _line_starts_with_serial_number(self, line: str):
         return self._serial_number_pattern.match(line)
 
-    def _extract_sensors_from_page(self, text):
+    def _extract_sensor_record_from_page(self, text):
         sensors = [line.split() for line in text.split('\n') if self._line_starts_with_serial_number(line)]
         return [sensor for sensor in sensors if sensor[0] in self.serial_numbers]
 
     def _all_sensors_linked(self):
         return len(self.serial_numbers) == 0
 
-    def _process_sensors(self, sensors):
-        for sensor in sensors:
-            print(f"processing sensor {sensor} for a link")
-            self._emit_signal_if_linked(sensor)
+    def _process_sensor_records(self, records):
+        for record in records:
+            if len(record) > 3:
+                self._emit_signal_if_linked(record)
+                self.serial_numbers.remove(record[0])
 
     def run(self):
         self._seconds_elapsed = self._elapsed_seconds_generator()
@@ -120,7 +119,7 @@ class LinkWorker(QRunnable):
                 return
 
             if self._page_loaded_successfully(page.status_code):
-                self._process_sensors(self._extract_sensors_from_page(page.text))
+                self._process_sensor_records(self._extract_sensor_record_from_page(page.text))
                 if self._all_sensors_linked():
                     self.signals.finished.emit()
                     return

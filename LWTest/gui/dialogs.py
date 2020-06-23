@@ -9,6 +9,8 @@ import LWTest.LWTConstants as LWT
 import LWTest.spreadsheet.spreadsheet as spreadsheet
 import LWTest.utilities.returns as returns
 import LWTest.utilities.time as util_time
+from LWTest.common import oscomp
+from LWTest.common.oscomp import OSType
 from LWTest.constants import dom
 from LWTest.spreadsheet.constants import phases_cells, PhaseReadingsCells
 from LWTest.utilities import file_utils
@@ -298,7 +300,8 @@ class SaveDataDialog(QDialog):
 
         self._main_label = QLabel("Saving sensor data to spreadsheet.", self)
         font = self._main_label.font()
-        font.setPointSize(12)
+        point_size = 9 if oscomp.os_type == OSType.WINDOWS else 13
+        font.setPointSize(point_size)
         self._main_label.setFont(font)
         self._top_layout.addWidget(self._main_label, alignment=Qt.AlignHCenter)
 

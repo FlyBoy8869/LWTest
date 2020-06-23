@@ -12,6 +12,7 @@ from openpyxl.workbook.workbook import Worksheet as openpyxlWorksheet
 import LWTest.utilities.misc
 import LWTest.utilities.time
 from LWTest.spreadsheet import constants
+from LWTest.utilities import returns
 
 _CONVERSIONS = [float, float, float, int,
                 float, float, float, int,
@@ -38,7 +39,7 @@ def get_serial_numbers(path: str) -> Tuple[str]:
     return _extract_serial_numbers_from_worksheet(_get_worksheet_from_workbook(path))
 
 
-def save_sensor_data(workbook_path, data_sets, temperature_reference: str) -> bool:
+def save_sensor_data(workbook_path, data_sets, temperature_reference: str) -> returns.Result:
     worksheet = _get_worksheet_from_workbook(workbook_path)
 
     for data_set in data_sets:
@@ -60,7 +61,7 @@ def save_sensor_data(workbook_path, data_sets, temperature_reference: str) -> bo
 
     _save_workbook(workbook_path)
 
-    return True
+    return returns.Result(True, True)
 
 
 def record_log_files_attached(workbook_path: str):

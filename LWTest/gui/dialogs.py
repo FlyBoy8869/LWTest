@@ -11,8 +11,8 @@ import LWTest.spreadsheet.spreadsheet as spreadsheet
 import LWTest.utilities.returns as returns
 import LWTest.utilities.time as util_time
 from LWTest.constants import dom
-from LWTest.spreadsheet.constants import phases, PhaseReadings
-from LWTest.utilities import file
+from LWTest.spreadsheet.constants import phases_cells, PhaseReadingsCells
+from LWTest.utilities import file_utils
 from LWTest.workers.upgrade import UpgradeWorker
 
 
@@ -285,75 +285,85 @@ class SaveDataDialog(QDialog):
     file_name_serial_number_template = "-SN{}"
 
     def __init__(self, parent, spreadsheet_path: str, sensors: iter, room_temperature: str):
-        super().__init__(parent=parent)
+        super().__init__(parent)
+        self.setWindowTitle("LWTest - Saving Sensor Data")
+
         self._spreadsheet_path = spreadsheet_path
         self._sensors = sensors
         self._room_temperature = room_temperature
 
-        self.setWindowTitle("LWTest - Saving Sensor Data")
-
-        palette = QPalette()
-        palette.setColor(QPalette.Background, Qt.white)
-        self.setPalette(palette)
+        # palette = QPalette()
+        # palette.setColor(QPalette.Background, Qt.white)
+        # self.setPalette(palette)
 
         self.setLayout(QVBoxLayout())
 
-        self._main_layout = QHBoxLayout()
-        self.layout().addLayout(self._main_layout)
+        self._top_layout = QVBoxLayout()
+        self.layout().addLayout(self._top_layout)
 
         self._main_label = QLabel("Saving sensor data to spreadsheet.", self)
         font = self._main_label.font()
-        font.setPointSize(9)
+        font.setPointSize(12)
         self._main_label.setFont(font)
-        self._main_layout.addWidget(self._main_label, alignment=Qt.AlignHCenter)
+        self._top_layout.addWidget(self._main_label, alignment=Qt.AlignHCenter)
 
-        self._sub_layout = QHBoxLayout()
-        self.layout().addLayout(self._sub_layout)
+        horizontal_spacer = QLabel("\t\t\t\t\t", self)
+        self._top_layout.addWidget(horizontal_spacer, alignment=Qt.AlignHCenter)
+
+        self._bottom_layout = QHBoxLayout()
 
         self._sub_label = QLabel("Please, wait...", self)
         self._sub_label.setFont(font)
-        self._sub_label.setStyleSheet("padding-top: 10px;")
-        self._sub_layout.addWidget(self._sub_label, alignment=Qt.AlignHCenter)
+
+        self._bottom_layout.addWidget(self._sub_label, alignment=Qt.AlignHCenter)
+
+        self.layout().addLayout(self._bottom_layout)
 
     def showEvent(self, q_show_event):
         QTimer().singleShot(1000, self._save_data)
 
-    def _save_data(self):
+    def _package_data(self):
         data_sets = []
         data = []
         for index, unit in enumerate(self._sensors):
             for field in self._DATA_IN_SPREADSHEET_ORDER:
                 data.append(unit.__getattribute__(field))
 
-            phase = PhaseReadings(*phases[index])
-            data_to_save = zip(phase, data)
-            dts = list(data_to_save)
-
-            data_sets.append(dts)
+            phase_cells = PhaseReadingsCells(*phases_cells[index])
+            data_packet = list(zip(phase_cells, data))
+            data_sets.append(data_packet)
             data = []
 
-        if not spreadsheet.save_sensor_data(self._spreadsheet_path, data_sets, self._room_temperature):
+        return data_sets
+
+    def _save_data(self):
+        if not (result := spreadsheet.save_sensor_data(self._spreadsheet_path,
+                                                       self._package_data(),
+                                                       self._room_temperature)).success:
+            self._report_failure("A problem occurred while saving readings to the spreadsheet", result.error)
             self.reject()
 
-        self._main_label.setText("Downloading log files from the collector.")
-        QCoreApplication.processEvents()  # so the change to the label above shows up
-
-        result = self._download_log_files()
-        if not result.success:
-            self._report_log_file_download_failure(result.error)
+        if not (result := self._download_log_files()).success:
+            self._report_failure("An error occurred trying to download the log files.", result.error)
             self.reject()
             return
-
-        spreadsheet.record_log_files_attached(self._spreadsheet_path)
+        else:
+            spreadsheet.record_log_files_attached(self._spreadsheet_path)
 
         self.accept()
 
     def _download_log_files(self) -> returns.Result:
-        return file.download_log_files(file.create_log_filename_from_spreadsheet_path(self._spreadsheet_path))
+        self._main_label.setText("Downloading log files from the collector.")
+        QCoreApplication.processEvents()  # so the change to the label above shows up
 
-    def _report_log_file_download_failure(self, detail_text):
+        result: returns.Result = file_utils.download_log_files(
+            file_utils.create_log_filename_from_spreadsheet_path(self._spreadsheet_path)
+        )
+        return result
+
+    def _report_failure(self, message, detail_text):
         msg_box = QMessageBox(QMessageBox.Warning, "LWTest - Saving Log Files",
-                              "An error occurred trying to download the log files.", QMessageBox.Ok,
+                              message, QMessageBox.Ok,
                               self)
         msg_box.setDetailedText(detail_text)
         msg_box.exec()

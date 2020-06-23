@@ -21,11 +21,11 @@ def create_log_filename_from_spreadsheet_path(path: str) -> Path:
 
     For example,
 
-    'C:\\Users\\charles\\Temp\\ATR-PRD#-SN9800001-SN9800002-SN9800003-SN9800004-SN9800005-SN9800006.xlsm'
+    /Users/charles/Desktop/ATR-PRD#-SN9802386-SN9802165-SN9802316-SN9802334-SN9802310-SN9802193.xlsm
 
-    on a posix system turns into
+        turns into
 
-    '/Users/charles/Temp/logfiles-SN9800001-SN9800002-SN9800003-SN9800004-SN9800005-SN9800006.zip'
+    /Users/charles/Temp/logfiles-SN9800001-SN9800002-SN9800003-SN9800004-SN9800005-SN9800006.zip
     """
     def get_file_name(path: Path) -> str:
         return path.parts[-1]

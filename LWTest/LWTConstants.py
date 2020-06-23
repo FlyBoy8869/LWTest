@@ -145,5 +145,7 @@ if oscomp.os_type == OSType.WINDOWS:
     chromedriver_path = "LWTest/resources/drivers/chromedriver/windows/version-83_0_4103_39/chromedriver.exe"
 elif oscomp.os_type == OSType.MAC:
     chromedriver_path = "LWTest/resources/drivers/chromedriver/macos/version-83_0_4103_39/chromedriver"
+elif oscomp.os_type == OSType.LINUX:
+    chromedriver_path = "LWTest/resources/drivers/chromedriver/linux/version-83_0_4103_39/chromedriver"
 
 print(f"using {URL_UPGRADE_LOG} to monitor firmware upgrade")

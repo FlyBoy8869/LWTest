@@ -4,7 +4,6 @@ from PyQt5.QtCore import QSettings
 from PyQt5.QtWidgets import QApplication
 
 from LWTest.config.app import settings, logging
-from LWTest.gui.main_window.main_window import MainWindow
 
 
 def main():
@@ -13,6 +12,7 @@ def main():
     settings.load(r"LWTest/resources/config/config.txt", QSettings())
     settings.process_command_line_args(args, QSettings())
     logging.initialize()
+    from LWTest.gui.main_window.main_window import MainWindow
     window = MainWindow()
     sys.exit(app.exec_())
 

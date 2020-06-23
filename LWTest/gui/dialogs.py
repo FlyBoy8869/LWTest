@@ -315,7 +315,7 @@ class SaveDataDialog(QDialog):
         self._sub_label.setStyleSheet("padding-top: 10px;")
         self._sub_layout.addWidget(self._sub_label, alignment=Qt.AlignHCenter)
 
-    def showEvent(self, QShowEvent):
+    def showEvent(self, q_show_event):
         QTimer().singleShot(1000, self._save_data)
 
     def _save_data(self):

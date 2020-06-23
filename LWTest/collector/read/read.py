@@ -134,7 +134,7 @@ class DataReader:
 
     @staticmethod
     def _count_high_voltage_readings(readings) -> int:
-        """Return the number of readings that are considered high voltage. Readings should not contain 'NA' values."""
+        """Return the number of readings that are considered high voltage. Readings should not contain 'N/A' values."""
 
         return len([reading for reading in readings
                     if

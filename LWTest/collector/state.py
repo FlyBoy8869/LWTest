@@ -46,7 +46,7 @@ class DateVerifier:
 
 if __name__ == '__main__':
     driver = webdriver.Chrome(
-        executable_path="../resources/drivers/chromedriver/windows/version_80_0_3987_106/chromedriver.exe")
+        executable_path="../resources/drivers/chromedriver/windows/version-80_0_3987_106/chromedriver.exe")
     # driver.get("http://192.168.2.1/index.php/upgrade/date_and_time")
     # if "LineWatch" in driver.title:
     #     print("Retrieved page successfully.")

@@ -86,7 +86,7 @@ if TESTING:
         LINK_PAGE_LOAD_INTERVAL = 1
         WAIT_FOR_COLLECTOR_TO_START_UPDATING_LOG_FILE = 1
         UPGRADE_LOG_LOAD_INTERVAL = 0.1
-        TIME_BETWEEN_CONFIGURATION_PAGES = 1
+        TIME_BETWEEN_CONFIGURATION_PAGES = 3
 else:
     class TimeOut(Enum):
         COLLECTOR_POWER_OFF_TIME = 300  # time to wait while collector is powered off
@@ -113,7 +113,8 @@ if TESTING:
     URL_RAW_CONFIGURATION = "http://localhost:5000/rawconfig"
     URL_CALIBRATE = ""
     URL_FAULT_CURRENT = f"http://{_web_server}:8080/LineWatch-M%20Website%20fault_current.html"
-    URL_VOLTAGE_RIDE_THROUGH = f"http://{_web_server}:8080/LineWatch-M%20Website%20voltage%20ride%20through%200305327.html"
+    URL_VOLTAGE_RIDE_THROUGH = "http://localhost:5000/voltageridethrough"
+    URL_LOG_FILES = "http://localhost:5000/static/logfiles.zip"
 else:
     URL_CONFIGURATION = "http://192.168.2.1/index.php/main/configuration"
     URL_MODEM_STATUS = "http://192.168.2.1/index.php/main/modem_status"
@@ -129,6 +130,7 @@ else:
     URL_CALIBRATE = "http://192.168.2.1/index.php/main/calibrate"
     URL_FAULT_CURRENT = "http://192.168.2.1/index.php/main/viewdata/fault_current"
     URL_VOLTAGE_RIDE_THROUGH = "http://192.168.2.1/index.php/snow_ctrl/config"
+    URL_LOG_FILES = 'http://192.168.2.1/downloadLogs.php'
 
 VOLTAGE = 0
 CURRENT = 1
@@ -140,7 +142,7 @@ CORRECTION_ANGLE = 6
 TEMPERATURE = 7
 
 if oscomp.os_type == OSType.WINDOWS:
-    chromedriver_path = "LWTest/resources/drivers/chromedriver/windows/version_83_0_4103_39/chromedriver.exe"
+    chromedriver_path = "LWTest/resources/drivers/chromedriver/windows/version-83_0_4103_39/chromedriver.exe"
 elif oscomp.os_type == OSType.MAC:
     chromedriver_path = "LWTest/resources/drivers/chromedriver/macos/version-83_0_4103_39/chromedriver"
 

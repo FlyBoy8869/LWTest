@@ -1,10 +1,9 @@
+from time import sleep
 from typing import Callable
 
 import requests
 from PyQt5.QtCore import QTimer, QRunnable, QObject, pyqtSignal, Qt, QSettings, QCoreApplication
-from PyQt5.QtGui import QPalette
 from PyQt5.QtWidgets import QDialog, QVBoxLayout, QProgressBar, QLabel, QHBoxLayout, QDialogButtonBox, QMessageBox
-from time import sleep
 
 import LWTest.LWTConstants as LWT
 import LWTest.spreadsheet.spreadsheet as spreadsheet
@@ -291,10 +290,6 @@ class SaveDataDialog(QDialog):
         self._spreadsheet_path = spreadsheet_path
         self._sensors = sensors
         self._room_temperature = room_temperature
-
-        # palette = QPalette()
-        # palette.setColor(QPalette.Background, Qt.white)
-        # self.setPalette(palette)
 
         self.setLayout(QVBoxLayout())
 

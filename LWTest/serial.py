@@ -22,10 +22,11 @@ class ConfigureSerialNumbers:
     def configure(self):
         if self._page_successfully_loaded():
             self._setup_collector()
-            self.signals.finished.emit()
-            return
+            # self.signals.finished.emit()
+            return True
 
-        self.signals.failed.emit()
+        # self.signals.failed.emit()
+        return False
 
     def _page_successfully_loaded(self):
         return "Sensor Configuration" in self._get_page_source()

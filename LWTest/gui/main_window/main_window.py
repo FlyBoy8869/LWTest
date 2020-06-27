@@ -1,8 +1,7 @@
 from functools import partial
-from functools import partial
 from typing import Optional
 
-from PyQt5.QtCore import QThreadPool, QSettings, QSize, Qt, QReadWriteLock, QWriteLocker
+from PyQt5.QtCore import QThreadPool, QSettings, QSize, Qt, QReadWriteLock
 from PyQt5.QtGui import QIcon, QCloseEvent, QBrush, QColor
 from PyQt5.QtWidgets import QMainWindow, QTableWidget, QVBoxLayout, QWidget, QTableWidgetItem, QMessageBox, QToolBar, \
     QDialog, QDoubleSpinBox
@@ -17,6 +16,7 @@ from LWTest import sensor, signals, common
 from LWTest.collector import configure
 from LWTest.collector.read.read import DataReader, FaultCurrentReader, PersistenceReader, FirmwareVersionReader, \
     ReportingDataReader
+from LWTest.common.flags.flags import flags, Flags, FlagsEnum
 from LWTest.common.oscomp import QSettingsAdapter
 from LWTest.gui.dialogs import PersistenceBootMonitor, CountDownDialog, UpgradeDialog, \
     SaveDataDialog, SpinDialog
@@ -80,6 +80,9 @@ class MainWindow(QMainWindow):
         self.sensor_log = sensor.SensorLog()
         self.firmware_upgrade_in_progress = False
         self.link_activity_string = ""
+
+        # flags
+        self.collector_configured = False
 
         self.lock = QReadWriteLock()
 
@@ -155,6 +158,7 @@ class MainWindow(QMainWindow):
             sensor_log.append_all(spreadsheet.get_serial_numbers(filename))
             self._setup_sensor_table()
             self.changes.clear_change_flag()
+            self.collector_configured = False
 
     def _setup_sensor_table(self):
         sensortable.setup_table_widget(self, self.sensor_log.get_serial_numbers_as_tuple(), self.sensor_table,
@@ -163,6 +167,7 @@ class MainWindow(QMainWindow):
 
         self._update_from_model()
 
+    @flags(set_=[FlagsEnum.SERIALS])
     def _configure_collector_serial_numbers(self):
         configurator = ConfigureSerialNumbers(
             misc.ensure_six_numbers(self.sensor_log.get_serial_numbers_as_list()),
@@ -171,10 +176,15 @@ class MainWindow(QMainWindow):
             LWT.URL_CONFIGURATION
         )
 
-        configurator.signals.finished.connect(self._start_confirm_serial_update)
-        configurator.signals.failed.connect(self._handle_serial_number_configuration_failure)
-        configurator.configure()
+        # configurator.signals.finished.connect(self._start_confirm_serial_update)
+        # configurator.signals.failed.connect(self._handle_serial_number_configuration_failure)
+        result = configurator.configure()
+        if result:
+            self._start_confirm_serial_update()
+        else:
+            self._handle_serial_number_configuration_failure()
 
+    @flags(clear=[FlagsEnum.SERIALS])
     def _handle_serial_number_configuration_failure(self):
         QMessageBox.warning(self, "LWTest - Warning\t\t\t\t\t\t\t\t",
                             f"An error occurred trying to configure the collector with the serial numbers." +
@@ -234,6 +244,7 @@ class MainWindow(QMainWindow):
         if result == QMessageBox.Retry:
             self._upgrade_sensor(row)
 
+    @flags(read=[FlagsEnum.SERIALS], set_=[FlagsEnum.ADVANCED])
     def _do_advanced_configuration(self):
         self._get_browser()
         configure.do_advanced_configuration(len(self.sensor_log), self._get_browser(), QSettings())
@@ -241,21 +252,17 @@ class MainWindow(QMainWindow):
     def _start_calibration(self):
         utilities.misc.get_page_login_if_needed(LWT.URL_CALIBRATE, self._get_browser(), "calibration")
 
+    @flags(read=[FlagsEnum.SERIALS, FlagsEnum.ADVANCED], set_=[FlagsEnum.CORRECTION])
     def _config_correction_angle(self):
-        while True:
-            result = configure.configure_correction_angle(len(self.sensor_log), LWT.URL_CONFIGURATION,
-                                                          self._get_browser(), QSettings())
+        if configure.configure_correction_angle(len(self.sensor_log), LWT.URL_CONFIGURATION,
+                                                self._get_browser(), QSettings()):
+            return
 
-            if result:
-                button = QMessageBox.warning(QMessageBox(self), "LWTest - warning\t\t\t\t",
-                                             "Error configuring correction angle.\n\n" +
-                                             "Check the collector and then click 'Ok' to retry or 'Cancel' to abort.",
-                                             QMessageBox.Ok | QMessageBox.Cancel, QMessageBox.Cancel)
+        self._handle_correction_angle_failure()
 
-                if button == QMessageBox.Cancel:
-                    break
-            else:
-                break
+    @flags(clear=[FlagsEnum.CORRECTION])
+    def _handle_correction_angle_failure(self):
+        self._show_information_dialog("An error occurred configuring the correction angle.")
 
     def _verify_raw_configuration_readings_persist(self):
         persistence = PersistenceReader(LWT.URL_RAW_CONFIGURATION,
@@ -328,14 +335,18 @@ class MainWindow(QMainWindow):
         worker = FaultCurrentWorker(fault_current)
         QThreadPool.globalInstance().start(worker)
 
+    @flags(read=[FlagsEnum.SERIALS, FlagsEnum.ADVANCED, FlagsEnum.CORRECTION])
     def _take_readings(self):
         data_reader = DataReader(LWT.URL_SENSOR_DATA, LWT.URL_RAW_CONFIGURATION)
         data_reader.signals.high_data_readings.connect(self._process_high_data_readings)
         data_reader.signals.low_data_readings.connect(self._process_low_data_readings)
-
+        data_reader.signals.page_load_error.connect(self._handle_take_readings_page_load_error)
         data_reader.read(self._get_browser(), self._get_sensor_count())
 
         self.changes.set_change_flag()
+
+    def _handle_take_readings_page_load_error(self):
+        self._show_information_dialog("Unable to retrieve readings. Check the collector.")
 
     def _process_high_data_readings(self, readings: tuple):
         """Receives data in the following order: voltage, current, factors, power."""

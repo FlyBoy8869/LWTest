@@ -9,6 +9,7 @@ from selenium.common.exceptions import StaleElementReferenceException, TimeoutEx
 
 from LWTest import LWTConstants as LWT
 from LWTest.constants import dom
+from LWTest.utilities import returns
 from LWTest.utilities.misc import get_page_login_if_needed, normalize_reading, x_is_what_percent_of_y, filter_out_na
 
 
@@ -25,6 +26,7 @@ class Signals(QObject):
 
     high_data_readings = pyqtSignal(tuple)
     low_data_readings = pyqtSignal(tuple)
+    page_load_error = pyqtSignal()
 
     resize_columns = pyqtSignal()
 
@@ -44,80 +46,79 @@ class DataReader:
 
     def read(self, browser: webdriver.Chrome, count: int) -> None:
         browser.get(self._sensor_data_url)
+        if "Auto Update" not in browser.page_source:
+            self.signals.page_load_error.emit()
+            return
 
-        try:  # readings gathered regardless of whether high or low voltage is dialed in
-            voltage_readings = []
-            for index, element in enumerate(dom.phase_voltage[:count]):
+        voltage_readings = []
+        for index, element in enumerate(dom.phase_voltage[:count]):
+            field = browser.find_element_by_xpath(element)
+            content = field.get_attribute("textContent")
+            voltage_readings.append(content)
+
+        current_readings = []
+        for index, element in enumerate(dom.phase_current[:count]):
+            field = browser.find_element_by_xpath(element)
+            content = field.get_attribute("textContent")
+            current_readings.append(content)
+
+        factor_readings = []
+        for index, element in enumerate(dom.phase_power_factor[:count]):
+            field = browser.find_element_by_xpath(element)
+            content = field.get_attribute("textContent")
+            factor_readings.append(content)
+
+        power_readings = []
+        for index, element in enumerate(dom.phase_real_power[:count]):
+            field = browser.find_element_by_xpath(element)
+            content = field.get_attribute("textContent")
+            if content != LWT.NO_DATA:
+                content = str(int(float(normalize_reading(content)) * 1000))
+            power_readings.append(content)
+
+        if self._reading_high_voltage(voltage_readings):
+            self.signals.high_data_readings.emit((voltage_readings,
+                                                 current_readings,
+                                                 factor_readings,
+                                                 power_readings))
+
+        else:  # readings gathered only when low voltage is dialed in
+            temperature_readings = []
+            for index, element in enumerate(dom.phase_temperature[:count]):
                 field = browser.find_element_by_xpath(element)
                 content = field.get_attribute("textContent")
-                voltage_readings.append(content)
+                temperature_readings.append(content)
 
-            current_readings = []
-            for index, element in enumerate(dom.phase_current[:count]):
+            get_page_login_if_needed(self._raw_configuration_url, browser)
+
+            scale_current_readings = []
+            for index, element in enumerate(dom.scale_current[:count]):
                 field = browser.find_element_by_xpath(element)
-                content = field.get_attribute("textContent")
-                current_readings.append(content)
+                content = field.get_attribute("value")
+                scale_current_readings.append(content)
 
-            factor_readings = []
-            for index, element in enumerate(dom.phase_power_factor[:count]):
+            scale_voltage_readings = []
+            for index, element in enumerate(dom.scale_voltage[:count]):
                 field = browser.find_element_by_xpath(element)
-                content = field.get_attribute("textContent")
-                factor_readings.append(content)
+                content = field.get_attribute("value")
+                scale_voltage_readings.append(content)
 
-            power_readings = []
-            for index, element in enumerate(dom.phase_real_power[:count]):
+            correction_angle_readings = []
+            for index, element in enumerate(dom.raw_configuration_angle[:count]):
                 field = browser.find_element_by_xpath(element)
-                content = field.get_attribute("textContent")
-                if content != LWT.NO_DATA:
-                    content = str(int(float(normalize_reading(content)) * 1000))
-                power_readings.append(content)
+                content = field.get_attribute("value")
+                correction_angle_readings.append(content)
 
-            if self._reading_high_voltage(voltage_readings):
-                self.signals.high_data_readings.emit((voltage_readings,
-                                                     current_readings,
-                                                     factor_readings,
-                                                     power_readings))
+            self.signals.low_data_readings.emit((voltage_readings,
+                                                current_readings,
+                                                factor_readings,
+                                                power_readings,
+                                                scale_current_readings,
+                                                scale_voltage_readings,
+                                                correction_angle_readings,
+                                                temperature_readings))
 
-                return
-
-            else:  # readings gathered only when low voltage is dialed in
-                temperature_readings = []
-                for index, element in enumerate(dom.phase_temperature[:count]):
-                    field = browser.find_element_by_xpath(element)
-                    content = field.get_attribute("textContent")
-                    temperature_readings.append(content)
-
-                get_page_login_if_needed(self._raw_configuration_url, browser)
-
-                scale_current_readings = []
-                for index, element in enumerate(dom.scale_current[:count]):
-                    field = browser.find_element_by_xpath(element)
-                    content = field.get_attribute("value")
-                    scale_current_readings.append(content)
-
-                scale_voltage_readings = []
-                for index, element in enumerate(dom.scale_voltage[:count]):
-                    field = browser.find_element_by_xpath(element)
-                    content = field.get_attribute("value")
-                    scale_voltage_readings.append(content)
-
-                correction_angle_readings = []
-                for index, element in enumerate(dom.raw_configuration_angle[:count]):
-                    field = browser.find_element_by_xpath(element)
-                    content = field.get_attribute("value")
-                    correction_angle_readings.append(content)
-
-                self.signals.low_data_readings.emit((voltage_readings,
-                                                    current_readings,
-                                                    factor_readings,
-                                                    power_readings,
-                                                    scale_current_readings,
-                                                    scale_voltage_readings,
-                                                    correction_angle_readings,
-                                                    temperature_readings))
-
-        except StaleElementReferenceException:
-            pass
+            return returns.Result(True, None)
 
     @staticmethod
     def _reading_high_voltage(readings: list) -> bool:

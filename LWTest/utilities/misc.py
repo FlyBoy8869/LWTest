@@ -1,7 +1,7 @@
 # utilities/misc.py
 import os
 import re
-from typing import List, Tuple
+from typing import List, Tuple, Optional
 
 import sys
 import traceback
@@ -114,7 +114,8 @@ def normalize_reading(reading: str) -> str:
     return reading.replace(",", "")
 
 
-def x_is_what_percent_of_y(dividend: int, divisor: int) -> float:
+def x_is_what_percent_of_y(dividend: int, divisor: int) -> Optional[float]:
+    assert divisor > 0, "divisor can not be less than 1"
     return dividend / divisor * 100
 
 

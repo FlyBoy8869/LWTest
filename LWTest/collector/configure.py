@@ -61,11 +61,13 @@ def do_advanced_configuration(sensor_count: int, driver: webdriver.Chrome, setti
 
 
 def configure_correction_angle(sensor_count: int, url: str, driver: webdriver.Chrome, settings: QSettings) -> bool:
-    columns = 3 if sensor_count <= 3 else 6
+    columns = LWT.THREE_SENSOR_COLUMNS if sensor_count <= 3 else LWT.SIX_SENSOR_COLUMNS
     driver.get(url)
 
-    if misc.page_failed_to_load(driver, '//*[@id="maindiv"]/form/div[1]/h1[1]'):
-        return True
+    if "Sensor Configuration" not in driver.page_source:
+        return False
+    # if misc.page_failed_to_load(driver, '//*[@id="maindiv"]/form/div[1]/h1[1]'):
+    #     return False
 
     for element in dom.correction_angle_elements[:columns]:
         field = driver.find_element_by_xpath(element)
@@ -77,7 +79,7 @@ def configure_correction_angle(sensor_count: int, url: str, driver: webdriver.Ch
 
     sleep(LWT.TimeOut.TIME_BETWEEN_CONFIGURATION_PAGES.value)
 
-    return False
+    return True
 
 
 def _set_temperature_configuration_values(driver: webdriver.Chrome) -> None:

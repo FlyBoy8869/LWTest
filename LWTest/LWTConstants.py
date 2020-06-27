@@ -11,6 +11,9 @@ print(f"TESTING = {TESTING}")
 
 NO_DATA = "N/A"
 
+THREE_SENSOR_COLUMNS = 3
+SIX_SENSOR_COLUMNS = 6
+
 
 class TestID(Enum):
     RSSI = auto()
@@ -141,6 +144,7 @@ SCALE_VOLTAGE = 5
 CORRECTION_ANGLE = 6
 TEMPERATURE = 7
 
+chromedriver_path: str = ""
 if oscomp.os_type == OSType.WINDOWS:
     chromedriver_path = "LWTest/resources/drivers/chromedriver/windows/version-83_0_4103_39/chromedriver.exe"
 elif oscomp.os_type == OSType.MAC:

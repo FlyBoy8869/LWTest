@@ -32,10 +32,8 @@ class ModemStatusPageLoader:
             if page.status_code != 200:
                 page = None
         except requests.exceptions.ConnectTimeout:
-            # self.signals.url_read_exception.emit((exc_type, "Connection timed out.", value))
             page = None
         except requests.exceptions.ConnectionError:
-            # self.signals.url_read_exception.emit((exc_type, "Connection error", value))
             page = None
 
         return page

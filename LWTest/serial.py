@@ -1,19 +1,14 @@
-# Note: refactored 06/17/2020
-from PyQt5.QtCore import QObject, pyqtSignal
-from selenium import webdriver
 from time import sleep
+
+from selenium import webdriver
 
 import LWTest.constants.dom as dom
 
-
-class Signals(QObject):
-    finished = pyqtSignal()
-    failed = pyqtSignal()
+PAGE_LOAD_CONFIRMATION_TEXT: str = "Sensor Configuration"
 
 
 class ConfigureSerialNumbers:
     def __init__(self, serial_numbers, password, browser, url):
-        self.signals = Signals()
         self._serial_numbers = serial_numbers
         self._password = password
         self._browser: webdriver.Chrome = browser
@@ -22,14 +17,12 @@ class ConfigureSerialNumbers:
     def configure(self):
         if self._page_successfully_loaded():
             self._setup_collector()
-            # self.signals.finished.emit()
             return True
 
-        # self.signals.failed.emit()
         return False
 
     def _page_successfully_loaded(self):
-        return "Sensor Configuration" in self._get_page_source()
+        return PAGE_LOAD_CONFIRMATION_TEXT in self._get_page_source()
 
     def _get_page_source(self):
         return self._get_page().page_source

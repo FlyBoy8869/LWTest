@@ -14,9 +14,9 @@ import LWTest.utilities.misc as utilities_misc
 import LWTest.validate as validator
 from LWTest import sensor, signals, common
 from LWTest.collector import configure
-from LWTest.collector.read.read import DataReader, FaultCurrentReader, PersistenceReader, FirmwareVersionReader, \
+from LWTest.collector.read.read import DataReader, PersistenceReader, FirmwareVersionReader, \
     ReportingDataReader
-from LWTest.common.flags.flags import flags, Flags, FlagsEnum
+from LWTest.common.flags.flags import flags, FlagsEnum
 from LWTest.common.oscomp import QSettingsAdapter
 from LWTest.gui.dialogs import PersistenceBootMonitor, CountDownDialog, UpgradeDialog, \
     SaveDataDialog, SpinDialog
@@ -26,7 +26,6 @@ from LWTest.serial import ConfigureSerialNumbers
 from LWTest.spreadsheet import spreadsheet
 from LWTest.utilities import misc
 from LWTest.workers import upgrade, link
-from LWTest.workers.fault import FaultCurrentWorker
 from LWTest.workers.persistence import PersistenceWorker
 
 _DATA_IN_TABLE_ORDER = ("rssi", "firmware_version", "reporting_data", "calibrated", "high_voltage", "high_current",
@@ -91,7 +90,7 @@ class MainWindow(QMainWindow):
         self.spreadsheet_path: str = ""
         self.room_temp: QDoubleSpinBox = QDoubleSpinBox(self)
 
-        self.changes = common.confimation.ChangeTracker()
+        self.changes = common.changetracker.ChangeTracker()
 
         self.validator = validator.Validator(
             partial(self._set_sensor_table_widget_item_background, QBrush(QColor(Qt.transparent))),
@@ -176,8 +175,6 @@ class MainWindow(QMainWindow):
             LWT.URL_CONFIGURATION
         )
 
-        # configurator.signals.finished.connect(self._start_confirm_serial_update)
-        # configurator.signals.failed.connect(self._handle_serial_number_configuration_failure)
         result = configurator.configure()
         if result:
             self._start_confirm_serial_update()
@@ -299,28 +296,27 @@ class MainWindow(QMainWindow):
         td.finished.connect(self._handle_persistence_countdown_dialog_finished_signal)
         td.open()
 
-    def _get_reporting_reader(self, index, url, browser):
+    def _create_reporting_reader(self, index, url, browser):
         reporting_reader = ReportingDataReader(index, url, browser)
         reporting_reader.signals.data_reporting_data.connect(self.sensor_log.record_reporting_data)
-        # reporting_reader.signals.data_reporting_data_complete.connect(self._update_from_model)
         return reporting_reader
 
-    def _get_firmware_reader(self, index, serial_number, url, browser):
+    def _create_firmware_reader(self, index, serial_number, url, browser):
         firmware_reader = FirmwareVersionReader(index, url, browser)
         firmware_reader.signals.firmware_version.connect(
             lambda i, version: self.sensor_log.record_firmware_version(serial_number, version))
-        # firmware_reader.signals.firmware_check_complete.connect(self._update_from_model)
         return firmware_reader
 
     def _get_sensor_link_data_readers(self, index, serial_number):
-        firmware_reader = self._get_firmware_reader(index, serial_number, LWT.URL_UPGRADE, self._get_browser())
-        reporting_reader = self._get_reporting_reader(index, LWT.URL_SENSOR_DATA, self._get_browser())
+        firmware_reader = self._create_firmware_reader(index, serial_number, LWT.URL_UPGRADE, self._get_browser())
+        reporting_reader = self._create_reporting_reader(index, LWT.URL_SENSOR_DATA, self._get_browser())
         return firmware_reader, reporting_reader
 
     def _get_sensor_line_position(self, serial_number):
         return self.sensor_log[serial_number].line_position
 
     def _get_sensor_link_data(self, serial_number):
+        # responds to LinkWorker.successful_link signal
         self.lock.lockForRead()
         readers = self._get_sensor_link_data_readers(self._get_sensor_line_position(serial_number), serial_number)
         readers[0].read()
@@ -328,12 +324,8 @@ class MainWindow(QMainWindow):
         self._update_from_model()
         self.lock.unlock()
 
-    def _read_fault_current(self):
-        fault_current = FaultCurrentReader(LWT.URL_FAULT_CURRENT, self._get_browser())
-        fault_current.signals.data_fault_current.connect(self.sensor_log.record_fault_current_readings)
-        fault_current.signals.finished.connect(self._update_from_model)
-        worker = FaultCurrentWorker(fault_current)
-        QThreadPool.globalInstance().start(worker)
+    def _load_fault_current_page(self):
+        self._get_browser().get(LWT.URL_FAULT_CURRENT)
 
     @flags(read=[FlagsEnum.SERIALS, FlagsEnum.ADVANCED, FlagsEnum.CORRECTION])
     def _take_readings(self):
@@ -472,7 +464,7 @@ class MainWindow(QMainWindow):
         self.menu_helper.insert_spacer(toolbar, self)
 
         toolbar.addAction(self.menu_helper.action_fault_current)
-        self.menu_helper.action_fault_current.setData(self._read_fault_current)
+        self.menu_helper.action_fault_current.setData(self._load_fault_current_page)
         self.menu_helper.action_fault_current.triggered.connect(self._action_router)
 
         self.menu_helper.insert_spacer(toolbar, self)

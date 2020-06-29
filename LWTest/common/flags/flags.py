@@ -11,7 +11,7 @@ class FlagsEnum(Enum):
     CORRECTION: str = "correction"
 
     def __eq__(self, other):
-        assert type(other) == str, f"invalid type: {type(other)}, must be a str"
+        assert type(other) == str, f"invalid type: {type(other)}, must be {type('str')}"
         return self.value == other
 
 

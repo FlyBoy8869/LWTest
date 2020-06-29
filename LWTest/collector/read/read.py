@@ -1,11 +1,9 @@
-from time import sleep
-
-from PyQt5.QtCore import pyqtSignal, QObject, QRunnable
+from PyQt5.QtCore import pyqtSignal, QObject
 from selenium import webdriver
+from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from selenium.common.exceptions import StaleElementReferenceException, TimeoutException
+from selenium.webdriver.support.ui import WebDriverWait
 
 from LWTest import LWTConstants as LWT
 from LWTest.constants import dom
@@ -141,25 +139,6 @@ class DataReader:
                     if
                     float(normalize_reading(reading)) > DataReader._HIGH_LOW_THRESHOLD
                     ])
-
-
-class FaultCurrentReader:
-    def __init__(self, url: str, browser: webdriver.Chrome):
-        self.url = url
-        self.browser = browser
-        self.signals = Signals()
-
-    def read(self):
-        self.browser.get(self.url)
-        sleep(1)
-        field = self.browser.find_element_by_xpath(dom.fault_current_1)
-        if float(field.get_attribute("textContent")) >= 0.0:
-            self.signals.data_fault_current.emit("Pass")
-        else:
-            self.signals.data_fault_current.emit("Fail")
-
-        self.signals.finished.emit()
-        self.signals.resize_columns.emit()
 
 
 class PersistenceReader:

@@ -6,6 +6,7 @@ from PyQt5.QtCore import QSettings
 from LWTest.common import oscomp
 from LWTest.common.oscomp import QSettingsAdapter, OSType
 
+
 TESTING = True if QSettingsAdapter.value("DEBUG") == 'true' else False
 print(f"TESTING = {TESTING}")
 
@@ -104,12 +105,11 @@ else:
         TIME_BETWEEN_CONFIGURATION_PAGES = 3
 
 if TESTING:
-    _web_server = QSettings().value("server")
-
     URL_CONFIGURATION = "http://localhost:5000/configuration"
     URL_MODEM_STATUS = "http://localhost:5000/modemstatus"
     URL_UPGRADE = "http://localhost:5000/softwareupgrade"
-    URL_UPGRADE_LOG = r"LWTest\tests\webpages\software upgrade example 1 mod 1.html"
+    #
+    # URL_UPGRADE_LOG = r"LWTest\tests\webpages\software upgrade example 1 mod 1.html"
     # URL_UPGRADE_LOG = r"LWTest\tests\webpages\software upgrade example of failure.html"
     URL_SENSOR_DATA = "http://localhost:5000/sensordata"
     URL_TEMPERATURE = "http://localhost:5000/temperaturescale"
@@ -151,5 +151,3 @@ elif oscomp.os_type == OSType.MAC:
     chromedriver_path = "LWTest/resources/drivers/chromedriver/macos/version-83_0_4103_39/chromedriver"
 elif oscomp.os_type == OSType.LINUX:
     chromedriver_path = "LWTest/resources/drivers/chromedriver/linux/version-83_0_4103_39/chromedriver"
-
-print(f"using {URL_UPGRADE_LOG} to monitor firmware upgrade")

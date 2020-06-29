@@ -115,7 +115,7 @@ if TESTING:
     URL_TEMPERATURE = "http://localhost:5000/temperaturescale"
     URL_RAW_CONFIGURATION = "http://localhost:5000/rawconfig"
     URL_CALIBRATE = ""
-    URL_FAULT_CURRENT = f"http://{_web_server}:8080/LineWatch-M%20Website%20fault_current.html"
+    URL_FAULT_CURRENT = "http://localhost:5000/fault_current.html"
     URL_VOLTAGE_RIDE_THROUGH = "http://localhost:5000/voltageridethrough"
     URL_LOG_FILES = "http://localhost:5000/static/logfiles.zip"
 else:

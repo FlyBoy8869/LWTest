@@ -21,6 +21,8 @@ _PHASE_ANGLE = "25.8"
 _NUMBER_OF_VOLTAGE_TEMPERATURE_SCALE_FIELDS = 6
 _NUMBER_OF_FIELDS_TO_SKIP = 6
 
+_CONFIG_PASSWORD_KEY = "main/config_password"
+
 
 def do_advanced_configuration(sensor_count: int, driver: webdriver.Chrome, settings: QSettings):
     url = LWT.URL_TEMPERATURE
@@ -38,7 +40,7 @@ def do_advanced_configuration(sensor_count: int, driver: webdriver.Chrome, setti
         driver.get(LWT.URL_TEMPERATURE)
 
     _set_temperature_configuration_values(driver)
-    driver.find_element_by_xpath(dom.temperature_password).send_keys(settings.value("main/config_password"))
+    driver.find_element_by_xpath(dom.temperature_password).send_keys(settings.value(_CONFIG_PASSWORD_KEY))
     _submit(driver.find_element_by_xpath(dom.temperature_submit_button), settings)
 
     sleep(LWT.TimeOut.TIME_BETWEEN_CONFIGURATION_PAGES.value)
@@ -46,7 +48,7 @@ def do_advanced_configuration(sensor_count: int, driver: webdriver.Chrome, setti
     driver.get(url)
 
     _set_raw_configuration_values(sensor_count, driver)
-    driver.find_element_by_xpath(dom.raw_config_password).send_keys(settings.value("main/config_password"))
+    driver.find_element_by_xpath(dom.raw_config_password).send_keys(settings.value(_CONFIG_PASSWORD_KEY))
     _submit(driver.find_element_by_xpath(dom.raw_config_submit_button), settings)
 
     sleep(LWT.TimeOut.TIME_BETWEEN_CONFIGURATION_PAGES.value)
@@ -54,7 +56,7 @@ def do_advanced_configuration(sensor_count: int, driver: webdriver.Chrome, setti
     driver.get(url)
 
     _set_collector_calibration_factor(driver)
-    driver.find_element_by_xpath(dom.vrt_admin_password_field).send_keys(settings.value("main/config_password"))
+    driver.find_element_by_xpath(dom.vrt_admin_password_field).send_keys(settings.value(_CONFIG_PASSWORD_KEY))
     _submit(driver.find_element_by_xpath(dom.vrt_save_configuration_button), settings)
 
     sleep(LWT.TimeOut.TIME_BETWEEN_CONFIGURATION_PAGES.value)
@@ -66,15 +68,13 @@ def configure_correction_angle(sensor_count: int, url: str, driver: webdriver.Ch
 
     if "Sensor Configuration" not in driver.page_source:
         return False
-    # if misc.page_failed_to_load(driver, '//*[@id="maindiv"]/form/div[1]/h1[1]'):
-    #     return False
 
     for element in dom.correction_angle_elements[:columns]:
         field = driver.find_element_by_xpath(element)
         field.clear()
         field.send_keys(_PHASE_ANGLE)
 
-    driver.find_element_by_xpath(dom.configuration_password).send_keys(settings.value("main/config_password"))
+    driver.find_element_by_xpath(dom.configuration_password).send_keys(settings.value(_CONFIG_PASSWORD_KEY))
     _submit(driver.find_element_by_xpath(dom.configuration_save_changes), settings)
 
     sleep(LWT.TimeOut.TIME_BETWEEN_CONFIGURATION_PAGES.value)

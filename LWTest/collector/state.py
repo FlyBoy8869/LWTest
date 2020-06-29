@@ -42,37 +42,3 @@ class DateVerifier:
         return datetime.strptime(
             driver.find_element_by_xpath(_DATE_AND_TIME_ELEMENT).get_attribute("textContent").split('\n', 1)[0],
             "%c")
-
-
-if __name__ == '__main__':
-    driver = webdriver.Chrome(
-        executable_path="../resources/drivers/chromedriver/windows/version-80_0_3987_106/chromedriver.exe")
-    # driver.get("http://192.168.2.1/index.php/upgrade/date_and_time")
-    # if "LineWatch" in driver.title:
-    #     print("Retrieved page successfully.")
-    # else:
-    #     print("Unable to load page.")
-    #     sys.exit(1)
-
-    # todays_date = datetime.now()
-    # collector_date = datetime.strptime(
-    #     driver.find_element_by_xpath(_DATE_AND_TIME_ELEMENT).get_attribute("textContent").split('\n', 1)[0],
-    #     '%c')
-    # print(f"Today's date: {todays_date}")
-    # print(f"Collector date: {collector_date}")
-    #
-    # time_delta = todays_date - collector_date
-    # print(f"time delta: {time_delta}")
-    #
-    # total_minutes = time_delta / timedelta(minutes=1)
-    # print(f"total minutes: {total_minutes}")
-    #
-    # if total_minutes > 1.0:
-    #     print("Collector time is out of required tolerance.")
-    # else:
-    #     print("Collector time is good.")
-
-    dv = DateVerifier(QUrl("http://192.168.2.1/index.php/upgrade/date_and_time"), "Q854Xj8X")
-    dv.verify_date(driver)
-
-    driver.quit()

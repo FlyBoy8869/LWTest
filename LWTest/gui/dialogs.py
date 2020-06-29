@@ -210,10 +210,10 @@ class UpgradeDialog(QDialog):
         self.worker.signals.upgrade_failed_to_enter_program_mode.connect(self.reject)
         self.worker.signals.upgrade_progress.connect(self._update_percentage)
 
-    def closeEvent(self, QCloseEvent):
-        QCloseEvent.ignore()
+    def closeEvent(self, q_close_event):
+        q_close_event.ignore()
 
-    def showEvent(self, QShowEvent):
+    def showEvent(self, q_show_event):
         if not self.upgrade_started:
             settings = QSettings()
 

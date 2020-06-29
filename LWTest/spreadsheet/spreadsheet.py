@@ -51,7 +51,7 @@ def save_sensor_data(workbook_path, data_sets, temperature_reference: str) -> re
                 value = reading
                 try:
                     value = _convert_reading_for_spreadsheet(reading, _CONVERSIONS[index])
-                except Exception as e:
+                except Exception:
                     pass
                 worksheet[location].value = value
 

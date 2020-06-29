@@ -13,7 +13,6 @@ class _Page:
 
         with open(contents, 'r') as in_f:
             self._doc = in_f.readlines()
-            # self._doc.reverse()
 
         self._tail_clutter = self._doc[-55:]
         self._doc = self._doc[:-55]
@@ -23,7 +22,6 @@ class _Page:
 
     @property
     def text(self):
-        # return self._simulated_text
         copy_of_text = self._simulated_text.copy()
         self._add_tail_clutter(copy_of_text)
         return "".join(copy_of_text)

@@ -60,14 +60,3 @@ def flags(*, read: List[FlagsEnum] = None, set_: List[FlagsEnum] = None, clear: 
             return result
         return wrapper
     return outer
-
-
-if __name__ == '__main__':
-    mf = Flags()
-    print(f"value of 'serials': {mf['serials']}")
-    print(f"Is 'serials' set: {mf.is_set('serials')}")
-
-    mf.set_flag("serials")
-    print(f"Is 'serials' set: {mf.is_set('serials')}")
-
-    5 == FlagsEnum.SERIALS

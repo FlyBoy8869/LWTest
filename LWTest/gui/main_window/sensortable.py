@@ -3,7 +3,7 @@ from typing import Callable
 from PyQt5.QtWidgets import QTableWidget, QComboBox, QHeaderView
 
 import LWTest.gui.main_window.helper as helper
-import LWTest.LWTConstants as LWT
+import LWTest.constants.LWTConstants as LWT
 
 
 def setup_table_widget(parent, serial_numbers: tuple, table: QTableWidget, calibrated_override: Callable,
@@ -20,7 +20,8 @@ def setup_table_widget(parent, serial_numbers: tuple, table: QTableWidget, calib
     table.setColumnCount(len(headers))
     table.setHorizontalHeaderLabels(headers)
     table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeToContents)
-    table.verticalHeader().setSectionResizeMode(QHeaderView.Stretch)
+    table.verticalHeader().setSectionResizeMode(QHeaderView.ResizeToContents)
+    table.horizontalHeader().setStretchLastSection(True)
 
     for index, number in enumerate(serial_numbers):
         item = helper.create_item(number)

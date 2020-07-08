@@ -3,7 +3,7 @@ from time import sleep
 import requests
 from PyQt5.QtCore import QObject, pyqtSignal
 
-import LWTest.LWTConstants as LWT
+import LWTest.constants.LWTConstants as LWT
 
 
 class Signals(QObject):

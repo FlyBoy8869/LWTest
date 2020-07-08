@@ -6,8 +6,8 @@ from pathlib import Path
 from typing import Tuple
 
 import openpyxl
-from PyQt5.QtCore import QSettings
-from openpyxl.workbook.workbook import Worksheet as openpyxlWorksheet
+from openpyxl.workbook.workbook import Worksheet as openpyxlWorksheet, Workbook
+from openpyxl.worksheet.worksheet import Worksheet
 
 import LWTest.utilities.misc
 import LWTest.utilities.time
@@ -18,10 +18,6 @@ _CONVERSIONS = [float, float, float, int,
                 float, float, float, int,
                 float, float, float, str,
                 str, str, lambda v: int(v) if type(v) == int else str(v), str, float, str]
-
-_SERIAL_LOCATIONS = QSettings().value('spreadsheet/serial_locations').split(' ')
-_FIVE_AMP_SAVE_LOCATIONS = QSettings().value('spreadsheet/result_locations').split(' ')
-_WORKSHEET_NAME = QSettings().value("spreadsheet/worksheet")
 
 
 def get_serial_numbers(path: str) -> Tuple[str]:
@@ -81,7 +77,7 @@ def save_test_results(workbook_path: str, results: Tuple[str]):
     worksheet = _get_worksheet_from_workbook(workbook_path)
     logger.info(f"saving to worksheet {worksheet}")
 
-    for result, location in zip(results, _FIVE_AMP_SAVE_LOCATIONS):
+    for result, location in zip(results, constants.FIVE_AMP_SAVE_LOCATIONS):
         logger.debug(f"saving '{result}' to location '{location}'")
         worksheet[location].value = str(result)
 
@@ -91,7 +87,7 @@ def save_test_results(workbook_path: str, results: Tuple[str]):
 # -------------------
 # private interface -
 # -------------------
-_workbook = None
+_workbook: Workbook
 
 
 def _convert_reading_for_spreadsheet(reading, conversion):
@@ -101,7 +97,7 @@ def _convert_reading_for_spreadsheet(reading, conversion):
 def _extract_serial_numbers_from_worksheet(worksheet: openpyxlWorksheet) -> Tuple[str]:
     logger = logging.getLogger(__name__)
 
-    serial_numbers = [str(worksheet[serial_location].value) for serial_location in _SERIAL_LOCATIONS
+    serial_numbers = [str(worksheet[serial_location].value) for serial_location in constants.SERIAL_LOCATIONS
                       if str(worksheet[serial_location].value) != 'None']
 
     _close_workbook()
@@ -122,9 +118,9 @@ def _open_workbook(filename: str):
         logger.debug("spreadsheet not found")
         LWTest.utilities.misc.print_exception_info()
         sys.exit(1)
-    except Exception:
+    except RuntimeError:
         LWTest.utilities.misc.print_exception_info()
-        raise Exception
+        raise RuntimeError
 
 
 def _get_worksheet_from_workbook(path) -> openpyxlWorksheet:
@@ -133,10 +129,10 @@ def _get_worksheet_from_workbook(path) -> openpyxlWorksheet:
 
     try:
         _open_workbook(path)
-        worksheet = _workbook[_WORKSHEET_NAME]
+        worksheet = _workbook[constants.WORKSHEET_NAME]
         return worksheet
     except KeyError:
-        logger.debug(f"Worksheet '{_WORKSHEET_NAME}' does not exist. Check the spelling in config.txt.")
+        logger.debug(f"Worksheet '{constants.WORKSHEET_NAME}' does not exist. Check the spelling in config.txt.")
         sys.exit(1)
 
 
@@ -153,16 +149,16 @@ def _close_workbook():
 
 
 class Spreadsheet:
-    def __init__(self, path: Path, worksheet_name: str):
+    def __init__(self, path: Path, worksheet: Worksheet):
         self._path = path
-        self._worksheet_name = worksheet_name
+        self._worksheet: Worksheet = worksheet
 
     def get_serial_numbers(self) -> list:
         raise NotImplementedError("Not yet.")
 
     def _extract_serial_numbers_from_worksheet(self, serial_locations: tuple) -> Tuple[str]:
-        serial_numbers = [str(self._worksheet_name[serial_location].value) for serial_location in serial_locations
-                          if str(self._worksheet_name[serial_location].value) != 'None']
+        serial_numbers = [str(self._worksheet[serial_location].value) for serial_location in serial_locations
+                          if str(self._worksheet[serial_location].value) != 'None']
 
         _close_workbook()
 

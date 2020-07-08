@@ -64,5 +64,11 @@ UPDATER_LOG = 'C45'
 
 LOG_FILE_CELLS = [WATCHDOG_LOG, SENSOR_COMM_LOG, UPDATER_LOG]
 
+# locations order Sensor1 Sensor2 Sensor3 Sensor4 Sensor5 Sensor6
+SERIAL_LOCATIONS = ["D4", "E4", "F4", "G4", "H4", "I4"]
+FIVE_AMP_SAVE_LOCATIONS = ["D5", "E5", "F5", "G5", "H5", "I5"]
+
 tested_by = 'E43'
 test_date = 'I43'
+
+WORKSHEET_NAME = "Sensor(s)"

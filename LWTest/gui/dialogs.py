@@ -5,7 +5,7 @@ import requests
 from PyQt5.QtCore import QTimer, QRunnable, QObject, pyqtSignal, Qt, QSettings, QCoreApplication
 from PyQt5.QtWidgets import QDialog, QVBoxLayout, QProgressBar, QLabel, QHBoxLayout, QDialogButtonBox, QMessageBox
 
-import LWTest.LWTConstants as LWT
+import LWTest.constants.LWTConstants as LWT
 import LWTest.spreadsheet.spreadsheet as spreadsheet
 import LWTest.utilities.returns as returns
 import LWTest.utilities.time as util_time
@@ -64,7 +64,7 @@ class PersistenceBootMonitor(QDialog):
         self.main_layout = QVBoxLayout()
         self.button_layout = QHBoxLayout()
 
-        self.description_label = QLabel("Please, wait for the collector to boot.\t\t")
+        self.description_label = QLabel("Waiting for the collector to boot.\t\t")
 
         self.progress_bar = QProgressBar()
         self.progress_bar.setStyleSheet("QProgressBar {min-height: 10px; max-height: 10px}")

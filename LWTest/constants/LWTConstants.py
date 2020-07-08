@@ -1,16 +1,13 @@
 import datetime
 from enum import Enum, auto, unique, IntEnum
 
-from PyQt5.QtCore import QSettings
-
 from LWTest.common import oscomp
 from LWTest.common.oscomp import QSettingsAdapter, OSType
-
 
 TESTING = True if QSettingsAdapter.value("DEBUG") == 'true' else False
 print(f"TESTING = {TESTING}")
 
-NO_DATA = "N/A"
+NO_DATA = "NA"
 
 THREE_SENSOR_COLUMNS = 3
 SIX_SENSOR_COLUMNS = 6
@@ -85,7 +82,7 @@ if TESTING:
         URL_REQUEST = 5
         URL_READ_INTERVAL = 2
         CONFIRM_SERIAL_CONFIG = 20
-        COLLECTOR_BOOT_WAIT_TIME = 10
+        COLLECTOR_BOOT_WAIT_TIME = 60
         LINK_CHECK = 20
         LINK_PAGE_LOAD_INTERVAL = 1
         WAIT_FOR_COLLECTOR_TO_START_UPDATING_LOG_FILE = 1
@@ -135,6 +132,7 @@ else:
     URL_VOLTAGE_RIDE_THROUGH = "http://192.168.2.1/index.php/snow_ctrl/config"
     URL_LOG_FILES = 'http://192.168.2.1/downloadLogs.php'
 
+# indexes into a returned sequence of readings
 VOLTAGE = 0
 CURRENT = 1
 FACTORS = 2

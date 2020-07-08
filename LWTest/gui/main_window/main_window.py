@@ -1,13 +1,13 @@
 from functools import partial
 from typing import Optional
 
-from PyQt5.QtCore import QThreadPool, QSettings, QSize, Qt, QReadWriteLock
+from PyQt5.QtCore import QThreadPool, QSettings, QSize, Qt, QReadWriteLock, QObject, pyqtSignal
 from PyQt5.QtGui import QIcon, QCloseEvent, QBrush, QColor
 from PyQt5.QtWidgets import QMainWindow, QTableWidget, QVBoxLayout, QWidget, QTableWidgetItem, QMessageBox, QToolBar, \
-    QDialog, QDoubleSpinBox
+    QDialog, QDoubleSpinBox, QSizePolicy
 from selenium import webdriver
 
-import LWTest.LWTConstants as LWT
+import LWTest.constants.LWTConstants as LWT
 import LWTest.gui.main_window.sensortable as sensortable
 import LWTest.utilities as utilities
 import LWTest.utilities.misc as utilities_misc
@@ -65,6 +65,11 @@ class CellLocation:
 
 
 class MainWindow(QMainWindow):
+    class Signals(QObject):
+        file_dropped = pyqtSignal(str)
+        adjust_size = pyqtSignal()
+        serial_numbers_imported = pyqtSignal(tuple)
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, *kwargs)
         self.settings = QSettings()
@@ -73,7 +78,7 @@ class MainWindow(QMainWindow):
         self.setWindowIcon(QIcon("LWTest/resources/images/app_128.png"))
         self.setWindowTitle("LWTest")
         self.setAcceptDrops(True)
-        self.signals = signals.MainWindowSignals()
+        self.signals = self.Signals()
         self.thread_pool = QThreadPool.globalInstance()
         print(f"using max threads: {self.thread_pool.maxThreadCount()}")
         self.sensor_log = sensor.SensorLog()
@@ -107,6 +112,9 @@ class MainWindow(QMainWindow):
         self.menu_helper.action_about.triggered.connect(lambda: menu_help_about_handler(parent=self))
 
         self.sensor_table = QTableWidget(self.panel)
+        size = QSizePolicy(QSizePolicy.Preferred, QSizePolicy.Preferred)
+        size.setHorizontalStretch(1)
+        self.sensor_table.setSizePolicy(size)
         self.panel_layout.addWidget(self.sensor_table)
 
         self._create_toolbar()
@@ -121,7 +129,7 @@ class MainWindow(QMainWindow):
     def closeEvent(self, closing_event: QCloseEvent):
         self.thread_pool.clear()
 
-        if self.changes.can_discard_test_results(self):
+        if self.changes.can_discard(self):
             self._close_browser()
 
             width = self.width()
@@ -152,8 +160,7 @@ class MainWindow(QMainWindow):
 
     def _import_serial_numbers(self, filename: str, sensor_log):
         # listens for MainWindow().signals.file_dropped
-
-        if self.changes.can_discard_test_results(self):
+        if self.changes.can_discard(self):
             sensor_log.append_all(spreadsheet.get_serial_numbers(filename))
             self._setup_sensor_table()
             self.changes.clear_change_flag()
@@ -183,10 +190,8 @@ class MainWindow(QMainWindow):
 
     @flags(clear=[FlagsEnum.SERIALS])
     def _handle_serial_number_configuration_failure(self):
-        QMessageBox.warning(self, "LWTest - Warning\t\t\t\t\t\t\t\t",
-                            f"An error occurred trying to configure the collector with the serial numbers." +
-                            "\n\nMake sure the ethernet cable is connected and the collector is booted.",
-                            QMessageBox.Ok)
+        self._show_warning_dialog(f"An error occurred trying to configure the collector." +
+                                  "\n\nMake sure the ethernet cable is connected and the collector is powered on.")
 
     def _start_confirm_serial_update(self):
         # pop dialog
@@ -506,3 +511,6 @@ class MainWindow(QMainWindow):
 
     def _show_information_dialog(self, message):
         QMessageBox.information(self, dialog_title(), message, QMessageBox.Ok, QMessageBox.Ok)
+
+    def _show_warning_dialog(self, message):
+        QMessageBox.warning(self, dialog_title(), message, QMessageBox.Ok, QMessageBox.Ok)

@@ -1,6 +1,6 @@
 from typing import Callable
 
-import LWTest.LWTConstants as LWT
+import LWTest.constants.LWTConstants as LWT
 
 
 _HIGH_MINS = (LWT.Tolerance.HIGH_VOLTAGE_MIN.value,

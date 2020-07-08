@@ -4,7 +4,7 @@ from time import sleep
 
 from PyQt5.QtCore import QRunnable
 
-import LWTest.LWTConstants as LWT
+import LWTest.constants.LWTConstants as LWT
 from LWTest.signals import WorkerSignals
 
 if LWT.TESTING:

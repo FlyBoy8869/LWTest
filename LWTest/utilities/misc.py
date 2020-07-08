@@ -10,7 +10,7 @@ from PyQt5.QtCore import QSettings
 from selenium import webdriver
 from selenium.common.exceptions import NoSuchElementException
 
-import LWTest.LWTConstants as LWT
+import LWTest.constants.LWTConstants as LWT
 from LWTest.constants import dom as dom
 
 

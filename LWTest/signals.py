@@ -1,13 +1,6 @@
 from PyQt5.QtCore import QObject, pyqtSignal
 
 
-class MainWindowSignals(QObject):
-    file_dropped = pyqtSignal(str)
-    adjust_size = pyqtSignal()
-    serial_numbers_imported = pyqtSignal(tuple)
-    collector_configured = pyqtSignal(tuple)
-
-
 class WorkerSignals(QObject):
     configured_serial_numbers = pyqtSignal(tuple)
     url_read_exception = pyqtSignal(tuple)

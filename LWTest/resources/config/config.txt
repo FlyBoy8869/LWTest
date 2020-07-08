@@ -1,31 +1,31 @@
 #pages/configuration=http://192.168.2.1/index.php/main/configuration
-pages/configuration=http://127.0.0.1:8080/LineWatch-M Website configuration.html
+#pages/configuration=http://127.0.0.1:8080/LineWatch-M Website configuration.html
 
 #pages/modem_status=http://192.168.2.1/index.php/main/modem_status
-pages/modem_status=http://127.0.0.1:8080/LineWatch-M Website modem status.html
+#pages/modem_status=http://127.0.0.1:8080/LineWatch-M Website modem status.html
 
-pages/software_upgrade=http://192.168.2.1/index.php/upgrade
+#pages/software_upgrade=http://192.168.2.1/index.php/upgrade
 #pages/software_upgrade=http://127.0.0.1:8080/LineWatch-M%20Website%20software%20upgrade.html
 #pages/software_upgrade=http://127.0.0.1:8080/LineWatch-M Website software all upgraded.html
 
 #pages/software_upgrade_log=http://127.0.0.1:8080/software upgrade example of failure.html
 #pages/software_upgrade_log=http://127.0.0.1:8080/software upgrade example of unit following a failure.html
 
-pages/temperature=http://192.168.2.1/index.php/main/Temperature
+#pages/temperature=http://192.168.2.1/index.php/main/Temperature
 #pages/temperature=http://127.0.0.1:8080/LineWatch-M%20Website%20temperature%20scale.html
 
-pages/raw_configuration=http://192.168.2.1/index.php/main/test
+#pages/raw_configuration=http://192.168.2.1/index.php/main/test
 #pages/raw_configuration=http://127.0.0.1:8080/LineWatch-M%20Website%20raw%20configuration.html
 
-pages/voltage_ride_through=http://192.168.2.1/index.php/snow_ctrl/config
+#pages/voltage_ride_through=http://192.168.2.1/index.php/snow_ctrl/config
 #pages/voltage_ride_through=http://127.0.0.1:8080/LineWatch-M%20Website%20voltage%20ride%20through%200305327.html
 
-pages/calibration=http://192.168.2.1/index.php/main/calibrate
+#pages/calibration=http://192.168.2.1/index.php/main/calibrate
 
 #pages/sensor_data=http://192.168.2.1/index.php/main/sensordata
-pages/sensor_data=http://127.0.0.1:8080/LineWatch-M%20Website%20sensor%20data.html
+#pages/sensor_data=http://127.0.0.1:8080/LineWatch-M%20Website%20sensor%20data.html
 
-pages/fault_current=http://192.168.2.1/index.php/main/viewdata/cbc
+#pages/fault_current=http://192.168.2.1/index.php/main/viewdata/cbc
 #pages/fault_current=http://127.0.0.1:8080/LineWatch-M%20Website%20fault_current.html
 
 main/config_password=Q854Xj8X
@@ -42,11 +42,5 @@ main/webdriver_wait_to_close=3000
 
 # valid levels: debug, info, warning, error, critical
 main/debug_level=debug
-
-spreadsheet/worksheet=Sensor(s)
-
-# locations order Sensor1 Sensor2 Sensor3 Sensor4 Sensor5 Sensor6
-spreadsheet/serial_locations=D4 E4 F4 G4 H4 I4
-spreadsheet/result_locations=D5 E5 F5 G5 H5 I5
 
 drivers/chromedriver=LWTest\resources\drivers\chromedriver\windows\version_83_0_4103_39\chromedriver.exe

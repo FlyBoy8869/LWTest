@@ -41,81 +41,74 @@ class DataReader:
         self._raw_configuration_url = raw_config_url
         self.signals = Signals()
 
-    def read(self, browser: webdriver.Chrome, count: int) -> None:
+    def read(self, browser: webdriver.Chrome, count: int) -> returns.Result:
         browser.get(self._sensor_data_url)
         if "Auto Update" not in browser.page_source:
             self.signals.page_load_error.emit()
-            return
+            return returns.Result(False, None, "Error.")
+        readings = browser.find_elements_by_css_selector("div.tcellShort:not([id^='last'])")
 
-        voltage_readings = []
-        for index, element in enumerate(dom.phase_voltage[:count]):
-            field = browser.find_element_by_xpath(element)
-            content = field.get_attribute("textContent")
-            voltage_readings.append(content)
+        # voltage, current, power factor, real power
+        results = self._extract_sensor_readings(readings, count)
+        results[3] = self._massage_real_power_readings(results[3])
+        temperature_readings = self._scrape_readings(readings, "textContent", len(readings) - count, len(readings))
 
-        current_readings = []
-        for index, element in enumerate(dom.phase_current[:count]):
-            field = browser.find_element_by_xpath(element)
-            content = field.get_attribute("textContent")
-            current_readings.append(content)
+        if self._reading_high_voltage(results[0]):
+            self.signals.high_data_readings.emit(tuple(results))
 
-        factor_readings = []
-        for index, element in enumerate(dom.phase_power_factor[:count]):
-            field = browser.find_element_by_xpath(element)
-            content = field.get_attribute("textContent")
-            factor_readings.append(content)
-
-        power_readings = []
-        for index, element in enumerate(dom.phase_real_power[:count]):
-            field = browser.find_element_by_xpath(element)
-            content = field.get_attribute("textContent")
-            if content != LWT.NO_DATA:
-                content = str(int(float(normalize_reading(content)) * 1000))
-            power_readings.append(content)
-
-        if self._reading_high_voltage(voltage_readings):
-            self.signals.high_data_readings.emit((voltage_readings,
-                                                 current_readings,
-                                                 factor_readings,
-                                                 power_readings))
-
-        else:  # readings gathered only when low voltage is dialed in
-            temperature_readings = []
-            for index, element in enumerate(dom.phase_temperature[:count]):
-                field = browser.find_element_by_xpath(element)
-                content = field.get_attribute("textContent")
-                temperature_readings.append(content)
-
+        else:  # these readings gathered only when low voltage is dialed in
             get_page_login_if_needed(self._raw_configuration_url, browser)
+            readings = browser.find_elements_by_css_selector("div.tcell > input")
 
-            scale_current_readings = []
-            for index, element in enumerate(dom.scale_current[:count]):
-                field = browser.find_element_by_xpath(element)
-                content = field.get_attribute("value")
-                scale_current_readings.append(content)
+            # scale current, scale voltage, correction angle
+            advanced_readings = self._extract_advanced_readings(readings, count)
 
-            scale_voltage_readings = []
-            for index, element in enumerate(dom.scale_voltage[:count]):
-                field = browser.find_element_by_xpath(element)
-                content = field.get_attribute("value")
-                scale_voltage_readings.append(content)
-
-            correction_angle_readings = []
-            for index, element in enumerate(dom.raw_configuration_angle[:count]):
-                field = browser.find_element_by_xpath(element)
-                content = field.get_attribute("value")
-                correction_angle_readings.append(content)
-
-            self.signals.low_data_readings.emit((voltage_readings,
-                                                current_readings,
-                                                factor_readings,
-                                                power_readings,
-                                                scale_current_readings,
-                                                scale_voltage_readings,
-                                                correction_angle_readings,
-                                                temperature_readings))
+            results.extend(advanced_readings)
+            results.append(temperature_readings)
+            self.signals.low_data_readings.emit(
+                tuple(results)
+            )
 
             return returns.Result(True, None)
+
+    def _extract_sensor_readings(self, readings, count):
+        voltage_index = 0
+        current_index = voltage_index + count
+        power_factor_index = current_index + count
+        lead_lag_index = power_factor_index + count
+        real_power_index = lead_lag_index + count
+
+        reading_slice_indexes = [
+            [voltage_index, count],
+            [current_index, current_index + count],
+            [power_factor_index, power_factor_index + count],
+            [real_power_index, real_power_index + count]
+        ]
+
+        return [self._scrape_readings(readings, "textContent", start, stop) for start, stop in reading_slice_indexes]
+
+    def _extract_advanced_readings(self, readings, count):
+        scale_current_index = 0
+        scale_voltage_index = scale_current_index + count
+        correction_angle_index = 12 if scale_voltage_index == 3 else 24
+
+        reading_slice_indexes = [
+            [scale_current_index, count],
+            [scale_voltage_index, scale_voltage_index + count],
+            [correction_angle_index, correction_angle_index + count]
+        ]
+
+        return [self._scrape_readings(readings, "value", start, stop) for start, stop in reading_slice_indexes]
+
+    @staticmethod
+    def _massage_real_power_readings(readings):
+        return [str(int(float(normalize_reading(value)) * 1000))
+                if value != LWT.NO_DATA else "NA"
+                for value in readings]
+
+    @staticmethod
+    def _scrape_readings(readings, attribute: str, start: int, stop: int):
+        return [value.get_attribute(attribute) for value in readings[start:stop]]
 
     @staticmethod
     def _reading_high_voltage(readings: list) -> bool:

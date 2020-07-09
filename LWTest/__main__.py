@@ -9,6 +9,7 @@ from LWTest.config.app import settings, logging
 def main():
     args = sys.argv
     app = QApplication(args)
+    # app.setStyle('Fusion')
     settings.load(r"LWTest/resources/config/config.txt", QSettings())
     settings.process_command_line_args(args, QSettings())
     logging.initialize()

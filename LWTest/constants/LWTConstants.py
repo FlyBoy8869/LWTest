@@ -111,8 +111,8 @@ if TESTING:
     URL_SENSOR_DATA = "http://localhost:5000/sensordata"
     URL_TEMPERATURE = "http://localhost:5000/temperaturescale"
     URL_RAW_CONFIGURATION = "http://localhost:5000/rawconfig"
-    URL_CALIBRATE = ""
-    URL_FAULT_CURRENT = "http://localhost:5000/fault_current.html"
+    URL_CALIBRATE = "http://localhost:5000/calibrate"
+    URL_FAULT_CURRENT = "http://localhost:5000/faultcurrent"
     URL_VOLTAGE_RIDE_THROUGH = "http://localhost:5000/voltageridethrough"
     URL_LOG_FILES = "http://localhost:5000/static/logfiles.zip"
 else:

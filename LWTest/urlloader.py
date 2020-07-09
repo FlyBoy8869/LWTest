@@ -1,8 +1,7 @@
-from PyQt5.QtCore import QUrl, QSettings
+from PyQt5.QtCore import QUrl
 from selenium import webdriver
 
 from LWTest.constants import dom
-
 
 _LOGIN_TEXT = "login"
 

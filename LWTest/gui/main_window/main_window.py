@@ -2,7 +2,7 @@ from functools import partial
 from typing import Optional
 
 from PyQt5.QtCore import QThreadPool, QSettings, QSize, Qt, QReadWriteLock, QObject, pyqtSignal
-from PyQt5.QtGui import QIcon, QCloseEvent, QBrush, QColor
+from PyQt5.QtGui import QIcon, QCloseEvent, QBrush, QColor, QPalette
 from PyQt5.QtWidgets import QMainWindow, QTableWidget, QVBoxLayout, QWidget, QTableWidgetItem, QMessageBox, QToolBar, \
     QDialog, QDoubleSpinBox, QSizePolicy
 from selenium import webdriver
@@ -12,7 +12,7 @@ import LWTest.gui.main_window.sensortable as sensortable
 import LWTest.utilities as utilities
 import LWTest.utilities.misc as utilities_misc
 import LWTest.validate as validator
-from LWTest import sensor, signals, common
+from LWTest import sensor, common
 from LWTest.collector import configure
 from LWTest.collector.read.read import DataReader, PersistenceReader, FirmwareVersionReader, \
     ReportingDataReader
@@ -28,6 +28,8 @@ from LWTest.utilities import misc
 from LWTest.workers import upgrade, link
 from LWTest.workers.persistence import PersistenceWorker
 
+style_sheet = "QProgressBar{ max-height: 10px; }"
+
 _DATA_IN_TABLE_ORDER = ("rssi", "firmware_version", "reporting_data", "calibrated", "high_voltage", "high_current",
                         "high_power_factor", "high_real_power", "low_voltage", "low_current",
                         "low_power_factor", "low_real_power", "scale_current", "scale_voltage",
@@ -41,7 +43,12 @@ _DATA_IN_SPREADSHEET_ORDER = ("high_voltage", "high_current", "high_power_factor
 
 
 def dialog_title():
-    return "LWtest"
+    title = "LWTest"
+
+    if LWT.TESTING:
+        title += " - TESTING MODE"
+
+    return title
 
 
 class CellLocation:
@@ -76,8 +83,10 @@ class MainWindow(QMainWindow):
         self.resize(int(self.settings.value("geometry/mainwindow/width", "435")),
                     int(self.settings.value("geometry/mainwindow/height", "244")))
         self.setWindowIcon(QIcon("LWTest/resources/images/app_128.png"))
-        self.setWindowTitle("LWTest")
+        self.setWindowTitle(dialog_title())
         self.setAcceptDrops(True)
+        # self.setStyleSheet(style_sheet)
+
         self.signals = self.Signals()
         self.thread_pool = QThreadPool.globalInstance()
         print(f"using max threads: {self.thread_pool.maxThreadCount()}")
@@ -111,10 +120,11 @@ class MainWindow(QMainWindow):
 
         self.menu_helper.action_about.triggered.connect(lambda: menu_help_about_handler(parent=self))
 
+        palette = QPalette()
+        palette.setColor(QPalette.AlternateBase, QColor(50, 50, 50))
         self.sensor_table = QTableWidget(self.panel)
-        size = QSizePolicy(QSizePolicy.Preferred, QSizePolicy.Preferred)
-        size.setHorizontalStretch(1)
-        self.sensor_table.setSizePolicy(size)
+        self.sensor_table.setAlternatingRowColors(True)
+        self.sensor_table.setPalette(palette)
         self.panel_layout.addWidget(self.sensor_table)
 
         self._create_toolbar()

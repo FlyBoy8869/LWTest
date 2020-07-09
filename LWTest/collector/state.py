@@ -1,9 +1,7 @@
-import sys
 from datetime import datetime, timedelta
 
-from PyQt5.QtCore import QUrl, QSettings
+from PyQt5.QtCore import QUrl
 from selenium import webdriver
-
 
 _DATE_AND_TIME_ELEMENT = "//*[@id='maindiv']/div[2]"
 _DATE_AND_TIME_INPUT_ELEMENT = "//*[@id='maindiv']/form/input[1]"

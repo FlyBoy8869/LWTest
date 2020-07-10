@@ -7,7 +7,7 @@ from PyQt5.QtCore import QRunnable
 import LWTest.constants.LWTConstants as LWT
 from LWTest.signals import WorkerSignals
 
-if LWT.TESTING:
+if LWT.TESTING_MODE:
     import LWTest.tests.mock.requests.requests as requests
 else:
     import requests

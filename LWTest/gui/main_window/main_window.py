@@ -2,14 +2,15 @@ from functools import partial
 from typing import Optional
 
 from PyQt5.QtCore import QThreadPool, QSettings, QSize, Qt, QReadWriteLock, QObject, pyqtSignal
-from PyQt5.QtGui import QIcon, QCloseEvent, QBrush, QColor, QPalette
+from PyQt5.QtGui import QIcon, QCloseEvent, QBrush, QColor
 from PyQt5.QtWidgets import QMainWindow, QTableWidget, QVBoxLayout, QWidget, QTableWidgetItem, QMessageBox, QToolBar, \
     QDialog, QDoubleSpinBox
 from selenium import webdriver
 
-import LWTest.gui.theme as theme
+import LWTest
 import LWTest.constants.LWTConstants as LWT
 import LWTest.gui.main_window.sensortable as sensortable
+import LWTest.gui.theme as theme
 import LWTest.utilities as utilities
 import LWTest.utilities.misc as utilities_misc
 import LWTest.validate as validator
@@ -41,15 +42,6 @@ _DATA_IN_SPREADSHEET_ORDER = ("high_voltage", "high_current", "high_power_factor
                               "scale_current", "scale_voltage", "correction_angle", "persists",
                               "firmware_version", "reporting_data", "rssi", "calibrated",
                               "temperature", "fault_current")
-
-
-def dialog_title():
-    title = "LWTest"
-
-    if LWT.TESTING:
-        title += " - TESTING MODE"
-
-    return title
 
 
 class CellLocation:
@@ -84,7 +76,7 @@ class MainWindow(QMainWindow):
         self.resize(int(self.settings.value("geometry/mainwindow/width", "435")),
                     int(self.settings.value("geometry/mainwindow/height", "244")))
         self.setWindowIcon(QIcon("LWTest/resources/images/app_128.png"))
-        self.setWindowTitle(dialog_title())
+        self.setWindowTitle(LWTest.app_title)
         self.setAcceptDrops(True)
         # self.setStyleSheet(style_sheet)
 
@@ -243,11 +235,11 @@ class MainWindow(QMainWindow):
         self.sensor_log.record_firmware_version(serial_number, LWT.LATEST_FIRMWARE_VERSION_NUMBER)
         self._update_from_model()
 
-        QMessageBox.information(QMessageBox(self), dialog_title(), "Sensor firmware successfully upgraded.",
+        QMessageBox.information(QMessageBox(self), LWTest.app_title, "Sensor firmware successfully upgraded.",
                                 QMessageBox.Ok)
 
     def _failed_to_enter_program_mode(self, row: int):
-        result = QMessageBox.warning(QMessageBox(self), dialog_title(), "Failed to upgrade sensor.",
+        result = QMessageBox.warning(QMessageBox(self), LWTest.app_title, "Failed to upgrade sensor.",
                                      QMessageBox.Retry | QMessageBox.Cancel)
 
         self.firmware_upgrade_in_progress = False
@@ -519,7 +511,7 @@ class MainWindow(QMainWindow):
         self.thread_pool.start(worker)
 
     def _show_information_dialog(self, message):
-        QMessageBox.information(self, dialog_title(), message, QMessageBox.Ok, QMessageBox.Ok)
+        QMessageBox.information(self, LWTest.app_title, message, QMessageBox.Ok, QMessageBox.Ok)
 
     def _show_warning_dialog(self, message):
-        QMessageBox.warning(self, dialog_title(), message, QMessageBox.Ok, QMessageBox.Ok)
+        QMessageBox.warning(self, LWTest.app_title, message, QMessageBox.Ok, QMessageBox.Ok)

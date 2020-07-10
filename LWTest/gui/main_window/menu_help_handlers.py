@@ -1,9 +1,10 @@
 from PyQt5.QtWidgets import QMessageBox
 
-_title = "LWTest"
-_version = "0.2.3"
+import LWTest
 
 
 def menu_help_about_handler(parent=None):
-    text = f"<h1>{_title}</h1><br/>Version {_version}<br/>Author: Charles Cognato<br/>email: charlescognato@gmail.com"
-    QMessageBox.about(parent, f"{_title}\t\t\t\t\t\t", text)
+    app_title = LWTest.app_title.split('-', 1)[0].strip()
+    text = f"<div><h1>{app_title}</h1></div><div style='margin-top: 2em;'><p>Version: {LWTest.version}</p>\
+    <p>Author: Charles Cognato</p><p>email: charlescognato@gmail.com</p></div>"
+    QMessageBox.about(parent, f"{app_title}\t\t\t\t\t\t", text)

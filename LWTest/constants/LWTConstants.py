@@ -1,11 +1,12 @@
 import datetime
 from enum import Enum, auto, unique, IntEnum
 
+import LWTest
 from LWTest.common import oscomp
-from LWTest.common.oscomp import QSettingsAdapter, OSBrand
+from LWTest.common.oscomp import OSBrand
 
-TESTING = True if QSettingsAdapter.value("DEBUG") == 'true' else False
-print(f"TESTING = {TESTING}")
+TESTING_MODE = LWTest.TESTING_MODE
+print(f"TESTING = {TESTING_MODE}")
 
 NO_DATA = "NA"
 
@@ -76,7 +77,7 @@ UPGRADE_SUCCESS_TEXT = "Program Checksum is 0x3d07"
 UPGRADE_FAILURE_TEXT = "Failed to enter program mode"
 
 
-if TESTING:
+if TESTING_MODE:
     class TimeOut(Enum):
         COLLECTOR_POWER_OFF_TIME = 2
         URL_REQUEST = 5
@@ -101,7 +102,7 @@ else:
         UPGRADE_LOG_LOAD_INTERVAL = 1
         TIME_BETWEEN_CONFIGURATION_PAGES = 3
 
-if TESTING:
+if TESTING_MODE:
     URL_CONFIGURATION = "http://localhost:5000/configuration"
     URL_MODEM_STATUS = "http://localhost:5000/modemstatus"
     URL_UPGRADE = "http://localhost:5000/softwareupgrade"

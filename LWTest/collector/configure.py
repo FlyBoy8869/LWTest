@@ -3,7 +3,7 @@ from time import sleep
 from PyQt5.QtCore import QSettings
 from selenium import webdriver
 
-import LWTest.constants.LWTConstants as LWT
+import LWTest.constants.lwt_constants as LWT
 from LWTest.constants import dom as dom
 
 _VOLTAGE_TEMPERATURE_SCALE = "-0.00012"

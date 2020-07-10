@@ -8,12 +8,12 @@ from PyQt5.QtWidgets import QMainWindow, QTableWidget, QVBoxLayout, QWidget, QTa
 from selenium import webdriver
 
 import LWTest
-import LWTest.constants.LWTConstants as LWT
 import LWTest.gui.main_window.sensortable as sensortable
 import LWTest.gui.theme as theme
 import LWTest.utilities as utilities
 import LWTest.utilities.misc as utilities_misc
 import LWTest.validate as validator
+from LWTest.constants import lwt
 from LWTest import sensor, common
 from LWTest.collector import configure
 from LWTest.collector.read.read import DataReader, PersistenceReader, FirmwareVersionReader, \
@@ -180,7 +180,7 @@ class MainWindow(QMainWindow):
             misc.ensure_six_numbers(self.sensor_log.get_serial_numbers_as_list()),
             QSettingsAdapter().value("main/config_password"),
             self._get_browser(),
-            LWT.URL_CONFIGURATION
+            lwt.URL_CONFIGURATION
         )
 
         result = configurator.configure()
@@ -207,7 +207,7 @@ class MainWindow(QMainWindow):
         dialog.raise_()
         dialog.activateWindow()
 
-        link_thread = link.LinkWorker(self.sensor_log.get_serial_numbers_as_tuple(), LWT.URL_MODEM_STATUS)
+        link_thread = link.LinkWorker(self.sensor_log.get_serial_numbers_as_tuple(), lwt.URL_MODEM_STATUS)
         link_thread.signals.successful_link.connect(lambda d: self.sensor_log.record_rssi_readings(d[0], d[1]))
         link_thread.signals.successful_link.connect(lambda d: self._get_sensor_link_data(d[0]))
         link_thread.signals.link_timeout.connect(lambda nls: self.sensor_log.record_non_linked_sensors(nls))
@@ -220,9 +220,9 @@ class MainWindow(QMainWindow):
             self.firmware_upgrade_in_progress = True
 
             browser = self._get_browser()
-            serial_number = self.sensor_table.item(row, LWT.TableColumn.SERIAL_NUMBER.value).text()
+            serial_number = self.sensor_table.item(row, lwt.TableColumn.SERIAL_NUMBER.value).text()
 
-            worker = upgrade.UpgradeWorker(serial_number, LWT.URL_UPGRADE_LOG)
+            worker = upgrade.UpgradeWorker(serial_number, lwt.URL_UPGRADE_LOG)
             worker.signals.upgrade_successful.connect(self._upgrade_successful)
             worker.signals.upgrade_failed_to_enter_program_mode.connect(
                 lambda: self._failed_to_enter_program_mode(row))
@@ -232,7 +232,7 @@ class MainWindow(QMainWindow):
 
     def _upgrade_successful(self, serial_number):
         self.firmware_upgrade_in_progress = False
-        self.sensor_log.record_firmware_version(serial_number, LWT.LATEST_FIRMWARE_VERSION_NUMBER)
+        self.sensor_log.record_firmware_version(serial_number, lwt.LATEST_FIRMWARE_VERSION_NUMBER)
         self._update_from_model()
 
         QMessageBox.information(QMessageBox(self), LWTest.app_title, "Sensor firmware successfully upgraded.",
@@ -253,11 +253,11 @@ class MainWindow(QMainWindow):
         configure.do_advanced_configuration(len(self.sensor_log), self._get_browser(), QSettings())
 
     def _start_calibration(self):
-        utilities.misc.get_page_login_if_needed(LWT.URL_CALIBRATE, self._get_browser(), "calibration")
+        utilities.misc.get_page_login_if_needed(lwt.URL_CALIBRATE, self._get_browser(), "calibration")
 
     @flags(read=[FlagsEnum.SERIALS, FlagsEnum.ADVANCED], set_=[FlagsEnum.CORRECTION])
     def _config_correction_angle(self):
-        if configure.configure_correction_angle(len(self.sensor_log), LWT.URL_CONFIGURATION,
+        if configure.configure_correction_angle(len(self.sensor_log), lwt.URL_CONFIGURATION,
                                                 self._get_browser(), QSettings()):
             return
 
@@ -268,7 +268,7 @@ class MainWindow(QMainWindow):
         self._show_information_dialog("An error occurred configuring the correction angle.")
 
     def _verify_raw_configuration_readings_persist(self):
-        persistence = PersistenceReader(LWT.URL_RAW_CONFIGURATION,
+        persistence = PersistenceReader(lwt.URL_RAW_CONFIGURATION,
                                         self._get_browser(),
                                         self.sensor_log.get_persistence_values_for_comparison())
 
@@ -298,7 +298,7 @@ class MainWindow(QMainWindow):
         td = CountDownDialog(self, "Persistence",
                              "Please, wait before powering on the collector.\n" +
                              "'Cancel' will abort test.\t\t",
-                             LWT.TimeOut.COLLECTOR_POWER_OFF_TIME.value)
+                             lwt.TimeOut.COLLECTOR_POWER_OFF_TIME.value)
         td.finished.connect(self._handle_persistence_countdown_dialog_finished_signal)
         td.open()
 
@@ -314,8 +314,8 @@ class MainWindow(QMainWindow):
         return firmware_reader
 
     def _get_sensor_link_data_readers(self, index, serial_number):
-        firmware_reader = self._create_firmware_reader(index, serial_number, LWT.URL_UPGRADE, self._get_browser())
-        reporting_reader = self._create_reporting_reader(index, LWT.URL_SENSOR_DATA, self._get_browser())
+        firmware_reader = self._create_firmware_reader(index, serial_number, lwt.URL_UPGRADE, self._get_browser())
+        reporting_reader = self._create_reporting_reader(index, lwt.URL_SENSOR_DATA, self._get_browser())
         return firmware_reader, reporting_reader
 
     def _get_sensor_line_position(self, serial_number):
@@ -331,11 +331,11 @@ class MainWindow(QMainWindow):
         self.lock.unlock()
 
     def _load_fault_current_page(self):
-        self._get_browser().get(LWT.URL_FAULT_CURRENT)
+        self._get_browser().get(lwt.URL_FAULT_CURRENT)
 
     @flags(read=[FlagsEnum.SERIALS, FlagsEnum.ADVANCED, FlagsEnum.CORRECTION])
     def _take_readings(self):
-        data_reader = DataReader(LWT.URL_SENSOR_DATA, LWT.URL_RAW_CONFIGURATION)
+        data_reader = DataReader(lwt.URL_SENSOR_DATA, lwt.URL_RAW_CONFIGURATION)
         data_reader.signals.high_data_readings.connect(self._process_high_data_readings)
         data_reader.signals.low_data_readings.connect(self._process_low_data_readings)
         data_reader.signals.page_load_error.connect(self._handle_take_readings_page_load_error)
@@ -349,38 +349,38 @@ class MainWindow(QMainWindow):
     def _process_high_data_readings(self, readings: tuple):
         """Receives data in the following order: voltage, current, factors, power."""
 
-        self.sensor_log.record_high_voltage_readings(readings[LWT.VOLTAGE])
-        self.sensor_log.record_high_current_readings(readings[LWT.CURRENT])
-        self.sensor_log.record_high_power_factor_readings(readings[LWT.FACTORS])
-        self.sensor_log.record_high_real_power_readings(readings[LWT.POWER])
+        self.sensor_log.record_high_voltage_readings(readings[lwt.VOLTAGE])
+        self.sensor_log.record_high_current_readings(readings[lwt.CURRENT])
+        self.sensor_log.record_high_power_factor_readings(readings[lwt.FACTORS])
+        self.sensor_log.record_high_real_power_readings(readings[lwt.POWER])
 
         self._update_from_model()
 
-        data_set = tuple(zip(readings[LWT.VOLTAGE], readings[LWT.CURRENT], readings[LWT.POWER]))
+        data_set = tuple(zip(readings[lwt.VOLTAGE], readings[lwt.CURRENT], readings[lwt.POWER]))
         self.validator.validate_high_voltage_readings(data_set)
 
     def _process_low_data_readings(self, readings: tuple):
         """Receives data in the following order: voltage, current, factors, power, scale current,
         scale voltage, correction angle, temperature."""
 
-        self.sensor_log.record_low_voltage_readings(readings[LWT.VOLTAGE])
-        self.sensor_log.record_low_current_readings(readings[LWT.CURRENT])
-        self.sensor_log.record_low_power_factor_readings(readings[LWT.FACTORS])
-        self.sensor_log.record_low_real_power_readings(readings[LWT.POWER])
-        self.sensor_log.record_scale_current_readings(readings[LWT.SCALE_CURRENT])
-        self.sensor_log.record_scale_voltage_readings(readings[LWT.SCALE_VOLTAGE])
-        self.sensor_log.record_correction_angle_readings(readings[LWT.CORRECTION_ANGLE])
-        self.sensor_log.record_temperature_readings(readings[LWT.TEMPERATURE])
+        self.sensor_log.record_low_voltage_readings(readings[lwt.VOLTAGE])
+        self.sensor_log.record_low_current_readings(readings[lwt.CURRENT])
+        self.sensor_log.record_low_power_factor_readings(readings[lwt.FACTORS])
+        self.sensor_log.record_low_real_power_readings(readings[lwt.POWER])
+        self.sensor_log.record_scale_current_readings(readings[lwt.SCALE_CURRENT])
+        self.sensor_log.record_scale_voltage_readings(readings[lwt.SCALE_VOLTAGE])
+        self.sensor_log.record_correction_angle_readings(readings[lwt.CORRECTION_ANGLE])
+        self.sensor_log.record_temperature_readings(readings[lwt.TEMPERATURE])
 
         self._update_from_model()
 
-        data_set = tuple(zip(readings[LWT.VOLTAGE], readings[LWT.CURRENT], readings[LWT.POWER]))
+        data_set = tuple(zip(readings[lwt.VOLTAGE], readings[lwt.CURRENT], readings[lwt.POWER]))
         self.validator.validate_low_voltage_readings(data_set)
 
-        data_set = tuple(zip(readings[LWT.SCALE_CURRENT], readings[LWT.SCALE_VOLTAGE], readings[LWT.CORRECTION_ANGLE]))
+        data_set = tuple(zip(readings[lwt.SCALE_CURRENT], readings[lwt.SCALE_VOLTAGE], readings[lwt.CORRECTION_ANGLE]))
         self.validator.validate_scale_n_angle_readings(data_set)
 
-        self.validator.validate_temperature_readings(float(self.sensor_log.room_temperature), readings[LWT.TEMPERATURE])
+        self.validator.validate_temperature_readings(float(self.sensor_log.room_temperature), readings[lwt.TEMPERATURE])
 
         self.menu_helper.action_check_persistence.setEnabled(True)
 
@@ -400,13 +400,13 @@ class MainWindow(QMainWindow):
 
     def _update_from_model(self):
         for index, sensor in enumerate(self.sensor_log):
-            for j in range(LWT.TableColumn.RSSI.value, LWT.TableColumn.FAULT_CURRENT.value + 1):
+            for j in range(lwt.TableColumn.RSSI.value, lwt.TableColumn.FAULT_CURRENT.value + 1):
 
-                if j == LWT.TableColumn.FAULT_CURRENT.value:
-                    self._update_combo_box(CellLocation(index, LWT.TableColumn.FAULT_CURRENT.value),
+                if j == lwt.TableColumn.FAULT_CURRENT.value:
+                    self._update_combo_box(CellLocation(index, lwt.TableColumn.FAULT_CURRENT.value),
                                            sensor.fault_current)
-                elif j == LWT.TableColumn.CALIBRATION.value:
-                    self._update_combo_box(CellLocation(index, LWT.TableColumn.CALIBRATION.value),
+                elif j == lwt.TableColumn.CALIBRATION.value:
+                    self._update_combo_box(CellLocation(index, lwt.TableColumn.CALIBRATION.value),
                                            sensor.calibrated)
                 else:
                     self.sensor_table.item(index, j).setText(sensor.__getattribute__(_DATA_IN_TABLE_ORDER[j - 1]))
@@ -496,7 +496,7 @@ class MainWindow(QMainWindow):
 
     def _get_browser(self):
         if self.browser is None:
-            self.browser = webdriver.Chrome(executable_path=LWT.chromedriver_path)
+            self.browser = webdriver.Chrome(executable_path=lwt.chromedriver_path)
 
         return self.browser
 

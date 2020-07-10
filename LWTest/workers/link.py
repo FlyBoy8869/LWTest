@@ -6,7 +6,7 @@ import requests
 from PyQt5.QtCore import QRunnable, QObject, pyqtSignal
 from time import sleep
 
-import LWTest.constants.LWTConstants as LWT
+import LWTest.constants.lwt_constants as LWT
 from LWTest.utilities.misc import indicator
 
 linked_regex = r"\s*\d{7}\s*\d{7}\s*\d{7}\s*-?\d{2}"

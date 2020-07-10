@@ -2,7 +2,7 @@ import shutil
 import urllib.request
 from pathlib import Path
 
-import LWTest.constants.LWTConstants as LWT
+import LWTest.constants.lwt_constants as LWT
 import LWTest.utilities.returns as returns
 
 

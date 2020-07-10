@@ -5,7 +5,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 
-from LWTest.constants import dom, LWTConstants as LWT
+from LWTest.constants import dom, lwt_constants as LWT
 from LWTest.utilities import returns
 from LWTest.utilities.misc import get_page_login_if_needed, normalize_reading, x_is_what_percent_of_y, filter_out_na
 

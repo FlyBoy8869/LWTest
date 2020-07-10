@@ -1,0 +1,24 @@
+from enum import IntEnum, unique
+
+
+@unique
+class TableColumn(IntEnum):
+    SERIAL_NUMBER = 0
+    RSSI = 1
+    FIRMWARE = 2
+    REPORTING = 3
+    CALIBRATION = 4
+    HIGH_VOLTAGE = 5
+    HIGH_CURRENT = 6
+    HIGH_POWER_FACTOR = 7
+    HIGH_REAL_POWER = 8
+    LOW_VOLTAGE = 9
+    LOW_CURRENT = 10
+    LOW_POWER_FACTOR = 11
+    LOW_REAL_POWER = 12
+    SCALE_CURRENT = 13
+    SCALE_VOLTAGE = 14
+    CORRECTION_ANGLE = 15
+    PERSISTS = 16
+    TEMPERATURE = 17
+    FAULT_CURRENT = 18

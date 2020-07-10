@@ -5,7 +5,7 @@ import requests
 from PyQt5.QtCore import QTimer, QRunnable, QObject, pyqtSignal, Qt, QSettings, QCoreApplication
 from PyQt5.QtWidgets import QDialog, QVBoxLayout, QProgressBar, QLabel, QHBoxLayout, QDialogButtonBox, QMessageBox
 
-import LWTest.constants.LWTConstants as LWT
+import LWTest.constants.lwt_constants as LWT
 import LWTest.spreadsheet.spreadsheet as spreadsheet
 import LWTest.utilities.returns as returns
 import LWTest.utilities.time as util_time

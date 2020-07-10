@@ -3,7 +3,7 @@ from typing import Callable
 from PyQt5.QtWidgets import QTableWidget, QComboBox, QHeaderView
 
 import LWTest.gui.main_window.helper as helper
-import LWTest.constants.LWTConstants as LWT
+import LWTest.constants.lwt_constants as LWT
 
 
 def setup_table_widget(parent, serial_numbers: tuple, table: QTableWidget, calibrated_override: Callable,

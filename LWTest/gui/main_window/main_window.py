@@ -4,9 +4,10 @@ from typing import Optional
 from PyQt5.QtCore import QThreadPool, QSettings, QSize, Qt, QReadWriteLock, QObject, pyqtSignal
 from PyQt5.QtGui import QIcon, QCloseEvent, QBrush, QColor, QPalette
 from PyQt5.QtWidgets import QMainWindow, QTableWidget, QVBoxLayout, QWidget, QTableWidgetItem, QMessageBox, QToolBar, \
-    QDialog, QDoubleSpinBox, QSizePolicy
+    QDialog, QDoubleSpinBox
 from selenium import webdriver
 
+import LWTest.gui.theme as theme
 import LWTest.constants.LWTConstants as LWT
 import LWTest.gui.main_window.sensortable as sensortable
 import LWTest.utilities as utilities
@@ -120,16 +121,14 @@ class MainWindow(QMainWindow):
 
         self.menu_helper.action_about.triggered.connect(lambda: menu_help_about_handler(parent=self))
 
-        palette = QPalette()
-        palette.setColor(QPalette.AlternateBase, QColor(50, 50, 50))
         self.sensor_table = QTableWidget(self.panel)
         self.sensor_table.setAlternatingRowColors(True)
-        self.sensor_table.setPalette(palette)
+        self.sensor_table.setPalette(theme.sensor_table_palette)
         self.panel_layout.addWidget(self.sensor_table)
 
         self._create_toolbar()
 
-        self.signals.file_dropped.connect(lambda data: print(f"dropped filename: {data}"))
+        self.signals.file_dropped.connect(lambda filename: print(f"dropped filename: {filename}"))
         self.signals.file_dropped.connect(lambda filename: self._import_serial_numbers(filename, self.sensor_log))
         self.signals.serial_numbers_imported.connect(self.sensor_log.append_all)
 

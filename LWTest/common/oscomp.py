@@ -4,14 +4,14 @@ import platform
 from PyQt5.QtCore import QSettings
 
 
-class OSType(enum.Enum):
+class OSBrand(enum.Enum):
     LINUX = "Linux"
     MAC = "Darwin"
     WINDOWS = "Windows"
 
 
-_os_map = {"Darwin": OSType.MAC, "Linux": OSType.LINUX, "Windows": OSType.WINDOWS}
-os_type = _os_map[platform.system()]
+_os_map = {"Darwin": OSBrand.MAC, "Linux": OSBrand.LINUX, "Windows": OSBrand.WINDOWS}
+os_brand = _os_map[platform.system()]
 
 
 class QSettingsAdapter:

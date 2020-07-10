@@ -2,7 +2,7 @@ import datetime
 from enum import Enum, auto, unique, IntEnum
 
 from LWTest.common import oscomp
-from LWTest.common.oscomp import QSettingsAdapter, OSType
+from LWTest.common.oscomp import QSettingsAdapter, OSBrand
 
 TESTING = True if QSettingsAdapter.value("DEBUG") == 'true' else False
 print(f"TESTING = {TESTING}")
@@ -143,9 +143,9 @@ CORRECTION_ANGLE = 6
 TEMPERATURE = 7
 
 chromedriver_path: str = ""
-if oscomp.os_type == OSType.WINDOWS:
+if oscomp.os_brand == OSBrand.WINDOWS:
     chromedriver_path = "LWTest/resources/drivers/chromedriver/windows/version-83_0_4103_39/chromedriver.exe"
-elif oscomp.os_type == OSType.MAC:
+elif oscomp.os_brand == OSBrand.MAC:
     chromedriver_path = "LWTest/resources/drivers/chromedriver/macos/version-83_0_4103_39/chromedriver"
-elif oscomp.os_type == OSType.LINUX:
+elif oscomp.os_brand == OSBrand.LINUX:
     chromedriver_path = "LWTest/resources/drivers/chromedriver/linux/version-83_0_4103_39/chromedriver"

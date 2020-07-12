@@ -13,13 +13,13 @@ import LWTest.gui.theme as theme
 import LWTest.utilities as utilities
 import LWTest.utilities.misc as utilities_misc
 import LWTest.validate as validator
-from LWTest.constants import lwt
 from LWTest import sensor, common
 from LWTest.collector import configure
-from LWTest.collector.read.read import DataReader, PersistenceReader, FirmwareVersionReader, \
+from LWTest.collector.read.read import DataReader, PersistenceComparator, FirmwareVersionReader, \
     ReportingDataReader
 from LWTest.common.flags.flags import flags, FlagsEnum
 from LWTest.common.oscomp import QSettingsAdapter
+from LWTest.constants import lwt
 from LWTest.gui.dialogs import PersistenceBootMonitor, CountDownDialog, UpgradeDialog, \
     SaveDataDialog, SpinDialog
 from LWTest.gui.main_window.create_menus import MenuHelper
@@ -28,7 +28,6 @@ from LWTest.serial import ConfigureSerialNumbers
 from LWTest.spreadsheet import spreadsheet
 from LWTest.utilities import misc
 from LWTest.workers import upgrade, link
-from LWTest.workers.persistence import PersistenceWorker
 
 style_sheet = "QProgressBar{ max-height: 10px; }"
 
@@ -268,15 +267,14 @@ class MainWindow(QMainWindow):
         self._show_information_dialog("An error occurred configuring the correction angle.")
 
     def _verify_raw_configuration_readings_persist(self):
-        persistence = PersistenceReader(lwt.URL_RAW_CONFIGURATION,
-                                        self._get_browser(),
-                                        self.sensor_log.get_persistence_values_for_comparison())
-
-        persistence.signals.data_persisted.connect(self.sensor_log.record_persistence_readings)
-        persistence.signals.finished.connect(self._update_from_model)
-
-        worker = PersistenceWorker(persistence)
-        self.thread_pool.start(worker)
+        comparator = PersistenceComparator()
+        comparator.signals.persisted.connect(self.sensor_log.record_persistence_readings)
+        comparator.signals.finished.connect(self._update_from_model)
+        comparator.compare(
+            self.sensor_log.get_advanced_readings(),
+            lwt.URL_RAW_CONFIGURATION,
+            self._get_browser()
+        )
 
     def _handle_persistence_boot_monitor_finished_signal(self, result_code):
         if result_code == QDialog.Accepted:
@@ -302,32 +300,44 @@ class MainWindow(QMainWindow):
         td.finished.connect(self._handle_persistence_countdown_dialog_finished_signal)
         td.open()
 
-    def _create_reporting_reader(self, index, url, browser):
-        reporting_reader = ReportingDataReader(index, url, browser)
-        reporting_reader.signals.data_reporting_data.connect(self.sensor_log.record_reporting_data)
+    def _create_reporting_reader(self):
+        reporting_reader = ReportingDataReader()
+        reporting_reader.signals.reporting.connect(self.sensor_log.record_reporting_data)
         return reporting_reader
 
-    def _create_firmware_reader(self, index, serial_number, url, browser):
-        firmware_reader = FirmwareVersionReader(index, url, browser)
-        firmware_reader.signals.firmware_version.connect(
-            lambda i, version: self.sensor_log.record_firmware_version(serial_number, version))
+    def _create_firmware_reader(self):
+        firmware_reader = FirmwareVersionReader()
+        firmware_reader.signals.version.connect(
+            lambda phase, version: self.sensor_log.record_firmware_version(phase, version))
         return firmware_reader
 
-    def _get_sensor_link_data_readers(self, index, serial_number):
-        firmware_reader = self._create_firmware_reader(index, serial_number, lwt.URL_UPGRADE, self._get_browser())
-        reporting_reader = self._create_reporting_reader(index, lwt.URL_SENSOR_DATA, self._get_browser())
+    def _get_sensor_link_data_readers(self):
+        firmware_reader = self._create_firmware_reader()
+        reporting_reader = self._create_reporting_reader()
         return firmware_reader, reporting_reader
 
-    def _get_sensor_line_position(self, serial_number):
-        return self.sensor_log[serial_number].line_position
+    def _get_sensor_phase(self, serial_number):
+        print(f"getting phase for {serial_number}")
+        return self.sensor_log[serial_number].phase
 
     def _get_sensor_link_data(self, serial_number):
         # responds to LinkWorker.successful_link signal
         self.lock.lockForRead()
-        readers = self._get_sensor_link_data_readers(self._get_sensor_line_position(serial_number), serial_number)
-        readers[0].read()
-        readers[1].read()
+
+        phase = self._get_sensor_phase(serial_number)
+        readers = self._get_sensor_link_data_readers()
+        readers[0].read(
+            phase,
+            lwt.URL_SOFTWARE_UPGRADE,
+            self._get_browser()
+        )
+        readers[1].read(
+            phase,
+            lwt.URL_SENSOR_DATA,
+            self._get_browser()
+        )
         self._update_from_model()
+
         self.lock.unlock()
 
     def _load_fault_current_page(self):
@@ -385,10 +395,10 @@ class MainWindow(QMainWindow):
         self.menu_helper.action_check_persistence.setEnabled(True)
 
     def _manually_override_calibration_result(self, result, index):
-        self.sensor_log.get_sensor_by_line_position(index).calibrated = result
+        self.sensor_log.get_sensor_by_phase(index).calibrated = result
 
     def _manually_override_fault_current_result(self, result, index):
-        self.sensor_log.get_sensor_by_line_position(index).fault_current = result
+        self.sensor_log.get_sensor_by_phase(index).fault_current = result
 
     def _save_data(self):
         save_data_dialog = SaveDataDialog(self, self.spreadsheet_path, iter(self.sensor_log),

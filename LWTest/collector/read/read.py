@@ -1,3 +1,6 @@
+import time
+from typing import List
+
 from PyQt5.QtCore import pyqtSignal, QObject
 from selenium import webdriver
 from selenium.common.exceptions import TimeoutException
@@ -5,18 +8,13 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 
-from LWTest.constants import dom, lwt_constants as LWT
+import LWTest.utilities.misc as utils_misc
+from LWTest.constants import dom, lwt
 from LWTest.utilities import returns
-from LWTest.utilities.misc import get_page_login_if_needed, normalize_reading, x_is_what_percent_of_y, filter_out_na
 
 
 class Signals(QObject):
     data_fault_current = pyqtSignal(str)
-    data_persisted = pyqtSignal(list)
-    data_reading_persisted = pyqtSignal(str, int, int)
-
-    data_reporting_data = pyqtSignal(int, str)
-    data_reporting_data_complete = pyqtSignal()
 
     data_reading = pyqtSignal(tuple, str)
     data_readings_complete = pyqtSignal()
@@ -27,8 +25,6 @@ class Signals(QObject):
 
     resize_columns = pyqtSignal()
 
-    firmware_version = pyqtSignal(tuple, str)
-    firmware_check_complete = pyqtSignal(int)
     finished = pyqtSignal()
 
 
@@ -57,7 +53,7 @@ class DataReader:
             self.signals.high_data_readings.emit(tuple(results))
 
         else:  # these readings gathered only when low voltage is dialed in
-            get_page_login_if_needed(self._raw_configuration_url, browser)
+            utils_misc.get_page_login_if_needed(self._raw_configuration_url, browser)
             readings = browser.find_elements_by_css_selector("div.tcell > input")
 
             # scale current, scale voltage, correction angle
@@ -102,8 +98,8 @@ class DataReader:
 
     @staticmethod
     def _massage_real_power_readings(readings):
-        return [str(int(float(normalize_reading(value)) * 1000))
-                if value != LWT.NO_DATA else "NA"
+        return [str(int(float(utils_misc.normalize_reading(value)) * 1000))
+                if value != lwt.NO_DATA else "NA"
                 for value in readings]
 
     @staticmethod
@@ -117,11 +113,11 @@ class DataReader:
 
     @staticmethod
     def _get_percentage_of_high_voltage_readings(readings: list) -> float:
-        filtered_readings = filter_out_na(readings)
+        filtered_readings = utils_misc.filter_out_na(readings)
         number_of_readings = len(filtered_readings)
         number_of_high_voltage_readings = DataReader._count_high_voltage_readings(filtered_readings)
 
-        return x_is_what_percent_of_y(number_of_high_voltage_readings, number_of_readings)
+        return utils_misc.x_is_what_percent_of_y(number_of_high_voltage_readings, number_of_readings)
 
     @staticmethod
     def _count_high_voltage_readings(readings) -> int:
@@ -129,103 +125,87 @@ class DataReader:
 
         return len([reading for reading in readings
                     if
-                    float(normalize_reading(reading)) > DataReader._HIGH_LOW_THRESHOLD
+                    float(utils_misc.normalize_reading(reading)) > DataReader._HIGH_LOW_THRESHOLD
                     ])
 
 
-class PersistenceReader:
-    def __init__(self, url: str, browser: webdriver.Chrome, values: list):
-        self.signals = Signals()
-        self.url = url
-        self.browser = browser
-        self.values = values
-        self.count = len(values)
+class PersistenceComparator:
+    class Signals(QObject):
+        persisted = pyqtSignal(list)
+        finished = pyqtSignal()
 
-    def read(self):
-        get_page_login_if_needed(self.url, self.browser)
+    def __init__(self):
+        self.signals = self.Signals()
 
-        # start with the assumption that values do persist
-        presumed_innocent = ["Yes"] * self.count
+    def compare(self, saved_readings, url: str, driver: webdriver.Chrome):
+        count = len(saved_readings)
 
-        scale_currents = []
-        scale_voltages = []
-        correction_angles = []
+        utils_misc.get_page_login_if_needed(url, driver)
+        reading_elements = driver.find_elements_by_css_selector("div.tcell > input")
 
-        for element in dom.scale_current[:self.count]:
-            field = self.browser.find_element_by_xpath(element)
-            value = field.get_attribute("value")
-            scale_currents.append(value)
+        scale_currents = [reading.get_attribute("value") for reading in reading_elements[0:count]]
+        scale_voltages = [reading.get_attribute("value") for reading in reading_elements[count:count * 2]]
+        correction_angles = [reading.get_attribute("value")
+                             for reading in reading_elements[count * 4:count * 4 + count]]
 
-        for element in dom.scale_voltage[:self.count]:
-            field = self.browser.find_element_by_xpath(element)
-            value = field.get_attribute("value")
-            scale_voltages.append(value)
+        live_readings = tuple(zip(scale_currents, scale_voltages, correction_angles))
 
-        for element in dom.raw_configuration_angle[:self.count]:
-            field = self.browser.find_element_by_xpath(element)
-            value = field.get_attribute("value")
-            correction_angles.append(value)
-
-        collector_readings = tuple(zip(scale_currents, scale_voltages, correction_angles))
-
-        for sensor_index, sensor_readings in enumerate(self.values):
-            if collector_readings[sensor_index] != sensor_readings:
-                presumed_innocent[sensor_index] = "Failed"
-
-        self.signals.data_persisted.emit(presumed_innocent)
+        self.signals.persisted.emit(self._compare_readings(saved_readings, live_readings))
         self.signals.finished.emit()
-        self.signals.resize_columns.emit()
+
+    @staticmethod
+    def _compare_readings(saved_readings, live_readings) -> List[str]:
+        persistence_results = ["Yes"] * len(saved_readings)
+
+        for sensor_index, sensor_readings in enumerate(saved_readings):
+            if live_readings[sensor_index] != sensor_readings:
+                persistence_results[sensor_index] = "Failed"
+
+        return persistence_results
 
 
 class ReportingDataReader:
-    def __init__(self, line_position, url: str, browser: webdriver.Chrome):
-        super().__init__()
-        self.line_position = line_position
-        self.url = url
-        self.browser = browser
-        self.signals = Signals()
+    class Signals(QObject):
+        reporting = pyqtSignal(int, str)
+        finished = pyqtSignal()
 
-    def read(self):
-        reporting_data = "Pass"
+    def __init__(self):
+        self.signals = self.Signals()
 
-        self.browser.get(self.url)
+    def read(self, phase: int, url: str, driver: webdriver.Chrome):
+        driver.get(url)
 
         try:
-            element = WebDriverWait(self.browser, 10).until(
-                EC.presence_of_element_located((By.XPATH, dom.phase_voltage[self.line_position])))
+            elements = WebDriverWait(driver, 10).until(
+                EC.presence_of_all_elements_located((By.CSS_SELECTOR, "div.tcellShort:not([id^='last'])")))
 
-            content = element.get_attribute("textContent")
-            if content == LWT.NO_DATA:
-                reporting_data = "Fail"
-
-            self.signals.data_reporting_data.emit(self.line_position, reporting_data)
+            reporting = "Fail" if elements[phase].get_attribute("textContent") == lwt.NO_DATA else "Pass"
         except TimeoutException:
-            pass
+            reporting = "Fail"
 
-        self.signals.data_reporting_data_complete.emit()
+        self.signals.reporting.emit(phase, reporting)
+        self.signals.finished.emit()
 
 
 class FirmwareVersionReader:
-    """Used every time a sensor joins and links to the Collector."""
+    """Scrapes the sensors firmware version from the Software Upgrade page."""
 
-    def __init__(self, index, url: str, browser: webdriver.Chrome):
-        super().__init__()
-        self.url = url
-        self.driver = browser
-        self.index = index
-        self.signals = Signals()
+    class Signals(QObject):
+        version = pyqtSignal(int, str)
+        finished = pyqtSignal()
 
-    def read(self):
-        print(f"FirmwareVersionReader.run() called for index {self.index}")
-        self.driver.get(self.url)
+    def __init__(self):
+        self.signals = self.Signals()
+
+    def read(self, phase: int, url: str, driver: webdriver.Chrome):
+        driver.get(url)
 
         try:
-            element = WebDriverWait(self.driver, 10).until(
-                EC.presence_of_element_located((By.XPATH, dom.firmware_version[self.index])))
-            content = element.get_attribute("textContent")
-            print(f"Firmware for index {self.index} = {content}")
-            self.signals.firmware_version.emit((self.index, LWT.TableColumn.FIRMWARE), content)
+            firmware_version_elements = WebDriverWait(driver, 10).until(
+                EC.presence_of_all_elements_located((By.CSS_SELECTOR, "div.tcell")))[2:13:2]
+            version = firmware_version_elements[phase].get_attribute("textContent")
         except TimeoutException:
-            pass
+            version = lwt.NO_DATA
 
-        self.signals.firmware_check_complete.emit(self.index)
+        self.signals.version.emit(phase, version)
+        self.signals.finished.emit()

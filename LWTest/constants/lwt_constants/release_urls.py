@@ -2,7 +2,7 @@ import datetime
 
 URL_CONFIGURATION = "http://192.168.2.1/index.php/main/configuration"
 URL_MODEM_STATUS = "http://192.168.2.1/index.php/main/modem_status"
-URL_UPGRADE = "http://192.168.2.1/index.php/upgrade"
+URL_SOFTWARE_UPGRADE = "http://192.168.2.1/index.php/upgrade"
 
 date = datetime.datetime.now()
 file = f"{date.year}-{date.month:02d}-{date.day:02d}_UPDATER.txt"

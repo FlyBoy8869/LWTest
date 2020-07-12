@@ -77,13 +77,6 @@ unit_select_button = ('//*[@id="maindiv"]/form/div[2]/div[3]/input',
                       '//*[@id="maindiv"]/form/div[6]/div[3]/input',
                       '//*[@id="maindiv"]/form/div[7]/div[3]/input')
 
-firmware_version = ('//*[@id="maindiv"]/form/div[2]/div[2]',
-                    '//*[@id="maindiv"]/form/div[3]/div[2]',
-                    '//*[@id="maindiv"]/form/div[4]/div[2]',
-                    '//*[@id="maindiv"]/form/div[5]/div[2]',
-                    '//*[@id="maindiv"]/form/div[6]/div[2]',
-                    '//*[@id="maindiv"]/form/div[7]/div[2]')
-
 firmware_file = '//*[@id="maindiv"]/form/p[1]/input'
 upgrade_password = '//*[@id="maindiv"]/form/p[2]/input'
 upgrade_button = '//*[@id="maindiv"]/form/input'
@@ -123,14 +116,6 @@ vrt_calibration_factor = '//*[@id="maindiv"]/form/div/div[6]/div[2]/input'
 vrt_admin_password_field = '//*[@id="maindiv"]/form/h4[2]/input[1]'
 vrt_save_configuration_button = '//*[@id="maindiv"]/form/h4[2]/input[2]'
 
-# Sensor DataReader elements
-phase_voltage = ('//*[@id="data"]/div[3]/div[3]',
-                 '//*[@id="data"]/div[3]/div[4]',
-                 '//*[@id="data"]/div[3]/div[5]',
-                 '//*[@id="data"]/div[3]/div[6]',
-                 '//*[@id="data"]/div[3]/div[7]',
-                 '//*[@id="data"]/div[3]/div[8]')
-
 phase_current = ('//*[@id="data"]/div[4]/div[3]',
                  '//*[@id="data"]/div[4]/div[4]',
                  '//*[@id="data"]/div[4]/div[5]',
@@ -169,25 +154,3 @@ phase_temperature = ('//*[@id="data"]/div[17]/div[3]',
 # Fault Current
 fault_current_1 = '//*[@id="placeholder"]/div/div[2]/div[1]'
 fault_current_2 = '//*[@id="overview"]/div/div[2]/div[1]'
-
-# raw config data readings
-scale_current = ('//*[@id="maindiv"]/form/div[2]/div[3]/input',
-                 '//*[@id="maindiv"]/form/div[2]/div[4]/input',
-                 '//*[@id="maindiv"]/form/div[2]/div[5]/input',
-                 '//*[@id="maindiv"]/form/div[2]/div[6]/input',
-                 '//*[@id="maindiv"]/form/div[2]/div[7]/input',
-                 '//*[@id="maindiv"]/form/div[2]/div[8]/input')
-
-scale_voltage = ('//*[@id="maindiv"]/form/div[3]/div[3]/input',
-                 '//*[@id="maindiv"]/form/div[3]/div[4]/input',
-                 '//*[@id="maindiv"]/form/div[3]/div[5]/input',
-                 '//*[@id="maindiv"]/form/div[3]/div[6]/input',
-                 '//*[@id="maindiv"]/form/div[3]/div[7]/input',
-                 '//*[@id="maindiv"]/form/div[3]/div[8]/input')
-
-raw_configuration_angle = ('//*[@id="maindiv"]/form/div[6]/div[3]/input',
-                           '//*[@id="maindiv"]/form/div[6]/div[4]/input',
-                           '//*[@id="maindiv"]/form/div[6]/div[5]/input',
-                           '//*[@id="maindiv"]/form/div[6]/div[6]/input',
-                           '//*[@id="maindiv"]/form/div[6]/div[7]/input',
-                           '//*[@id="maindiv"]/form/div[6]/div[8]/input')

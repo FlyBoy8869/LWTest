@@ -1,6 +1,6 @@
 URL_CONFIGURATION = "http://localhost:5000/configuration"
 URL_MODEM_STATUS = "http://localhost:5000/modemstatus"
-URL_UPGRADE = "http://localhost:5000/softwareupgrade"
+URL_SOFTWARE_UPGRADE = "http://localhost:5000/softwareupgrade"
 #
 # URL_UPGRADE_LOG = r"LWTest\tests\webpages\software upgrade example 1 mod 1.html"
 # URL_UPGRADE_LOG = r"LWTest\tests\webpages\software upgrade example of failure.html"

@@ -217,9 +217,9 @@ class UpgradeDialog(QDialog):
         if not self.upgrade_started:
             settings = QSettings()
 
-            self.browser.get(LWT.URL_UPGRADE)
+            self.browser.get(LWT.URL_SOFTWARE_UPGRADE)
             if "Please reload after a moment" in self.browser.page_source:
-                self.browser.get(LWT.URL_UPGRADE)
+                self.browser.get(LWT.URL_SOFTWARE_UPGRADE)
 
             self.browser.find_element_by_xpath(dom.unit_select_button[self.row]).click()
             self.browser.find_element_by_xpath(dom.firmware_file).send_keys(

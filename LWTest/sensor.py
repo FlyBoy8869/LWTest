@@ -3,8 +3,8 @@ from typing import Optional, List, Tuple
 
 
 class Sensor:
-    def __init__(self, line_position: int, serial_number: str):
-        self.line_position = line_position
+    def __init__(self, phase: int, serial_number: str):
+        self.phase: int = phase
         self.serial_number: str = serial_number
 
         self.result = "Not Tested"
@@ -71,16 +71,16 @@ class SensorLog:
     def get_serial_numbers_as_list(self) -> List[str]:
         return [sensor.serial_number for sensor in self._log.values()]
 
-    def get_persistence_values_for_comparison(self):
+    def get_advanced_readings(self):
         values = []
         for sensor in self._log.values():
             values.append((sensor.scale_current, sensor.scale_voltage, sensor.correction_angle))
 
         return tuple(values)
 
-    def get_sensor_by_line_position(self, line_position):
+    def get_sensor_by_phase(self, phase):
         for sensor in self._log.values():
-            if sensor.line_position == line_position:
+            if sensor.phase == phase:
                 return sensor
 
         return None
@@ -94,11 +94,11 @@ class SensorLog:
     def is_tested(self, serial_number: str) -> bool:
         return self._find_sensor(serial_number).tested
 
-    def record_reporting_data(self, line_position, reporting):
-        self.get_sensor_by_line_position(line_position).reporting_data = reporting
+    def record_reporting_data(self, line_position: int, reporting: str):
+        self.get_sensor_by_phase(line_position).reporting_data = reporting
 
     def record_sensor_calibration(self, result, index):
-        self.get_sensor_by_line_position(index).calibrated = result
+        self.get_sensor_by_phase(index).calibrated = result
 
     def record_high_voltage_readings(self, values: list):
         unit: Sensor
@@ -198,8 +198,8 @@ class SensorLog:
             if unit.linked:
                 unit.persists = value[index]
 
-    def record_firmware_version(self, serial_number, version):
-        self._log[serial_number].firmware_version = version
+    def record_firmware_version(self, phase, version):
+        self.get_sensor_by_phase(phase).firmware_version = version
 
     def record_rssi_readings(self, serial_number, rssi):
         self._log[serial_number].rssi = rssi

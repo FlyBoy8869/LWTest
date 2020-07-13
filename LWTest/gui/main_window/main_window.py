@@ -272,6 +272,7 @@ class MainWindow(QMainWindow):
         comparator.signals.finished.connect(self._update_from_model)
         comparator.compare(
             self.sensor_log.get_advanced_readings(),
+            len(self.sensor_log),
             lwt.URL_RAW_CONFIGURATION,
             self._get_browser()
         )
@@ -409,17 +410,17 @@ class MainWindow(QMainWindow):
             self.changes.clear_change_flag()
 
     def _update_from_model(self):
-        for index, sensor in enumerate(self.sensor_log):
+        for index, mv_sensor in enumerate(self.sensor_log):
             for j in range(lwt.TableColumn.RSSI.value, lwt.TableColumn.FAULT_CURRENT.value + 1):
 
                 if j == lwt.TableColumn.FAULT_CURRENT.value:
                     self._update_combo_box(CellLocation(index, lwt.TableColumn.FAULT_CURRENT.value),
-                                           sensor.fault_current)
+                                           mv_sensor.fault_current)
                 elif j == lwt.TableColumn.CALIBRATION.value:
                     self._update_combo_box(CellLocation(index, lwt.TableColumn.CALIBRATION.value),
-                                           sensor.calibrated)
+                                           mv_sensor.calibrated)
                 else:
-                    self.sensor_table.item(index, j).setText(sensor.__getattribute__(_DATA_IN_TABLE_ORDER[j - 1]))
+                    self.sensor_table.item(index, j).setText(mv_sensor.__getattribute__(_DATA_IN_TABLE_ORDER[j - 1]))
 
     def _update_combo_box(self, cell_location: CellLocation, text: str) -> None:
         def _determine_index(result: str) -> int:

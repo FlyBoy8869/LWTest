@@ -3,7 +3,7 @@ import datetime
 import logging
 import sys
 from pathlib import Path
-from typing import Tuple
+from typing import Tuple, Optional
 
 import openpyxl
 from openpyxl.workbook.workbook import Worksheet as openpyxlWorksheet, Workbook
@@ -87,7 +87,7 @@ def save_test_results(workbook_path: str, results: Tuple[str]):
 # -------------------
 # private interface -
 # -------------------
-_workbook: Workbook
+_workbook: Optional[Workbook]
 
 
 def _convert_reading_for_spreadsheet(reading, conversion):
@@ -144,8 +144,9 @@ def _save_workbook(path):
 def _close_workbook():
     global _workbook
 
-    _workbook.close()
-    _workbook = None
+    if _workbook:
+        _workbook.close()
+        _workbook = None
 
 
 class Spreadsheet:

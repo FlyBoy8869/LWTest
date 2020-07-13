@@ -1,12 +1,12 @@
 import datetime
 import re
 import time
+from time import sleep
 
 import requests
 from PyQt5.QtCore import QRunnable, QObject, pyqtSignal
-from time import sleep
 
-import LWTest.constants.lwt_constants as LWT
+from LWTest.constants import lwt
 from LWTest.utilities.misc import indicator
 
 linked_regex = r"\s*\d{7}\s*\d{7}\s*\d{7}\s*-?\d{2}"
@@ -51,9 +51,9 @@ class LinkWorker(QRunnable):
         # zero or more whitespace \s* followed by 7 digits \d{7}
         self._serial_number_pattern = re.compile(r"\s*\d{7}")
 
-        self.time_to_sleep = LWT.TimeOut.LINK_PAGE_LOAD_INTERVAL.value
+        self.time_to_sleep = lwt.TimeOut.LINK_PAGE_LOAD_INTERVAL.value
         self._seconds_elapsed = None
-        self.timeout = LWT.TimeOut.LINK_CHECK.value
+        self.timeout = lwt.TimeOut.LINK_CHECK.value
         self.link_indicator = indicator()
 
     def _show_activity(self, serial_numbers):
@@ -74,13 +74,16 @@ class LinkWorker(QRunnable):
         self._emit_not_linked_signal_for_these_serial_numbers(self.serial_numbers)
         self.signals.finished.emit()
 
-    def _page_loaded_successfully(self, status_code):
+    @staticmethod
+    def _page_loaded_successfully(status_code):
         return status_code == 200
 
-    def _page_not_found(self, status_code):
+    @staticmethod
+    def _page_not_found(status_code):
         return status_code == 404
 
-    def _elapsed_seconds_generator(self):
+    @staticmethod
+    def _elapsed_seconds_generator():
         start_time = datetime.datetime.now()
         while True:
             yield (datetime.datetime.now() - start_time).seconds

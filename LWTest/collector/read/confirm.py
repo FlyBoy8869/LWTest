@@ -3,7 +3,7 @@ from time import sleep
 import requests
 from PyQt5.QtCore import QObject, pyqtSignal
 
-import LWTest.constants.lwt_constants as LWT
+from LWTest.constants import lwt
 
 
 class Signals(QObject):
@@ -18,9 +18,9 @@ class ConfirmSerialConfig:
 
         self.serial_numbers = serial_numbers
         self.url = url
-        self.check_interval = LWT.TimeOut.URL_READ_INTERVAL.value
+        self.check_interval = lwt.TimeOut.URL_READ_INTERVAL.value
         self.elapsed_time = 0
-        self.timeout = LWT.TimeOut.CONFIRM_SERIAL_CONFIG.value
+        self.timeout = lwt.TimeOut.CONFIRM_SERIAL_CONFIG.value
 
     def read(self):
         while self.elapsed_time < self.timeout:

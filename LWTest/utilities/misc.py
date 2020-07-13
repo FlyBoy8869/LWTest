@@ -1,17 +1,15 @@
 # utilities/misc.py
 import os
 import re
-from typing import List, Tuple, Optional
-
 import sys
 import traceback
+from typing import List, Tuple, Optional
 
 from PyQt5.QtCore import QSettings
 from selenium import webdriver
 from selenium.common.exceptions import NoSuchElementException
 
-import LWTest.constants.lwt_constants as LWT
-from LWTest.constants import dom as dom
+from LWTest.constants import dom, lwt
 
 
 def ensure_six_numbers(serial_numbers: List[str]) -> Tuple[str]:
@@ -120,7 +118,7 @@ def x_is_what_percent_of_y(dividend: int, divisor: int) -> Optional[float]:
 
 
 def filter_out_na(readings: list) -> list:
-    return list(filter(lambda r: r != LWT.NO_DATA, readings))
+    return list(filter(lambda r: r != lwt.NO_DATA, readings))
 
 
 serial_number_pattern = re.compile(r"\s*\d{7}")

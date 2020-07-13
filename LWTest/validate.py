@@ -1,43 +1,42 @@
 from typing import Callable
 
-import LWTest.constants.lwt_constants as LWT
+from LWTest.constants import lwt
 
+_HIGH_MINS = (lwt.Tolerance.HIGH_VOLTAGE_MIN.value,
+              lwt.Tolerance.HIGH_CURRENT_MIN.value,
+              lwt.Tolerance.HIGH_POWER_MIN.value)
 
-_HIGH_MINS = (LWT.Tolerance.HIGH_VOLTAGE_MIN.value,
-              LWT.Tolerance.HIGH_CURRENT_MIN.value,
-              LWT.Tolerance.HIGH_POWER_MIN.value)
+_HIGH_MAXS = (lwt.Tolerance.HIGH_VOLTAGE_MAX.value,
+              lwt.Tolerance.HIGH_CURRENT_MAX.value,
+              lwt.Tolerance.HIGH_POWER_MAX.value)
 
-_HIGH_MAXS = (LWT.Tolerance.HIGH_VOLTAGE_MAX.value,
-              LWT.Tolerance.HIGH_CURRENT_MAX.value,
-              LWT.Tolerance.HIGH_POWER_MAX.value)
+_LOW_MINS = (lwt.Tolerance.LOW_VOLTAGE_MIN.value,
+             lwt.Tolerance.LOW_CURRENT_MIN.value,
+             lwt.Tolerance.LOW_POWER_MIN.value)
 
-_LOW_MINS = (LWT.Tolerance.LOW_VOLTAGE_MIN.value,
-             LWT.Tolerance.LOW_CURRENT_MIN.value,
-             LWT.Tolerance.LOW_POWER_MIN.value)
+_LOW_MAXS = (lwt.Tolerance.LOW_VOLTAGE_MAX.value,
+             lwt.Tolerance.LOW_CURRENT_MAX.value,
+             lwt.Tolerance.LOW_POWER_MAX.value)
 
-_LOW_MAXS = (LWT.Tolerance.LOW_VOLTAGE_MAX.value,
-             LWT.Tolerance.LOW_CURRENT_MAX.value,
-             LWT.Tolerance.LOW_POWER_MAX.value)
+_SCALE_MINS = (lwt.Tolerance.SCALE_CURRENT_MIN.value,
+               lwt.Tolerance.SCALE_VOLTAGE_MIN.value,
+               lwt.Tolerance.CORRECTION_ANGLE_MIN.value)
 
-_SCALE_MINS = (LWT.Tolerance.SCALE_CURRENT_MIN.value,
-               LWT.Tolerance.SCALE_VOLTAGE_MIN.value,
-               LWT.Tolerance.CORRECTION_ANGLE_MIN.value)
+_SCALE_MAXS = (lwt.Tolerance.SCALE_CURRENT_MAX.value,
+               lwt.Tolerance.SCALE_VOLTAGE_MAX.value,
+               lwt.Tolerance.CORRECTION_ANGLE_MAX.value)
 
-_SCALE_MAXS = (LWT.Tolerance.SCALE_CURRENT_MAX.value,
-               LWT.Tolerance.SCALE_VOLTAGE_MAX.value,
-               LWT.Tolerance.CORRECTION_ANGLE_MAX.value)
+_HIGH_COLS = (lwt.TableColumn.HIGH_VOLTAGE.value,
+              lwt.TableColumn.HIGH_CURRENT.value,
+              lwt.TableColumn.HIGH_REAL_POWER.value)
 
-_HIGH_COLS = (LWT.TableColumn.HIGH_VOLTAGE.value,
-              LWT.TableColumn.HIGH_CURRENT.value,
-              LWT.TableColumn.HIGH_REAL_POWER.value)
+_LOW_COLS = (lwt.TableColumn.LOW_VOLTAGE.value,
+             lwt.TableColumn.LOW_CURRENT.value,
+             lwt.TableColumn.LOW_REAL_POWER.value)
 
-_LOW_COLS = (LWT.TableColumn.LOW_VOLTAGE.value,
-             LWT.TableColumn.LOW_CURRENT.value,
-             LWT.TableColumn.LOW_REAL_POWER.value)
-
-_SCALE_COLS = (LWT.TableColumn.SCALE_CURRENT.value,
-               LWT.TableColumn.SCALE_VOLTAGE.value,
-               LWT.TableColumn.CORRECTION_ANGLE.value)
+_SCALE_COLS = (lwt.TableColumn.SCALE_CURRENT.value,
+               lwt.TableColumn.SCALE_VOLTAGE.value,
+               lwt.TableColumn.CORRECTION_ANGLE.value)
 
 
 class Validator:
@@ -61,17 +60,17 @@ class Validator:
 
     def validate_temperature_readings(self, room_temperature: float, readings: tuple) -> None:
         for index, temperature in enumerate(readings):
-            if temperature == LWT.NO_DATA:
+            if temperature == lwt.NO_DATA:
                 continue
 
-            if abs(float(temperature) - room_temperature) > LWT.Tolerance.TEMPERATURE_DELTA.value:
-                self._failing(index, LWT.TableColumn.TEMPERATURE.value)
+            if abs(float(temperature) - room_temperature) > lwt.Tolerance.TEMPERATURE_DELTA.value:
+                self._failing(index, lwt.TableColumn.TEMPERATURE.value)
             else:
-                self._passing(index, LWT.TableColumn.TEMPERATURE.value)
+                self._passing(index, lwt.TableColumn.TEMPERATURE.value)
 
     def _validate_readings(self, tol_min: tuple, tol_max: tuple, cols: tuple, readings: tuple) -> None:
         for sensor_index, sensor_readings in enumerate(readings):
-            if sensor_readings[0] == LWT.NO_DATA:
+            if sensor_readings[0] == lwt.NO_DATA:
                 continue
 
             readings_as_floats = tuple([float(reading.replace(",", "")) for reading in sensor_readings])
@@ -79,8 +78,8 @@ class Validator:
             for index, reading in enumerate(readings_as_floats):
                 self._validate(readings_as_floats[index], tol_min[index], tol_max[index], sensor_index, cols[index])
 
-    def _validate(self, reading: float, min: float, max: float, row: int, column: int) -> None:
-        if min >= reading or max <= reading:
+    def _validate(self, reading: float, minimum: float, maximum: float, row: int, column: int) -> None:
+        if minimum >= reading or maximum <= reading:
             self._failing(row, column)
         else:
             self._passing(row, column)

@@ -1,15 +1,14 @@
-import time
 from typing import List
 
 from PyQt5.QtCore import pyqtSignal, QObject
 from selenium import webdriver
 from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.common.by import By
-from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.support import expected_conditions as ec
 from selenium.webdriver.support.ui import WebDriverWait
 
 import LWTest.utilities.misc as utils_misc
-from LWTest.constants import dom, lwt
+from LWTest.constants import lwt
 from LWTest.utilities import returns
 
 
@@ -137,24 +136,50 @@ class PersistenceComparator:
     def __init__(self):
         self.signals = self.Signals()
 
-    def compare(self, saved_readings, url: str, driver: webdriver.Chrome):
-        count = len(saved_readings)
-
-        utils_misc.get_page_login_if_needed(url, driver)
-        reading_elements = driver.find_elements_by_css_selector("div.tcell > input")
-
-        scale_currents = [reading.get_attribute("value") for reading in reading_elements[0:count]]
-        scale_voltages = [reading.get_attribute("value") for reading in reading_elements[count:count * 2]]
-        correction_angles = [reading.get_attribute("value")
-                             for reading in reading_elements[count * 4:count * 4 + count]]
-
-        live_readings = tuple(zip(scale_currents, scale_voltages, correction_angles))
-
-        self.signals.persisted.emit(self._compare_readings(saved_readings, live_readings))
+    def compare(self, saved_readings, sensor_count: int, url: str, driver: webdriver.Chrome):
+        self.signals.persisted.emit(
+            self._compare(
+                saved_readings,
+                self._live_readings(sensor_count, url, driver)
+            )
+        )
         self.signals.finished.emit()
 
+    def _live_readings(self, sensor_count: int, url: str, driver: webdriver.Chrome):
+        return self._reading_element_values(
+            self._reading_elements(url, driver),
+            sensor_count
+        )
+
     @staticmethod
-    def _compare_readings(saved_readings, live_readings) -> List[str]:
+    def _reading_elements(url: str, driver: webdriver.Chrome):
+        utils_misc.get_page_login_if_needed(url, driver)
+        return driver.find_elements_by_css_selector("div.tcell > input")
+
+    def _reading_element_values(self, reading_elements, count: int):
+        return tuple(
+            zip(
+                self._get_scale_current_values(reading_elements, count),
+                self._get_scale_voltage_values(reading_elements, count),
+                self._get_correction_angle_values(reading_elements, count)
+            )
+        )
+
+    def _get_scale_current_values(self, elements, count: int):
+        return self._get_values(elements, start=0, stop=count)
+
+    def _get_scale_voltage_values(self, elements, count: int):
+        return self._get_values(elements, start=count, stop=count * 2)
+
+    def _get_correction_angle_values(self, elements, count: int):
+        return self._get_values(elements, start=count * 4, stop=count * 4 + count)
+
+    @staticmethod
+    def _get_values(elements, *, start, stop):
+        return [reading.get_attribute("value") for reading in elements[start:stop]]
+
+    @staticmethod
+    def _compare(saved_readings, live_readings) -> List[str]:
         persistence_results = ["Yes"] * len(saved_readings)
 
         for sensor_index, sensor_readings in enumerate(saved_readings):
@@ -177,7 +202,7 @@ class ReportingDataReader:
 
         try:
             elements = WebDriverWait(driver, 10).until(
-                EC.presence_of_all_elements_located((By.CSS_SELECTOR, "div.tcellShort:not([id^='last'])")))
+                ec.presence_of_all_elements_located((By.CSS_SELECTOR, "div.tcellShort:not([id^='last'])")))
 
             reporting = "Fail" if elements[phase].get_attribute("textContent") == lwt.NO_DATA else "Pass"
         except TimeoutException:
@@ -202,7 +227,7 @@ class FirmwareVersionReader:
 
         try:
             firmware_version_elements = WebDriverWait(driver, 10).until(
-                EC.presence_of_all_elements_located((By.CSS_SELECTOR, "div.tcell")))[2:13:2]
+                ec.presence_of_all_elements_located((By.CSS_SELECTOR, "div.tcell")))[2:13:2]
             version = firmware_version_elements[phase].get_attribute("textContent")
         except TimeoutException:
             version = lwt.NO_DATA

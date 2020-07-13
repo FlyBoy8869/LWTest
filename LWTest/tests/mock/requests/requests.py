@@ -1,7 +1,7 @@
 import copy
 import random
+from typing import Optional
 
-_page = None
 _MAX_LINES_TO_ADD = 1
 
 
@@ -45,16 +45,18 @@ class _Page:
         buffer.extend(self._tail_clutter)
 
 
+_page: Optional[_Page] = None
+
+
 def _setup_page(contents: str):
     global _page
     _page = _Page(contents)
 
 
-def get(url: str, timeout=1):
+def get(url: str) -> _Page:
     if _page is None:
         _setup_page(url)
 
-    _page.add_more_lines()
-    page = copy.deepcopy(_page)
-
-    return page
+    if _page:
+        _page.add_more_lines()
+        return copy.deepcopy(_page)

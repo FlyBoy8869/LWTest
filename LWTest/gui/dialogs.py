@@ -5,13 +5,12 @@ import requests
 from PyQt5.QtCore import QTimer, QRunnable, QObject, pyqtSignal, Qt, QSettings, QCoreApplication
 from PyQt5.QtWidgets import QDialog, QVBoxLayout, QProgressBar, QLabel, QHBoxLayout, QDialogButtonBox, QMessageBox
 
-import LWTest.constants.lwt_constants as LWT
 import LWTest.spreadsheet.spreadsheet as spreadsheet
 import LWTest.utilities.returns as returns
 import LWTest.utilities.time as util_time
 from LWTest.common import oscomp
 from LWTest.common.oscomp import OSBrand
-from LWTest.constants import dom
+from LWTest.constants import dom, lwt
 from LWTest.spreadsheet.constants import phases_cells, PhaseReadingsCells
 from LWTest.utilities import file_utils
 from LWTest.workers.upgrade import UpgradeWorker
@@ -37,7 +36,7 @@ class PageReachable(QRunnable):
         while self._timeout > 0:
             print(f"timeout = {self._timeout}")
             try:
-                if 200 == requests.get(self._url, timeout=LWT.TimeOut.URL_REQUEST.value).status_code:
+                if 200 == requests.get(self._url, timeout=lwt.TimeOut.URL_REQUEST.value).status_code:
                     self.signals.collector_booted.emit()
                     sleep(1)
                     return
@@ -58,7 +57,7 @@ class PersistenceBootMonitor(QDialog):
 
         self.parent = parent
         self._thread_pool = thread_pool
-        self.timeout = LWT.TimeOut.COLLECTOR_BOOT_WAIT_TIME.value
+        self.timeout = lwt.TimeOut.COLLECTOR_BOOT_WAIT_TIME.value
 
         self._need_to_start_thread: bool = True
         self.main_layout = QVBoxLayout()
@@ -83,7 +82,7 @@ class PersistenceBootMonitor(QDialog):
             self._wait_for_collector_to_boot()
 
     def _wait_for_collector_to_boot(self):
-        monitor = PageReachable(LWT.URL_RAW_CONFIGURATION, self.timeout)
+        monitor = PageReachable(lwt.URL_RAW_CONFIGURATION, self.timeout)
         monitor.signals.collector_booted.connect(self.accept)
         monitor.signals.dialog_timed_out.connect(self.reject)
         self._thread_pool.start(monitor)
@@ -217,9 +216,9 @@ class UpgradeDialog(QDialog):
         if not self.upgrade_started:
             settings = QSettings()
 
-            self.browser.get(LWT.URL_SOFTWARE_UPGRADE)
+            self.browser.get(lwt.URL_SOFTWARE_UPGRADE)
             if "Please reload after a moment" in self.browser.page_source:
-                self.browser.get(LWT.URL_SOFTWARE_UPGRADE)
+                self.browser.get(lwt.URL_SOFTWARE_UPGRADE)
 
             self.browser.find_element_by_xpath(dom.unit_select_button[self.row]).click()
             self.browser.find_element_by_xpath(dom.firmware_file).send_keys(

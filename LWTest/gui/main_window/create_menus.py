@@ -1,3 +1,5 @@
+from typing import Optional
+
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QMainWindow, QMenu, QAction, QMenuBar
 
@@ -6,21 +8,21 @@ class MenuHelper:
     def __init__(self, menu_bar: QMenuBar):
         self.menu_bar = menu_bar
 
-        self.menu_file: QMenu = None
-        self.menu_help: QMenu = None
+        self.menu_file: Optional[QMenu] = None
+        self.menu_help: Optional[QMenu] = None
 
-        self.action_configure: QAction = None
-        self.action_upgrade: QAction = None
-        self.action_advanced_configuration: QAction = None
-        self.action_raw_config: QAction = None
-        self.action_save: QAction = None
-        self.action_exit: QAction = None
-        self.action_about: QAction = None
-        self.action_take_readings: QAction = None
-        self.action_config_correction_angle: QAction = None
-        self.action_fault_current: QAction = None
-        self.action_calibrate: QAction = None
-        self.action_check_persistence: QAction = None
+        self.action_configure: Optional[QAction] = None
+        self.action_upgrade: Optional[QAction] = None
+        self.action_advanced_configuration: Optional[QAction] = None
+        self.action_raw_config: Optional[QAction] = None
+        self.action_save: Optional[QAction] = None
+        self.action_exit: Optional[QAction] = None
+        self.action_about: Optional[QAction] = None
+        self.action_take_readings: Optional[QAction] = None
+        self.action_config_correction_angle: Optional[QAction] = None
+        self.action_fault_current: Optional[QAction] = None
+        self.action_calibrate: Optional[QAction] = None
+        self.action_check_persistence: Optional[QAction] = None
 
         self.actions = None
         self.actions_enabled = 0

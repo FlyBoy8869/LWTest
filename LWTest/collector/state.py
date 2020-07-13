@@ -33,10 +33,12 @@ class DateVerifier:
 
         driver.find_element_by_xpath(_UPDATE_BUTTON).click()
 
-    def _get_delta_in_minutes(self, now: datetime, collector_date: datetime) -> float:
+    @staticmethod
+    def _get_delta_in_minutes(now: datetime, collector_date: datetime) -> float:
         return (now - collector_date) / timedelta(minutes=1)
 
-    def _get_collector_date(self, driver: webdriver.Chrome) -> datetime:
+    @staticmethod
+    def _get_collector_date(driver: webdriver.Chrome) -> datetime:
         return datetime.strptime(
             driver.find_element_by_xpath(_DATE_AND_TIME_ELEMENT).get_attribute("textContent").split('\n', 1)[0],
             "%c")

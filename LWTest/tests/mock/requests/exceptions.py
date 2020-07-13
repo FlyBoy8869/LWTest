@@ -1,3 +1,4 @@
+# noinspection PyShadowingBuiltins
 class ConnectionError(Exception):
     pass
 

@@ -1,5 +1,5 @@
 # sensor.py
-from typing import Optional, List, Tuple
+from typing import Optional, List, Tuple, cast
 
 
 class Sensor:
@@ -66,7 +66,7 @@ class SensorLog:
             self._append(Sensor(index, number))
 
     def get_serial_numbers_as_tuple(self) -> Tuple[str]:
-        return tuple([sensor.serial_number for sensor in self._log.values()])
+        return tuple(cast(List[str], [sensor.serial_number for sensor in self._log.values()]))
 
     def get_serial_numbers_as_list(self) -> List[str]:
         return [sensor.serial_number for sensor in self._log.values()]

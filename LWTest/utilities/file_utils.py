@@ -2,13 +2,13 @@ import shutil
 import urllib.request
 from pathlib import Path
 
-import LWTest.constants.lwt_constants as LWT
 import LWTest.utilities.returns as returns
+from LWTest.constants import lwt
 
 
 def download_log_files(path: Path) -> returns.Result:
     try:
-        with urllib.request.urlopen(LWT.URL_LOG_FILES) as response, open(path.as_posix(), 'wb') as out_file:
+        with urllib.request.urlopen(lwt.URL_LOG_FILES) as response, open(path.as_posix(), 'wb') as out_file:
             shutil.copyfileobj(response, out_file)
     except Exception as e:
         return returns.Result(False, None, str(e))
@@ -27,8 +27,8 @@ def create_log_filename_from_spreadsheet_path(path: str) -> Path:
 
     /Users/charles/Temp/logfiles-SN9800001-SN9800002-SN9800003-SN9800004-SN9800005-SN9800006.zip
     """
-    def get_file_name(path: Path) -> str:
-        return path.parts[-1]
+    def get_file_name(path_: Path) -> str:
+        return path_.parts[-1]
 
     def get_serial_numbers(text: str) -> str:
         return text.split("#", 1)[-1]

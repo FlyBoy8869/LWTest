@@ -4,10 +4,10 @@ from time import sleep
 
 from PyQt5.QtCore import QRunnable
 
-import LWTest.constants.lwt_constants as LWT
+from LWTest.constants import lwt
 from LWTest.signals import WorkerSignals
 
-if LWT.TESTING_MODE:
+if lwt.TESTING_MODE:
     import LWTest.tests.mock.requests.requests as requests
 else:
     import requests
@@ -23,7 +23,7 @@ class UpgradeWorker(QRunnable):
         self.signals = WorkerSignals()
 
     def run(self):
-        sleep(LWT.TimeOut.WAIT_FOR_COLLECTOR_TO_START_UPDATING_LOG_FILE.value)
+        sleep(lwt.TimeOut.WAIT_FOR_COLLECTOR_TO_START_UPDATING_LOG_FILE.value)
 
         line_count = 0
         previous_line_count = 0
@@ -31,7 +31,7 @@ class UpgradeWorker(QRunnable):
         while True:
 
             try:
-                page = requests.get(self.url, timeout=LWT.TimeOut.URL_REQUEST.value)
+                page = requests.get(self.url, timeout=lwt.TimeOut.URL_REQUEST.value)
                 html = page.text.split('\n')
 
                 # work from the bottom of the log file up so that we are only working
@@ -71,11 +71,11 @@ class UpgradeWorker(QRunnable):
                     if self.serial_number in line:
                         break
 
-                    if LWT.UPGRADE_FAILURE_TEXT in line:
+                    if lwt.UPGRADE_FAILURE_TEXT in line:
                         self.signals.upgrade_failed_to_enter_program_mode.emit()
                         return
 
-                    if LWT.UPGRADE_SUCCESS_TEXT in line:
+                    if lwt.UPGRADE_SUCCESS_TEXT in line:
                         self.signals.upgrade_progress.emit(-1)
                         self.signals.upgrade_successful.emit(self.serial_number)
                         return
@@ -88,4 +88,4 @@ class UpgradeWorker(QRunnable):
 
                 line_count = 0
 
-            sleep(LWT.TimeOut.UPGRADE_LOG_LOAD_INTERVAL.value)
+            sleep(lwt.TimeOut.UPGRADE_LOG_LOAD_INTERVAL.value)

@@ -231,7 +231,8 @@ class MainWindow(QMainWindow):
 
     def _upgrade_successful(self, serial_number):
         self.firmware_upgrade_in_progress = False
-        self.sensor_log.record_firmware_version(serial_number, lwt.LATEST_FIRMWARE_VERSION_NUMBER)
+        phase = self._get_sensor_phase(serial_number)
+        self.sensor_log.record_firmware_version(phase, lwt.LATEST_FIRMWARE_VERSION_NUMBER)
         self._update_from_model()
 
         QMessageBox.information(QMessageBox(self), LWTest.app_title, "Sensor firmware successfully upgraded.",

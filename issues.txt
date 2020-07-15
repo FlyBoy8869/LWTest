@@ -1,0 +1,10 @@
+:issue 1:07-15-2020:06:52
+
+Traceback (most recent call last):
+  File "/Users/charles/PycharmProjects/LWTest/LWTest/gui/main_window/main_window.py", line 234, in _upgrade_successful
+    self.sensor_log.record_firmware_version(serial_number, lwt.LATEST_FIRMWARE_VERSION_NUMBER)
+  File "/Users/charles/PycharmProjects/LWTest/LWTest/sensor.py", line 202, in record_firmware_version
+    self.get_sensor_by_phase(phase).firmware_version = version
+AttributeError: 'NoneType' object has no attribute 'firmware_version'
+
+Process finished with exit code 134 (interrupted by signal 6: SIGABRT)

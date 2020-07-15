@@ -222,7 +222,7 @@ class UpgradeDialog(QDialog):
 
             self.browser.find_element_by_xpath(dom.unit_select_button[self.row]).click()
             self.browser.find_element_by_xpath(dom.firmware_file).send_keys(
-                "LWTest/resources/firmware/firmware-0x0075.zip")
+                "/Users/charles/PycharmProjects/LWTest/LWTest/resources/firmware/firmware-0x0075.zip")
             self.browser.find_element_by_xpath(dom.upgrade_password).send_keys(
                 settings.value('main/config_password'))
             self.browser.find_element_by_xpath(dom.upgrade_button).click()

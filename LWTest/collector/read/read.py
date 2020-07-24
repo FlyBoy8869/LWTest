@@ -12,6 +12,20 @@ from LWTest.constants import lwt
 from LWTest.utilities import returns
 
 
+def _find_all_indexes_of_na_in_list(readings):
+    start = 0
+    indexes = []
+    try:
+        for _ in range(len(readings)):
+            index = readings.index("NA", start)
+            indexes.append(index)
+            start = index + 1
+    except ValueError:
+        pass
+
+    return indexes
+
+
 class Signals(QObject):
     data_fault_current = pyqtSignal(str)
 
@@ -44,7 +58,7 @@ class DataReader:
         readings = browser.find_elements_by_css_selector("div.tcellShort:not([id^='last'])")
 
         # voltage, current, power factor, real power
-        results = self._extract_sensor_readings(readings, count)
+        results: List[List[str, ...]] = self._extract_sensor_readings(readings, count)
         results[3] = self._massage_real_power_readings(results[3])
         temperature_readings = self._scrape_readings(readings, "textContent", len(readings) - count, len(readings))
 
@@ -57,6 +71,11 @@ class DataReader:
 
             # scale current, scale voltage, correction angle
             advanced_readings = self._extract_advanced_readings(readings, count)
+
+            na_indexes: List[int, ...] = _find_all_indexes_of_na_in_list(results[0])
+            for readings in advanced_readings:
+                for index in na_indexes:
+                    readings[index] = lwt.NO_DATA
 
             results.extend(advanced_readings)
             results.append(temperature_readings)

@@ -16,6 +16,7 @@ class Signals(QObject):
     successful_link = pyqtSignal(tuple)
     link_timeout = pyqtSignal(tuple)  # emits the serial numbers that did not link to the collector
     finished = pyqtSignal()
+    url_read_exception = pyqtSignal(tuple)
 
 
 class ModemStatusPageLoader:
@@ -28,7 +29,7 @@ class ModemStatusPageLoader:
 
     def _get_page(self):
         try:
-            page = requests.get(self._url, timeout=5)
+            page = requests.get(self._url, timeout=20)
             if page.status_code != 200:
                 page = None
         except requests.exceptions.ConnectTimeout:

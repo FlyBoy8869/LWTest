@@ -1,7 +1,9 @@
-from functools import partial
-from typing import Optional
+from pathlib import Path
 
-from PyQt5.QtCore import QThreadPool, QSettings, QSize, Qt, QReadWriteLock, QObject, pyqtSignal
+from functools import partial
+from typing import Optional, Tuple
+
+from PyQt5.QtCore import QThreadPool, QSettings, QSize, Qt, QReadWriteLock, QObject, pyqtSignal, QModelIndex
 from PyQt5.QtGui import QIcon, QCloseEvent, QBrush, QColor
 from PyQt5.QtWidgets import QMainWindow, QTableWidget, QVBoxLayout, QWidget, QTableWidgetItem, QMessageBox, QToolBar, \
     QDialog, QDoubleSpinBox
@@ -13,12 +15,14 @@ import LWTest.gui.theme as theme
 import LWTest.utilities as utilities
 import LWTest.utilities.misc as utilities_misc
 import LWTest.validate as validator
-from LWTest import sensor, common
+import linewatchshared
+from LWTest import sensor
 from LWTest.collector import configure
 from LWTest.collector.read.read import DataReader, PersistenceComparator, FirmwareVersionReader, \
     ReportingDataReader
 from LWTest.common.flags.flags import flags, FlagsEnum
-from LWTest.common.oscomp import QSettingsAdapter
+from LWTest.gui.widgets import LWTTableWidget
+from linewatchshared.oscomp import QSettingsAdapter
 from LWTest.constants import lwt
 from LWTest.gui.dialogs import PersistenceBootMonitor, CountDownDialog, UpgradeDialog, \
     SaveDataDialog, SpinDialog
@@ -26,7 +30,7 @@ from LWTest.gui.main_window.create_menus import MenuHelper
 from LWTest.gui.main_window.menu_help_handlers import menu_help_about_handler
 from LWTest.serial import ConfigureSerialNumbers
 from LWTest.spreadsheet import spreadsheet
-from LWTest.utilities import misc
+from LWTest.utilities import misc, file_utils
 from LWTest.workers import upgrade, link
 
 style_sheet = "QProgressBar{ max-height: 10px; }"
@@ -93,14 +97,14 @@ class MainWindow(QMainWindow):
 
         self.browser: Optional[webdriver.Chrome] = None
 
-        self.spreadsheet_path: str = ""
+        self.spreadsheet_file_name: str = ""
         self.room_temp: QDoubleSpinBox = QDoubleSpinBox(self)
 
-        self.changes = common.changetracker.ChangeTracker()
+        self.changes = linewatchshared.changetracker.ChangeTracker()
 
         self.validator = validator.Validator(
-            partial(self._set_sensor_table_widget_item_background, QBrush(QColor(Qt.transparent))),
-            partial(self._set_sensor_table_widget_item_background, QBrush(QColor(255, 0, 0, 50)))
+            partial(self._set_sensor_table_widget_item_background, QBrush(QColor(Qt.darkGreen))),
+            partial(self._set_sensor_table_widget_item_background, QBrush(QColor(255, 0, 0, 255)))
         )
 
         self.panel = QWidget(self)
@@ -112,7 +116,8 @@ class MainWindow(QMainWindow):
 
         self.menu_helper.action_about.triggered.connect(lambda: menu_help_about_handler(parent=self))
 
-        self.sensor_table = QTableWidget(self.panel)
+        self.sensor_table = LWTTableWidget(self.panel)
+        self.sensor_table.signals.double_clicked.connect(self._table_item_double_clicked)
         self.sensor_table.setAlternatingRowColors(True)
         self.sensor_table.setPalette(theme.sensor_table_palette)
         self.panel_layout.addWidget(self.sensor_table)
@@ -120,7 +125,7 @@ class MainWindow(QMainWindow):
         self._create_toolbar()
 
         self.signals.file_dropped.connect(lambda filename: print(f"dropped filename: {filename}"))
-        self.signals.file_dropped.connect(lambda filename: self._import_serial_numbers(filename, self.sensor_log))
+        self.signals.file_dropped.connect(lambda filename: self._handle_dropped_file(filename, self.sensor_log))
         self.signals.serial_numbers_imported.connect(self.sensor_log.append_all)
 
         self.setCentralWidget(self.panel)
@@ -153,18 +158,34 @@ class MainWindow(QMainWindow):
             event.setDropAction(Qt.CopyAction)
             event.accept()
             filename = event.mimeData().urls()[0].toLocalFile()
-            self.spreadsheet_path = filename
             self.signals.file_dropped.emit(filename)
         else:
             event.ignore()
 
-    def _import_serial_numbers(self, filename: str, sensor_log):
+    def _handle_dropped_file(self, filename: str, sensor_log):
         # listens for MainWindow().signals.file_dropped
-        if self.changes.can_discard(self):
-            sensor_log.append_all(spreadsheet.get_serial_numbers(filename))
+        if self._import_serial_numbers_from_spreadsheet(filename, sensor_log):
+            self.spreadsheet_file_name = self._rename_dropped_file_to_atp_standard_file_name(
+                filename,
+                sensor_log.get_serial_numbers_as_tuple()
+            )
             self._setup_sensor_table()
             self.changes.clear_change_flag()
             self.collector_configured = False
+
+    def _import_serial_numbers_from_spreadsheet(self, filename: str, sensor_log) -> bool:
+        if self.changes.can_discard(self):
+            sensor_log.append_all(spreadsheet.get_serial_numbers(filename))
+            return True
+
+        return False
+
+    @staticmethod
+    def _rename_dropped_file_to_atp_standard_file_name(filename: str, serial_numbers: Tuple[str, ...]) -> str:
+        spreadsheet_path = Path(filename)
+        return spreadsheet_path.rename(
+            file_utils.create_new_file_name(filename, serial_numbers).as_posix()
+        ).as_posix()
 
     def _setup_sensor_table(self):
         sensortable.setup_table_widget(self, self.sensor_log.get_serial_numbers_as_tuple(), self.sensor_table,
@@ -219,7 +240,7 @@ class MainWindow(QMainWindow):
             self.firmware_upgrade_in_progress = True
 
             browser = self._get_browser()
-            serial_number = self.sensor_table.item(row, lwt.TableColumn.SERIAL_NUMBER.value).text()
+            serial_number = self.sensor_log.get_sensor_by_phase(row).serial_number
 
             worker = upgrade.UpgradeWorker(serial_number, lwt.URL_UPGRADE_LOG)
             worker.signals.upgrade_successful.connect(self._upgrade_successful)
@@ -251,6 +272,13 @@ class MainWindow(QMainWindow):
     def _do_advanced_configuration(self):
         self._get_browser()
         configure.do_advanced_configuration(len(self.sensor_log), self._get_browser(), QSettings())
+
+    def _table_item_double_clicked(self, row: int, serial_number: str):
+        driver: webdriver.Chrome = self._get_browser()
+        driver.get(lwt.URL_CALIBRATE)
+        driver.find_elements_by_css_selector("option")[row].click()
+        driver.find_element_by_css_selector("input[type='password']").send_keys("Q854Xj8X")
+        driver.find_element_by_css_selector("input[type='submit']").click()
 
     def _start_calibration(self):
         utilities.misc.get_page_login_if_needed(lwt.URL_CALIBRATE, self._get_browser(), "calibration")
@@ -403,7 +431,10 @@ class MainWindow(QMainWindow):
         self.sensor_log.get_sensor_by_phase(index).fault_current = result
 
     def _save_data(self):
-        save_data_dialog = SaveDataDialog(self, self.spreadsheet_path, iter(self.sensor_log),
+        log_file_path = file_utils.create_log_filename(
+            self.spreadsheet_file_name, self.sensor_log.get_serial_numbers_as_tuple()
+        )
+        save_data_dialog = SaveDataDialog(self, self.spreadsheet_file_name, log_file_path, iter(self.sensor_log),
                                           self.sensor_log.room_temperature)
         result = save_data_dialog.exec()
 

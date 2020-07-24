@@ -25,7 +25,7 @@ def get_serial_numbers(path: str) -> Tuple[str]:
     Parameters
     ----------
     path: str
-        spreadsheet_path to spreadsheet
+        path to spreadsheet
     Returns
     -------
         tuple[str]

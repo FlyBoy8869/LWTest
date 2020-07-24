@@ -1,3 +1,5 @@
+from pathlib import Path
+
 from time import sleep
 from typing import Callable
 
@@ -8,8 +10,8 @@ from PyQt5.QtWidgets import QDialog, QVBoxLayout, QProgressBar, QLabel, QHBoxLay
 import LWTest.spreadsheet.spreadsheet as spreadsheet
 import LWTest.utilities.returns as returns
 import LWTest.utilities.time as util_time
-from LWTest.common import oscomp
-from LWTest.common.oscomp import OSBrand
+from linewatchshared import oscomp
+from linewatchshared.oscomp import OSBrand
 from LWTest.constants import dom, lwt
 from LWTest.spreadsheet.constants import phases_cells, PhaseReadingsCells
 from LWTest.utilities import file_utils
@@ -61,7 +63,7 @@ class PersistenceBootMonitor(QDialog):
 
         self._need_to_start_thread: bool = True
         self.main_layout = QVBoxLayout()
-        self.button_layout = QHBoxLayout()
+        # self.button_layout = QHBoxLayout()
 
         self.description_label = QLabel("Waiting for the collector to boot.\t\t")
 
@@ -284,11 +286,12 @@ class SaveDataDialog(QDialog):
     file_name_prefix = "ATR-PRD#-"
     file_name_serial_number_template = "-SN{}"
 
-    def __init__(self, parent, spreadsheet_path: str, sensors: iter, room_temperature: str):
+    def __init__(self, parent, spreadsheet_path: str, log_file_path: Path, sensors: iter, room_temperature: str):
         super().__init__(parent)
         self.setWindowTitle("LWTest - Saving Sensor Data")
 
         self._spreadsheet_path = spreadsheet_path
+        self._log_file_path = log_file_path
         self._sensors = sensors
         self._room_temperature = room_temperature
 
@@ -354,8 +357,9 @@ class SaveDataDialog(QDialog):
         QCoreApplication.processEvents()  # so the change to the label above shows up
 
         result: returns.Result = file_utils.download_log_files(
-            file_utils.create_log_filename_from_spreadsheet_path(self._spreadsheet_path)
+            self._log_file_path
         )
+
         return result
 
     def _report_failure(self, message, detail_text):

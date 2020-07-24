@@ -1,7 +1,6 @@
 import LWTest
 
 from .constants import *
-from .chrome_driver_path import chromedriver_path
 from .sensor_table_columns import TableColumn
 from .tolerance import Tolerance
 

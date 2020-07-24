@@ -11,6 +11,8 @@
     <orderEntry type="module" module-name="mockcollector" />
     <orderEntry type="module" module-name="laboot" />
     <orderEntry type="module" module-name="linewatchshared" />
+    <orderEntry type="module" module-name="linewatchshared" />
+    <orderEntry type="module" module-name="linewatchshared" />
   </component>
   <component name="PyDocumentationSettings">
     <option name="format" value="GOOGLE" />

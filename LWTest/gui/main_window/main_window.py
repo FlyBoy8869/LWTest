@@ -551,7 +551,7 @@ class MainWindow(QMainWindow):
             options = webdriver.ChromeOptions()
             options.add_argument(f"window-size={self.width()},830")
             options.add_argument(f"window-position={geometry.x()},{frame_geometry.height() + 25}")
-            self.browser = webdriver.Chrome(executable_path=lwt.chromedriver_path, options=options)
+            self.browser = webdriver.Chrome(executable_path=LWTest.constants.CHROMEDRIVER_PATH, options=options)
 
         return self.browser
 

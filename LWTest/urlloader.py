@@ -58,7 +58,7 @@ class UrlLoader:
 
 
 if __name__ == '__main__':
-    driver_location = "resources/drivers/chromedriver/windows/version-80_0_3987_106/chromedriver.exe"
+    driver_location = "resources/drivers/chromedriver/windows/version_80-0-3987-106/chromedriver.exe"
     browser = webdriver.Chrome(executable_path=driver_location)
     loader = UrlLoader(QUrl("http://192.168.2.1/index.php/main/advanced_config"), browser,
                        ActionLogin(Credentials(username='administrator', password='FMIadm!n')))

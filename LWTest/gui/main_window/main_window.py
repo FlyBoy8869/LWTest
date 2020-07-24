@@ -6,7 +6,7 @@ from typing import Optional, Tuple
 from PyQt5.QtCore import QThreadPool, QSettings, QSize, Qt, QReadWriteLock, QObject, pyqtSignal, QModelIndex
 from PyQt5.QtGui import QIcon, QCloseEvent, QBrush, QColor
 from PyQt5.QtWidgets import QMainWindow, QTableWidget, QVBoxLayout, QWidget, QTableWidgetItem, QMessageBox, QToolBar, \
-    QDialog, QDoubleSpinBox
+    QDialog, QDoubleSpinBox, QApplication
 from selenium import webdriver
 
 import LWTest
@@ -32,6 +32,8 @@ from LWTest.serial import ConfigureSerialNumbers
 from LWTest.spreadsheet import spreadsheet
 from LWTest.utilities import misc, file_utils
 from LWTest.workers import upgrade, link
+
+from linewatchshared.constants import brushes
 
 style_sheet = "QProgressBar{ max-height: 10px; }"
 
@@ -76,12 +78,17 @@ class MainWindow(QMainWindow):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, *kwargs)
         self.settings = QSettings()
-        self.resize(int(self.settings.value("geometry/mainwindow/width", "435")),
-                    int(self.settings.value("geometry/mainwindow/height", "244")))
+        # self.resize(int(self.settings.value("geometry/mainwindow/width", "435")),
+        #             int(self.settings.value("geometry/mainwindow/height", "244")))
+        self.resize(1505, 315)
+        x_pos = (QApplication.primaryScreen().geometry().width() - self.width()) // 2
+        self.setGeometry(x_pos, 5, self.width(), self.height())
         self.setWindowIcon(QIcon("LWTest/resources/images/app_128.png"))
         self.setWindowTitle(LWTest.app_title)
         self.setAcceptDrops(True)
         # self.setStyleSheet(style_sheet)
+
+        print(f"window width: {self.width()}")
 
         self.signals = self.Signals()
         self.thread_pool = QThreadPool.globalInstance()
@@ -103,8 +110,8 @@ class MainWindow(QMainWindow):
         self.changes = linewatchshared.changetracker.ChangeTracker()
 
         self.validator = validator.Validator(
-            partial(self._set_sensor_table_widget_item_background, QBrush(QColor(Qt.darkGreen))),
-            partial(self._set_sensor_table_widget_item_background, QBrush(QColor(255, 0, 0, 255)))
+            partial(self._set_sensor_table_widget_item_background, brushes.BRUSH_GOOD_READING),
+            partial(self._set_sensor_table_widget_item_background, brushes.BRUSH_BAD_READING)
         )
 
         self.panel = QWidget(self)
@@ -306,30 +313,6 @@ class MainWindow(QMainWindow):
             self._get_browser()
         )
 
-    def _handle_persistence_boot_monitor_finished_signal(self, result_code):
-        if result_code == QDialog.Accepted:
-            self._verify_raw_configuration_readings_persist()
-
-    def _wait_for_collector_to_boot(self):
-        pbm = PersistenceBootMonitor(self, self.thread_pool)
-        pbm.finished.connect(self._handle_persistence_boot_monitor_finished_signal)
-        pbm.open()
-
-    def _handle_persistence_countdown_dialog_finished_signal(self, result_code):
-        if result_code == QDialog.Accepted:
-            self._show_information_dialog("Plug in the collector.\nClick 'OK' when ready.")
-            self._wait_for_collector_to_boot()
-
-    def _start_persistence_test(self):
-        self._show_information_dialog("Unplug the collector.\nClick 'OK' when ready to proceed.")
-
-        td = CountDownDialog(self, "Persistence",
-                             "Please, wait before powering on the collector.\n" +
-                             "'Cancel' will abort test.\t\t",
-                             lwt.TimeOut.COLLECTOR_POWER_OFF_TIME.value)
-        td.finished.connect(self._handle_persistence_countdown_dialog_finished_signal)
-        td.open()
-
     def _create_reporting_reader(self):
         reporting_reader = ReportingDataReader()
         reporting_reader.signals.reporting.connect(self.sensor_log.record_reporting_data)
@@ -429,6 +412,30 @@ class MainWindow(QMainWindow):
 
     def _manually_override_fault_current_result(self, result, index):
         self.sensor_log.get_sensor_by_phase(index).fault_current = result
+
+    def _handle_persistence_boot_monitor_finished_signal(self, result_code):
+        if result_code == QDialog.Accepted:
+            self._verify_raw_configuration_readings_persist()
+
+    def _wait_for_collector_to_boot(self):
+        pbm = PersistenceBootMonitor(self, self.thread_pool)
+        pbm.finished.connect(self._handle_persistence_boot_monitor_finished_signal)
+        pbm.open()
+
+    def _handle_persistence_countdown_dialog_finished_signal(self, result_code):
+        if result_code == QDialog.Accepted:
+            self._show_information_dialog("Plug in the collector.\nClick 'OK' when ready.")
+            self._wait_for_collector_to_boot()
+
+    def _start_persistence_test(self):
+        self._show_information_dialog("Unplug the collector.\nClick 'OK' when ready to proceed.")
+
+        td = CountDownDialog(self, "Persistence",
+                             "Please, wait before powering on the collector.\n" +
+                             "'Cancel' will abort test.\t\t",
+                             lwt.TimeOut.COLLECTOR_POWER_OFF_TIME.value)
+        td.finished.connect(self._handle_persistence_countdown_dialog_finished_signal)
+        td.open()
 
     def _save_data(self):
         log_file_path = file_utils.create_log_filename(
@@ -539,7 +546,12 @@ class MainWindow(QMainWindow):
 
     def _get_browser(self):
         if self.browser is None:
-            self.browser = webdriver.Chrome(executable_path=lwt.chromedriver_path)
+            geometry = self.geometry()
+            frame_geometry = self.frameGeometry()
+            options = webdriver.ChromeOptions()
+            options.add_argument(f"window-size={self.width()},830")
+            options.add_argument(f"window-position={geometry.x()},{frame_geometry.height() + 25}")
+            self.browser = webdriver.Chrome(executable_path=lwt.chromedriver_path, options=options)
 
         return self.browser
 

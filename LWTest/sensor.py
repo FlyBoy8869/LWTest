@@ -8,7 +8,7 @@ class Sensor:
         self.serial_number: str = serial_number
 
         self.result = "Not Tested"
-        self.rssi = "----"
+        self.rssi = "NA"
         self.firmware_version = "NA"
         self.reporting_data = "NA"
         self.calibrated = "NA"
@@ -84,6 +84,9 @@ class SensorLog:
                 return sensor
 
         return None
+
+    def get_sensors(self) -> Tuple[Sensor]:
+        return tuple([cast(Sensor, sensor) for sensor in self._log.values()])
 
     def get_test_results(self) -> tuple:
         return tuple([sensor.result for sensor in self._log.values()])

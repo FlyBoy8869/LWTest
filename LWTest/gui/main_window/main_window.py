@@ -1,72 +1,42 @@
-from pathlib import Path
-
-from functools import partial
-from typing import Optional, Tuple
-
-from PyQt5.QtCore import QThreadPool, QSettings, QSize, Qt, QReadWriteLock, QObject, pyqtSignal, QModelIndex
-from PyQt5.QtGui import QIcon, QCloseEvent, QBrush, QColor
-from PyQt5.QtWidgets import QMainWindow, QTableWidget, QVBoxLayout, QWidget, QTableWidgetItem, QMessageBox, QToolBar, \
+from PyQt5.QtCore import QThreadPool, QSettings, QSize, Qt, QReadWriteLock, QObject, pyqtSignal
+from PyQt5.QtGui import QIcon, QCloseEvent, QBrush
+from PyQt5.QtWidgets import QMainWindow, QVBoxLayout, QWidget, QTableWidgetItem, QMessageBox, QToolBar, \
     QDialog, QDoubleSpinBox, QApplication
+from pathlib import Path
 from selenium import webdriver
+from typing import Optional, Tuple
 
 import LWTest
 import LWTest.gui.main_window.sensortable as sensortable
 import LWTest.gui.theme as theme
 import LWTest.utilities as utilities
 import LWTest.utilities.misc as utilities_misc
-import LWTest.validate as validator
 import linewatchshared
 from LWTest import sensor
 from LWTest.collector import configure
 from LWTest.collector.read.read import DataReader, PersistenceComparator, FirmwareVersionReader, \
     ReportingDataReader
 from LWTest.common.flags.flags import flags, FlagsEnum
-from LWTest.gui.widgets import LWTTableWidget
-from linewatchshared.oscomp import QSettingsAdapter
 from LWTest.constants import lwt
 from LWTest.gui.dialogs import PersistenceBootMonitor, CountDownDialog, UpgradeDialog, \
     SaveDataDialog, SpinDialog
 from LWTest.gui.main_window.create_menus import MenuHelper
 from LWTest.gui.main_window.menu_help_handlers import menu_help_about_handler
+from LWTest.gui.main_window.tablemodelview import SensorTableViewUpdater
+from LWTest.gui.widgets import LWTTableWidget
 from LWTest.serial import ConfigureSerialNumbers
 from LWTest.spreadsheet import spreadsheet
 from LWTest.utilities import misc, file_utils
 from LWTest.workers import upgrade, link
-
-from linewatchshared.constants import brushes
+from linewatchshared.oscomp import QSettingsAdapter
 
 style_sheet = "QProgressBar{ max-height: 10px; }"
-
-_DATA_IN_TABLE_ORDER = ("rssi", "firmware_version", "reporting_data", "calibrated", "high_voltage", "high_current",
-                        "high_power_factor", "high_real_power", "low_voltage", "low_current",
-                        "low_power_factor", "low_real_power", "scale_current", "scale_voltage",
-                        "correction_angle", "persists", "temperature", "fault_current")
 
 _DATA_IN_SPREADSHEET_ORDER = ("high_voltage", "high_current", "high_power_factor", "high_real_power",
                               "low_voltage", "low_current", "low_power_factor", "low_real_power",
                               "scale_current", "scale_voltage", "correction_angle", "persists",
                               "firmware_version", "reporting_data", "rssi", "calibrated",
                               "temperature", "fault_current")
-
-
-class CellLocation:
-    def __init__(self, row: int, col: int):
-        if row < 0:
-            raise ValueError(f"value {row} given for row must be 0 or greater")
-
-        if col < 0:
-            raise ValueError(f"value {col} given for col must be 0 or greater")
-
-        self._row = row
-        self._col = col
-
-    @property
-    def row(self):
-        return self._row
-
-    @property
-    def col(self):
-        return self._col
 
 
 class MainWindow(QMainWindow):
@@ -109,11 +79,6 @@ class MainWindow(QMainWindow):
 
         self.changes = linewatchshared.changetracker.ChangeTracker()
 
-        self.validator = validator.Validator(
-            partial(self._set_sensor_table_widget_item_background, brushes.BRUSH_GOOD_READING),
-            partial(self._set_sensor_table_widget_item_background, brushes.BRUSH_BAD_READING)
-        )
-
         self.panel = QWidget(self)
         self.panel_layout = QVBoxLayout(self.panel)
         self.panel.setLayout(self.panel_layout)
@@ -128,6 +93,8 @@ class MainWindow(QMainWindow):
         self.sensor_table.setAlternatingRowColors(True)
         self.sensor_table.setPalette(theme.sensor_table_palette)
         self.panel_layout.addWidget(self.sensor_table)
+
+        self._table_view_updater = SensorTableViewUpdater(self.sensor_table, lambda: self.sensor_log.room_temperature)
 
         self._create_toolbar()
 
@@ -199,7 +166,7 @@ class MainWindow(QMainWindow):
                                        self._manually_override_calibration_result,
                                        self._manually_override_fault_current_result)
 
-        self._update_from_model()
+        self._table_view_updater.update_from_model(self.sensor_log.get_sensors())
 
     @flags(set_=[FlagsEnum.SERIALS])
     def _configure_collector_serial_numbers(self):
@@ -239,7 +206,9 @@ class MainWindow(QMainWindow):
         link_thread.signals.successful_link.connect(lambda d: self._get_sensor_link_data(d[0]))
         link_thread.signals.link_timeout.connect(lambda nls: self.sensor_log.record_non_linked_sensors(nls))
         link_thread.signals.finished.connect(lambda: dialog.done(QDialog.Accepted))
-        link_thread.signals.finished.connect(self._update_from_model)
+        link_thread.signals.finished.connect(
+            lambda: self._table_view_updater.update_from_model(self.sensor_log.get_sensors())
+        )
         self.thread_pool.start(link_thread)
 
     def _upgrade_sensor(self, row: int):
@@ -261,7 +230,7 @@ class MainWindow(QMainWindow):
         self.firmware_upgrade_in_progress = False
         phase = self._get_sensor_phase(serial_number)
         self.sensor_log.record_firmware_version(phase, lwt.LATEST_FIRMWARE_VERSION_NUMBER)
-        self._update_from_model()
+        self._table_view_updater.update_from_model(self.sensor_log.get_sensors())
 
         QMessageBox.information(QMessageBox(self), LWTest.app_title, "Sensor firmware successfully upgraded.",
                                 QMessageBox.Ok)
@@ -280,7 +249,7 @@ class MainWindow(QMainWindow):
         self._get_browser()
         configure.do_advanced_configuration(len(self.sensor_log), self._get_browser(), QSettings())
 
-    def _table_item_double_clicked(self, row: int, serial_number: str):
+    def _table_item_double_clicked(self, row: int):
         driver: webdriver.Chrome = self._get_browser()
         driver.get(lwt.URL_CALIBRATE)
         driver.find_elements_by_css_selector("option")[row].click()
@@ -305,7 +274,9 @@ class MainWindow(QMainWindow):
     def _verify_raw_configuration_readings_persist(self):
         comparator = PersistenceComparator()
         comparator.signals.persisted.connect(self.sensor_log.record_persistence_readings)
-        comparator.signals.finished.connect(self._update_from_model)
+        comparator.signals.finished.connect(
+            lambda: self._table_view_updater.update_from_model(self.sensor_log.get_sensors())
+        )
         comparator.compare(
             self.sensor_log.get_advanced_readings(),
             len(self.sensor_log),
@@ -349,7 +320,7 @@ class MainWindow(QMainWindow):
             lwt.URL_SENSOR_DATA,
             self._get_browser()
         )
-        self._update_from_model()
+        self._table_view_updater.update_from_model(self.sensor_log.get_sensors())
 
         self.lock.unlock()
 
@@ -377,10 +348,7 @@ class MainWindow(QMainWindow):
         self.sensor_log.record_high_power_factor_readings(readings[lwt.FACTORS])
         self.sensor_log.record_high_real_power_readings(readings[lwt.POWER])
 
-        self._update_from_model()
-
-        data_set = tuple(zip(readings[lwt.VOLTAGE], readings[lwt.CURRENT], readings[lwt.POWER]))
-        self.validator.validate_high_voltage_readings(data_set)
+        self._table_view_updater.update_from_model(self.sensor_log.get_sensors())
 
     def _process_low_data_readings(self, readings: tuple):
         """Receives data in the following order: voltage, current, factors, power, scale current,
@@ -395,15 +363,7 @@ class MainWindow(QMainWindow):
         self.sensor_log.record_correction_angle_readings(readings[lwt.CORRECTION_ANGLE])
         self.sensor_log.record_temperature_readings(readings[lwt.TEMPERATURE])
 
-        self._update_from_model()
-
-        data_set = tuple(zip(readings[lwt.VOLTAGE], readings[lwt.CURRENT], readings[lwt.POWER]))
-        self.validator.validate_low_voltage_readings(data_set)
-
-        data_set = tuple(zip(readings[lwt.SCALE_CURRENT], readings[lwt.SCALE_VOLTAGE], readings[lwt.CORRECTION_ANGLE]))
-        self.validator.validate_scale_n_angle_readings(data_set)
-
-        self.validator.validate_temperature_readings(float(self.sensor_log.room_temperature), readings[lwt.TEMPERATURE])
+        self._table_view_updater.update_from_model(self.sensor_log.get_sensors())
 
         self.menu_helper.action_check_persistence.setEnabled(True)
 
@@ -447,26 +407,6 @@ class MainWindow(QMainWindow):
 
         if result == QDialog.Accepted:
             self.changes.clear_change_flag()
-
-    def _update_from_model(self):
-        for index, mv_sensor in enumerate(self.sensor_log):
-            for j in range(lwt.TableColumn.RSSI.value, lwt.TableColumn.FAULT_CURRENT.value + 1):
-
-                if j == lwt.TableColumn.FAULT_CURRENT.value:
-                    self._update_combo_box(CellLocation(index, lwt.TableColumn.FAULT_CURRENT.value),
-                                           mv_sensor.fault_current)
-                elif j == lwt.TableColumn.CALIBRATION.value:
-                    self._update_combo_box(CellLocation(index, lwt.TableColumn.CALIBRATION.value),
-                                           mv_sensor.calibrated)
-                else:
-                    self.sensor_table.item(index, j).setText(mv_sensor.__getattribute__(_DATA_IN_TABLE_ORDER[j - 1]))
-
-    def _update_combo_box(self, cell_location: CellLocation, text: str) -> None:
-        def _determine_index(result: str) -> int:
-            indexes = {"Pass": 1, "Fail": 2}
-            return indexes.get(result, 0)
-
-        self.sensor_table.cellWidget(cell_location.row, cell_location.col).setCurrentIndex(_determine_index(text))
 
     def _create_toolbar(self):
         toolbar = QToolBar("ToolBar")

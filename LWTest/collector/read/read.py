@@ -199,11 +199,11 @@ class PersistenceComparator:
 
     @staticmethod
     def _compare(saved_readings, live_readings) -> List[str]:
-        persistence_results = ["Yes"] * len(saved_readings)
+        persistence_results = ["Pass"] * len(saved_readings)
 
         for sensor_index, sensor_readings in enumerate(saved_readings):
             if live_readings[sensor_index] != sensor_readings:
-                persistence_results[sensor_index] = "Failed"
+                persistence_results[sensor_index] = "Fail"
 
         return persistence_results
 

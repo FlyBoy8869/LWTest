@@ -1,6 +1,8 @@
 # sensor.py
 from typing import Optional, List, Tuple, cast
 
+import LWTest.constants.lwt_constants as lwt
+
 
 class Sensor:
     def __init__(self, phase: int, serial_number: str):
@@ -209,7 +211,7 @@ class SensorLog:
 
     def record_non_linked_sensors(self, serial_numbers):
         for serial_number in serial_numbers:
-            self._log[serial_number].rssi = "Not Linked"
+            self._log[serial_number].rssi = lwt.NO_DATA
 
     def set_test_result(self, serial_number: str, result: str):
         sensor = self._find_sensor(serial_number)
@@ -233,7 +235,11 @@ class SensorLog:
         return iter(self._log.values())
 
     def __len__(self):
-        return len(self._log)
+        length = len(self._log)
+        if length < 3:
+            return 3
+        elif 3 < length < 6:
+            return 6
 
     def __repr__(self):
         return f"SensorLog({self.get_serial_numbers_as_tuple()})"

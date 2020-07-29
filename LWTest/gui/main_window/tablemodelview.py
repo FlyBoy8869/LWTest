@@ -44,6 +44,8 @@ class WordMatchValidator(Validator):
             return "NA"
         elif reading == limits.word:
             return "IN"
+        else:
+            return "OUT"
 
 
 class FloatValidator(Validator):
@@ -104,8 +106,8 @@ class SensorTableViewUpdater:
 
     def update_from_model(self, sensors: Tuple[Sensor, ...]) -> None:
         for row, sensor in enumerate(sensors):
+            print(f"updating table and validating for sensor {row + 1}")
             for column in range(lwt.TableColumn.RSSI.value, lwt.TableColumn.FAULT_CURRENT.value + 1):
-
                 if column == lwt.TableColumn.FAULT_CURRENT.value:
                     self._update_combo_box(CellLocation(row, lwt.TableColumn.FAULT_CURRENT.value),
                                            sensor.fault_current)
@@ -115,8 +117,8 @@ class SensorTableViewUpdater:
                 else:
                     reading = sensor.__getattribute__(_DATA_IN_TABLE_ORDER[column - 1])
                     self._table.item(row, column).setText(reading)
-                    new_table_item = self._validate_reading(reading, row, column)
-                    self._table.setItem(row, column, new_table_item)
+                    validated_item = self._validate_reading(reading, row, column)
+                    self._table.setItem(row, column, validated_item)
 
     def _update_combo_box(self, cell_location: CellLocation, text: str) -> None:
         def _determine_index(result: str) -> int:
@@ -126,8 +128,9 @@ class SensorTableViewUpdater:
         self._table.cellWidget(cell_location.row, cell_location.col).setCurrentIndex(_determine_index(text))
 
     def _validate_reading(self, reading, row, column: int) -> QTableWidgetItem:
+        """Validates reading and returns a new QTableWidgetItem with its background colored to indicate pass or fail."""
         assert tc.RSSI.value <= column <= tc.FAULT_CURRENT.value, f"invalid column: {column} not in range"
-
+        print(f"validating column {column} for sensor {row}")
         validator, limits = validators_by_column[column]
         if validator:
             if column == tc.TEMPERATURE.value:
@@ -135,18 +138,18 @@ class SensorTableViewUpdater:
             else:
                 brush = validator.get_brush(validator.validate(reading, limits))
 
-            new_table_item = self._create_validated_item(brush, self._table.item(row, column))
-            return new_table_item
+            highlighted_item = self._create_highlighted_item(brush, self._table.item(row, column))
+            return highlighted_item
 
     @staticmethod
     def _get_temperature_brush(reading, validator, temp_ref: float) -> QBrush:
         tolerances = temp_ref - tol.TEMPERATURE_DELTA.value, temp_ref + tol.TEMPERATURE_DELTA.value
         pass_fail = validator.validate(reading, tolerances)
-        brush = validator.get_brush(pass_fail)
-        return brush
+        return validator.get_brush(pass_fail)
 
     @staticmethod
-    def _create_validated_item(color: QBrush, item: QTableWidgetItem) -> QTableWidgetItem:
+    def _create_highlighted_item(color: QBrush, item: QTableWidgetItem) -> QTableWidgetItem:
+        """Clones item and changes its background color to indicate pass or fail."""
         new_item = item.clone()
         new_item.setBackground(color)
         return new_item

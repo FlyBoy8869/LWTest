@@ -236,6 +236,8 @@ class SensorLog:
 
     def __len__(self):
         length = len(self._log)
+
+        # needed to ensure the proper number of readings are scraped
         if length < 3:
             return 3
         elif 3 < length < 6:

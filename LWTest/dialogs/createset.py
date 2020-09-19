@@ -1,12 +1,14 @@
+from pathlib import Path
+
 import shutil
 
-from PyQt5 import QtGui, QtCore
 from PyQt5.QtCore import Qt, QSettings
-from PyQt5.QtWidgets import QDialog, QLineEdit, QFileDialog
-from pathlib import Path
 from typing import cast, Optional
 
-from LWTest.gui.createset.createset_ui import Ui_Dialog
+from PyQt5 import QtCore, QtGui
+from PyQt5.QtWidgets import QDialog, QLineEdit, QFileDialog
+
+from LWTest.dialogs.createset_ui import Ui_Dialog
 from LWTest.spreadsheet import spreadsheet
 
 TEST_RECORD = "LWTest/resources/testrecord/ATR-PRD Master.xlsm"

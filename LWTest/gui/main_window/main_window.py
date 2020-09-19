@@ -19,9 +19,12 @@ from LWTest.collector.read.read import DataReader, PersistenceComparator, Firmwa
     ReportingDataReader
 from LWTest.common.flags.flags import flags, FlagsEnum
 from LWTest.constants import lwt
-from LWTest.gui.createset.createsetdialog import manual_set_entry
-from LWTest.gui.dialogs import PersistenceBootMonitor, CountDownDialog, UpgradeDialog, \
-    SaveDataDialog, SpinDialog
+from LWTest.dialogs.createset import manual_set_entry
+from LWTest.dialogs.spin import SpinDialog
+from LWTest.dialogs.countdown import CountDownDialog
+from LWTest.dialogs.persistence import PersistenceBootMonitorDialog
+from LWTest.dialogs.upgrade import UpgradeDialog
+from LWTest.dialogs.save import SaveDialog
 from LWTest.gui.main_window.create_menus import MenuHelper
 from LWTest.gui.main_window.menu_help_handlers import menu_help_about_handler
 from LWTest.gui.main_window.tablemodelview import SensorTableViewUpdater
@@ -74,6 +77,7 @@ class MainWindow(QMainWindow):
         # flags
         self.collector_configured = False
 
+        # used when getting readings after the sensor links
         self.lock = QReadWriteLock()
 
         self.browser: Optional[webdriver.Chrome] = None
@@ -420,7 +424,7 @@ class MainWindow(QMainWindow):
             self._verify_raw_configuration_readings_persist()
 
     def _wait_for_collector_to_boot(self):
-        pbm = PersistenceBootMonitor(self, self.thread_pool)
+        pbm = PersistenceBootMonitorDialog(self, self.thread_pool)
         pbm.finished.connect(self._handle_persistence_boot_monitor_finished_signal)
         pbm.open()
 
@@ -446,8 +450,11 @@ class MainWindow(QMainWindow):
         log_file_path = file_utils.create_log_filename(
             self.spreadsheet_file_name, self.sensor_log.get_serial_numbers_as_tuple()
         )
-        save_data_dialog = SaveDataDialog(self, self.spreadsheet_file_name, log_file_path, iter(self.sensor_log),
-                                          (self.sensor_log.room_temperature, self.high_voltage_reference, self.low_voltage_reference))
+        save_data_dialog = SaveDialog(self, self.spreadsheet_file_name, log_file_path, iter(self.sensor_log),
+                                      (self.sensor_log.room_temperature,
+                                       self.high_voltage_reference,
+                                       self.low_voltage_reference)
+                                      )
         result = save_data_dialog.exec()
 
         if result == QDialog.Accepted:

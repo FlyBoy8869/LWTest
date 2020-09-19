@@ -7,7 +7,7 @@ class TimeOut(Enum):
     URL_READ_INTERVAL = 2  # time to wait between successive _url requests
     CONFIRM_SERIAL_CONFIG = 300  # time to wait for collector to update serial number list
     COLLECTOR_BOOT_WAIT_TIME = 180  # time to wait for collector to reboot and start serving data
-    LINK_CHECK = 1500  # time to wait for a sensor to link
+    LINK_CHECK = 120  # time to wait for a sensor to link
     LINK_PAGE_LOAD_INTERVAL = 1
     WAIT_FOR_COLLECTOR_TO_START_UPDATING_LOG_FILE = 3
     UPGRADE_LOG_LOAD_INTERVAL = 1

@@ -7,6 +7,8 @@ import requests
 from PyQt5.QtCore import QTimer, QRunnable, QObject, pyqtSignal, Qt, QSettings, QCoreApplication
 from PyQt5.QtWidgets import QDialog, QVBoxLayout, QProgressBar, QLabel, QHBoxLayout, QDialogButtonBox, QMessageBox
 
+from selenium.common.exceptions import WebDriverException
+
 import LWTest.spreadsheet.spreadsheet as spreadsheet
 import LWTest.utilities.returns as returns
 import LWTest.utilities.time as util_time
@@ -182,6 +184,8 @@ class CountDownDialog(QDialog):
 
 
 class UpgradeDialog(QDialog):
+    error = pyqtSignal(str)
+
     def __init__(self, serial_number: str, row: int, worker: UpgradeWorker, thread_starter: Callable, browser, parent):
         super().__init__(parent=parent)
         self.signals = UpgradeSignals()
@@ -191,6 +195,8 @@ class UpgradeDialog(QDialog):
         self.thread_starter = thread_starter
         self.browser = browser
         self.upgrade_started = False
+
+        self.browser_error = False
 
         self.main_layout = QVBoxLayout(self)
         self.main_layout.setSpacing(30)
@@ -211,14 +217,27 @@ class UpgradeDialog(QDialog):
         self.worker.signals.upgrade_failed_to_enter_program_mode.connect(self.reject)
         self.worker.signals.upgrade_progress.connect(self._update_percentage)
 
-    def closeEvent(self, q_close_event):
-        q_close_event.ignore()
+        QTimer.singleShot(300, self._kick_off)
 
-    def showEvent(self, q_show_event):
+    def closeEvent(self, q_close_event):
+        if self.browser_error:
+            q_close_event.accept()
+        else:
+            q_close_event.ignore()
+
+    def _kick_off(self):
         if not self.upgrade_started:
             settings = QSettings()
 
-            self.browser.get(lwt.URL_SOFTWARE_UPGRADE)
+            try:
+                self.browser.get(lwt.URL_SOFTWARE_UPGRADE)
+            except WebDriverException as error:
+                print(f"error: {error.msg}")
+                self.browser_error = True
+                self.done(QDialog.Rejected)
+                self.error.emit(error.msg)
+                return
+
             if "Please reload after a moment" in self.browser.page_source:
                 self.browser.get(lwt.URL_SOFTWARE_UPGRADE)
 
@@ -286,14 +305,14 @@ class SaveDataDialog(QDialog):
     file_name_prefix = "ATR-PRD#-"
     file_name_serial_number_template = "-SN{}"
 
-    def __init__(self, parent, spreadsheet_path: str, log_file_path: Path, sensors: iter, room_temperature: str):
+    def __init__(self, parent, spreadsheet_path: str, log_file_path: Path, sensors: iter, references):
         super().__init__(parent)
         self.setWindowTitle("LWTest - Saving Sensor Data")
 
         self._spreadsheet_path = spreadsheet_path
         self._log_file_path = log_file_path
         self._sensors = sensors
-        self._room_temperature = room_temperature
+        self._references = references
 
         self.setLayout(QVBoxLayout())
 
@@ -319,8 +338,7 @@ class SaveDataDialog(QDialog):
 
         self.layout().addLayout(self._bottom_layout)
 
-    def showEvent(self, q_show_event):
-        QTimer().singleShot(1000, self._save_data)
+        QTimer().singleShot(500, self._save_data)
 
     def _package_data(self):
         data_sets = []
@@ -337,34 +355,30 @@ class SaveDataDialog(QDialog):
         return data_sets
 
     def _save_data(self):
-        if not (result := spreadsheet.save_sensor_data(self._spreadsheet_path,
-                                                       self._package_data(),
-                                                       self._room_temperature)).success:
-            self._report_failure("A problem occurred while saving readings to the spreadsheet", result.error)
+        if self._do_save():
+            self._main_label.setText("Downloading log files from the collector.")
+            QTimer.singleShot(1000, self._download_log_files)
+        else:
             self.reject()
 
-        if not (result := self._download_log_files()).success:
+    def _do_save(self):
+        result = spreadsheet.save_test_results(self._spreadsheet_path, self._package_data(), self._references)
+        if not result.success:
+            self._report_failure("A problem occurred while saving readings to the spreadsheet", result.error)
+            return False
+        return True
+
+    def _download_log_files(self):
+        if not (result := file_utils.download_log_files(self._log_file_path)).success:
             self._report_failure("An error occurred trying to download the log files.", result.error)
             self.reject()
-            return
         else:
             spreadsheet.record_log_files_attached(self._spreadsheet_path)
-
-        self.accept()
-
-    def _download_log_files(self) -> returns.Result:
-        self._main_label.setText("Downloading log files from the collector.")
-        QCoreApplication.processEvents()  # so the change to the label above shows up
-
-        result: returns.Result = file_utils.download_log_files(
-            self._log_file_path
-        )
-
-        return result
+            self.accept()
 
     def _report_failure(self, message, detail_text):
-        msg_box = QMessageBox(QMessageBox.Warning, "LWTest - Saving Log Files",
-                              message, QMessageBox.Ok,
-                              self)
+        msg_box = QMessageBox(
+            QMessageBox.Warning, "LWTest - Saving Log Files", message, QMessageBox.Ok, self
+        )
         msg_box.setDetailedText(detail_text)
         msg_box.exec()

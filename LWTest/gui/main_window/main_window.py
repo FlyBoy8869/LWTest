@@ -1,3 +1,4 @@
+from PyQt5 import QtGui
 from PyQt5.QtCore import QThreadPool, QSettings, QSize, Qt, QReadWriteLock, QObject, pyqtSignal
 from PyQt5.QtGui import QIcon, QCloseEvent, QBrush
 from PyQt5.QtWidgets import QMainWindow, QVBoxLayout, QWidget, QTableWidgetItem, QMessageBox, QToolBar, \
@@ -18,11 +19,13 @@ from LWTest.collector.read.read import DataReader, PersistenceComparator, Firmwa
     ReportingDataReader
 from LWTest.common.flags.flags import flags, FlagsEnum
 from LWTest.constants import lwt
+from LWTest.gui.createset.createsetdialog import manual_set_entry
 from LWTest.gui.dialogs import PersistenceBootMonitor, CountDownDialog, UpgradeDialog, \
     SaveDataDialog, SpinDialog
 from LWTest.gui.main_window.create_menus import MenuHelper
 from LWTest.gui.main_window.menu_help_handlers import menu_help_about_handler
 from LWTest.gui.main_window.tablemodelview import SensorTableViewUpdater
+from LWTest.gui.reference.referencedialog import ReferenceDialog
 from LWTest.gui.widgets import LWTTableWidget
 from LWTest.serial import ConfigureSerialNumbers
 from LWTest.spreadsheet import spreadsheet
@@ -58,7 +61,8 @@ class MainWindow(QMainWindow):
         self.setAcceptDrops(True)
         # self.setStyleSheet(style_sheet)
 
-        print(f"window width: {self.width()}")
+        self.high_voltage_reference = ("", "", "", "")
+        self.low_voltage_reference = ("", "", "", "")
 
         self.signals = self.Signals()
         self.thread_pool = QThreadPool.globalInstance()
@@ -83,10 +87,19 @@ class MainWindow(QMainWindow):
         self.panel_layout = QVBoxLayout(self.panel)
         self.panel.setLayout(self.panel_layout)
 
+        # Menu Stuff
         self.menu_bar = self.menuBar()
         self.menu_helper = MenuHelper(self.menu_bar).create_menus(self)
+        self.menu_helper.action_create_set.triggered.connect(self._manual_set_entry)
+        self.menu_helper.action_create_set.setShortcut(Qt.Key_N | Qt.ControlModifier)
+
+        self.menu_helper.action_enter_references.triggered.connect(self._enter_references)
+        self.menu_helper.action_enter_references.setShortcut(Qt.Key_R | Qt.ControlModifier)
+
+        self.menu_helper.action_upgrade.setShortcut(Qt.Key_U | Qt.ControlModifier)
 
         self.menu_helper.action_about.triggered.connect(lambda: menu_help_about_handler(parent=self))
+        # end of Menu Stuff
 
         self.sensor_table = LWTTableWidget(self.panel)
         self.sensor_table.signals.double_clicked.connect(self._table_item_double_clicked)
@@ -136,6 +149,24 @@ class MainWindow(QMainWindow):
         else:
             event.ignore()
 
+    def keyReleaseEvent(self, event: QtGui.QKeyEvent) -> None:
+        if event.key() == Qt.Key_N and event.modifiers() == Qt.ControlModifier:
+            self._manual_set_entry()
+        elif event.key() == Qt.Key_R and event.modifiers() == Qt.ControlModifier:
+            self._enter_references()
+        else:
+            super().keyReleaseEvent(event)
+
+    def _manual_set_entry(self):
+        if path := manual_set_entry(self):
+            self.signals.file_dropped.emit(path)
+
+    def _enter_references(self):
+        reference_dialog = ReferenceDialog(self, self.high_voltage_reference, self.low_voltage_reference)
+        reference_dialog.exec()
+        self.high_voltage_reference = reference_dialog.high_voltage_reference
+        self.low_voltage_reference = reference_dialog.low_voltage_reference
+
     def _handle_dropped_file(self, filename: str, sensor_log):
         # listens for MainWindow().signals.file_dropped
         if self._import_serial_numbers_from_spreadsheet(filename, sensor_log):
@@ -156,10 +187,9 @@ class MainWindow(QMainWindow):
 
     @staticmethod
     def _rename_dropped_file_to_atp_standard_file_name(filename: str, serial_numbers: Tuple[str, ...]) -> str:
+        new_file_path = file_utils.create_new_file_path(filename, serial_numbers)
         spreadsheet_path = Path(filename)
-        return spreadsheet_path.rename(
-            file_utils.create_new_file_name(filename, serial_numbers).as_posix()
-        ).as_posix()
+        return spreadsheet_path.rename(new_file_path.as_posix()).as_posix()
 
     def _setup_sensor_table(self):
         sensortable.setup_table_widget(self, self.sensor_log.get_serial_numbers_as_tuple(), self.sensor_table,
@@ -185,8 +215,9 @@ class MainWindow(QMainWindow):
 
     @flags(clear=[FlagsEnum.SERIALS])
     def _handle_serial_number_configuration_failure(self):
-        self._show_warning_dialog(f"An error occurred trying to configure the collector." +
-                                  "\n\nMake sure the ethernet cable is connected and the collector is powered on.")
+        self._show_warning_dialog("<h3>Error Configuring Collector</h3>" +
+                                  "<hr/><br/>" +
+                                  "Insure the collector is powered on and the ethernet cable is connected.")
 
     def _start_confirm_serial_update(self):
         # pop dialog
@@ -224,7 +255,18 @@ class MainWindow(QMainWindow):
                 lambda: self._failed_to_enter_program_mode(row))
 
             upgrade_dialog = UpgradeDialog(serial_number, row, worker, self._start_worker, browser, self)
+            upgrade_dialog.error.connect(self._handle_upgrade_error_signal)
             upgrade_dialog.exec_()
+
+    def _handle_upgrade_error_signal(self, error_message: str):
+        self._show_warning_dialog(
+            "<h3>Error loading Upgrade page</h3>" +
+            "<hr />" +
+            f"{error_message}." +
+            "<hr /><br>" +
+            "Insure the collector is powered on and the ethernet cable is connected."
+        )
+        self.firmware_upgrade_in_progress = False
 
     def _upgrade_successful(self, serial_number):
         self.firmware_upgrade_in_progress = False
@@ -232,8 +274,7 @@ class MainWindow(QMainWindow):
         self.sensor_log.record_firmware_version(phase, lwt.LATEST_FIRMWARE_VERSION_NUMBER)
         self._table_view_updater.update_from_model(self.sensor_log.get_sensors())
 
-        QMessageBox.information(QMessageBox(self), LWTest.app_title, "Sensor firmware successfully upgraded.",
-                                QMessageBox.Ok)
+        self._show_information_dialog("Sensor firmware successfully upgraded.")
 
     def _failed_to_enter_program_mode(self, row: int):
         result = QMessageBox.warning(QMessageBox(self), LWTest.app_title, "Failed to upgrade sensor.",
@@ -247,7 +288,8 @@ class MainWindow(QMainWindow):
     @flags(read=[FlagsEnum.SERIALS], set_=[FlagsEnum.ADVANCED])
     def _do_advanced_configuration(self):
         self._get_browser()
-        configure.do_advanced_configuration(len(self.sensor_log), self._get_browser(), QSettings())
+        length = len(self.sensor_log)
+        configure.do_advanced_configuration(length, self._get_browser(), QSettings())
 
     def _table_item_double_clicked(self, row: int):
         driver: webdriver.Chrome = self._get_browser()
@@ -398,11 +440,14 @@ class MainWindow(QMainWindow):
         td.open()
 
     def _save_data(self):
+        if not all(self.high_voltage_reference) or not all(self.low_voltage_reference):
+            self._enter_references()
+
         log_file_path = file_utils.create_log_filename(
             self.spreadsheet_file_name, self.sensor_log.get_serial_numbers_as_tuple()
         )
         save_data_dialog = SaveDataDialog(self, self.spreadsheet_file_name, log_file_path, iter(self.sensor_log),
-                                          self.sensor_log.room_temperature)
+                                          (self.sensor_log.room_temperature, self.high_voltage_reference, self.low_voltage_reference))
         result = save_data_dialog.exec()
 
         if result == QDialog.Accepted:

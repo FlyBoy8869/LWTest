@@ -106,7 +106,6 @@ class SensorTableViewUpdater:
 
     def update_from_model(self, sensors: Tuple[Sensor, ...]) -> None:
         for row, sensor in enumerate(sensors):
-            print(f"updating table and validating for sensor {row + 1}")
             for column in range(lwt.TableColumn.RSSI.value, lwt.TableColumn.FAULT_CURRENT.value + 1):
                 if column == lwt.TableColumn.FAULT_CURRENT.value:
                     self._update_combo_box(CellLocation(row, lwt.TableColumn.FAULT_CURRENT.value),
@@ -130,7 +129,6 @@ class SensorTableViewUpdater:
     def _validate_reading(self, reading, row, column: int) -> QTableWidgetItem:
         """Validates reading and returns a new QTableWidgetItem with its background colored to indicate pass or fail."""
         assert tc.RSSI.value <= column <= tc.FAULT_CURRENT.value, f"invalid column: {column} not in range"
-        print(f"validating column {column} for sensor {row}")
         validator, limits = validators_by_column[column]
         if validator:
             if column == tc.TEMPERATURE.value:

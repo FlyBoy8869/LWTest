@@ -32,7 +32,7 @@ main/config_password=Q854Xj8X
 main/admin_user=administrator
 main/admin_password=FMIadm!n
 
-# time in seconds
+# times are in seconds
 main/request_timeout=2
 main/test_time=30
 main/link_check_time=10
@@ -42,5 +42,8 @@ main/webdriver_wait_to_close=3000
 
 # valid levels: debug, info, warning, error, critical
 main/debug_level=debug
+
+# used when manually defining a set using Ctrl-S
+save_folder=/Users/charles/Offline Documents/MVSS/Test Results
 
 drivers/chromedriver=LWTest\resources\drivers\chromedriver\windows\version_83_0_4103_39\chromedriver.exe

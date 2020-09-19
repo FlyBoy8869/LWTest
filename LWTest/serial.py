@@ -1,6 +1,7 @@
 from time import sleep
 
 from selenium import webdriver
+from selenium.common.exceptions import WebDriverException
 
 import LWTest.constants.dom as dom
 
@@ -28,14 +29,20 @@ class ConfigureSerialNumbers:
         return self._get_page().page_source
 
     def _get_page(self):
-        self._browser.get(self._url)
+        try:
+            self._browser.get(self._url)
+        except WebDriverException:
+            class FakePage:
+                page_source = ""
+            return FakePage()
+
         return self._browser
 
     def _setup_collector(self):
         self._send_serial_numbers_to_collector()
         self._select_60_hertz()
         self._disable_use_of_voltage_ride_through()
-        self._confirm_configuration()
+        self._submit_configuration()
         sleep(1)
 
     def _send_serial_numbers_to_collector(self):
@@ -52,6 +59,6 @@ class ConfigureSerialNumbers:
         if vrt.is_selected():
             vrt.click()
 
-    def _confirm_configuration(self):
+    def _submit_configuration(self):
         self._browser.find_element_by_xpath(dom.configuration_password).send_keys(self._password)
         self._browser.find_element_by_xpath(dom.configuration_save_changes).click()

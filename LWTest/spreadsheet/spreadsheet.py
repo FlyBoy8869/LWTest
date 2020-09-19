@@ -14,10 +14,23 @@ import LWTest.utilities.time
 from LWTest.spreadsheet import constants
 from LWTest.utilities import returns
 
+
+def rssi_conversion(value: str):
+    try:
+        int_value = int(value)
+        return int_value
+    except ValueError:
+        return str(value)
+
+
 _CONVERSIONS = [float, float, float, int,
                 float, float, float, int,
                 float, float, float, str,
-                str, str, lambda v: int(v) if type(v) == int else str(v), str, float, str]
+                str, str, rssi_conversion, str, float, str]
+
+
+def create_test_record(serial_numbers, path: str):
+    _enter_serial_numbers_in_worksheet(serial_numbers, _get_worksheet_from_workbook(path), path)
 
 
 def get_serial_numbers(path: str) -> Tuple[str]:
@@ -35,8 +48,9 @@ def get_serial_numbers(path: str) -> Tuple[str]:
     return _extract_serial_numbers_from_worksheet(_get_worksheet_from_workbook(path))
 
 
-def save_sensor_data(workbook_path, data_sets, temperature_reference: str) -> returns.Result:
+def save_test_results(workbook_path, data_sets, references) -> returns.Result:
     worksheet = _get_worksheet_from_workbook(workbook_path)
+    temperature_reference, high_references, low_references = references
 
     for data_set in data_sets:
         for index, (location, reading) in enumerate(data_set):
@@ -44,17 +58,12 @@ def save_sensor_data(workbook_path, data_sets, temperature_reference: str) -> re
                 continue
 
             if reading != 'NA':
-                value = reading
-                try:
-                    value = _convert_reading_for_spreadsheet(reading, _CONVERSIONS[index])
-                except Exception:
-                    pass
-                worksheet[location].value = value
+                reading = _convert_reading_for_spreadsheet(reading, _CONVERSIONS[index])
+                worksheet[location].value = reading
 
-    worksheet[constants.temperature_reference] = _convert_reading_for_spreadsheet(temperature_reference, float)
-    worksheet[constants.tested_by].value = str("Charles Cognato")
-    worksheet[constants.test_date].value = datetime.date.today()
-
+    _save_reference_data(worksheet, temperature_reference, high_references, low_references)
+    _save_admin_data(worksheet)
+    _protect_worksheet(worksheet)
     _save_workbook(workbook_path)
 
     return returns.Result(True, True)
@@ -68,22 +77,6 @@ def record_log_files_attached(workbook_path: str):
     _save_workbook(workbook_path)
 
 
-def save_test_results(workbook_path: str, results: Tuple[str]):
-    logger = logging.getLogger(__name__)
-
-    logger.info(f"saving test results to spreadsheet: {results}")
-    logger.info(f"using file: {workbook_path}")
-
-    worksheet = _get_worksheet_from_workbook(workbook_path)
-    logger.info(f"saving to worksheet {worksheet}")
-
-    for result, location in zip(results, constants.FIVE_AMP_SAVE_LOCATIONS):
-        logger.debug(f"saving '{result}' to location '{location}'")
-        worksheet[location].value = str(result)
-
-    _save_workbook(workbook_path)
-
-
 # -------------------
 # private interface -
 # -------------------
@@ -91,7 +84,18 @@ _workbook: Optional[Workbook]
 
 
 def _convert_reading_for_spreadsheet(reading, conversion):
-    return conversion(LWTest.utilities.misc.normalize_reading(reading))
+    try:
+        return conversion(LWTest.utilities.misc.normalize_reading(reading))
+    except ValueError:
+        pass
+
+
+def _enter_serial_numbers_in_worksheet(serial_numbers, worksheet: openpyxlWorksheet, path: str):
+    for index, serial_number in enumerate(serial_numbers):
+        worksheet[constants.SERIAL_LOCATIONS[index]].value = int(serial_numbers[index])
+
+    _save_workbook(path)
+    _close_workbook()
 
 
 def _extract_serial_numbers_from_worksheet(worksheet: openpyxlWorksheet) -> Tuple[str]:
@@ -147,6 +151,33 @@ def _close_workbook():
     if _workbook:
         _workbook.close()
         _workbook = None
+
+
+def _protect_worksheet(worksheet):
+    # Attention: Not working on macOS. Haven't tried Windows yet.
+    #  Could have something to do with meta-data not being saved.
+    worksheet.protection.sheet = True
+    worksheet.protection.enable()
+    worksheet.protection.password = "12345"
+
+
+def _save_admin_data(worksheet):
+    worksheet[constants.tested_by].value = str("Charles Cognato")
+    worksheet[constants.test_date].value = datetime.date.today()
+
+
+def _save_reference_data(worksheet, temperature_reference, high_references, low_references):
+    conversions = [float, float, float, int]
+
+    def _save_references(refs, cells):
+        for i, r in enumerate(refs):
+            worksheet[cells[i]].value = _convert_reading_for_spreadsheet(r, conversions[i])
+
+    worksheet[constants.temperature_reference] = _convert_reading_for_spreadsheet(temperature_reference, float)
+
+    for references, data_cells\
+            in [(high_references, constants.high_reference_cells), (low_references, constants.low_reference_cells)]:
+        _save_references(references, data_cells)
 
 
 class Spreadsheet:

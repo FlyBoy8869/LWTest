@@ -12,6 +12,8 @@ class MenuHelper:
         self.menu_help: Optional[QMenu] = None
 
         self.action_configure: Optional[QAction] = None
+        self.action_create_set: Optional[QAction] = None
+        self.action_enter_references: Optional[QAction] = None
         self.action_upgrade: Optional[QAction] = None
         self.action_advanced_configuration: Optional[QAction] = None
         self.action_raw_config: Optional[QAction] = None
@@ -24,9 +26,6 @@ class MenuHelper:
         self.action_calibrate: Optional[QAction] = None
         self.action_check_persistence: Optional[QAction] = None
 
-        self.actions = None
-        self.actions_enabled = 0
-
     def create_menus(self, window: QMainWindow):
         # create top level menus
         self.menu_file = self.menu_bar.addMenu("&File")
@@ -35,6 +34,10 @@ class MenuHelper:
         # create actions
         self.action_advanced_configuration = QAction(QIcon("LWTest/resources/images/advanced_configuration-01_128.png"),
                                                      "&Advanced Configuration", window)
+
+        self.action_create_set = QAction("Create Set", window)
+
+        self.action_enter_references = QAction("Enter References", window)
 
         self.action_configure = QAction(QIcon("LWTest/resources/images/serial_config-01_128.png"),
                                         "&Configure Serial Numbers", window)
@@ -63,15 +66,13 @@ class MenuHelper:
         self.action_check_persistence.setEnabled(False)
 
         # add actions to menu
+        self.menu_file.addAction(self.action_create_set)
+        self.menu_file.addAction(self.action_enter_references)
         self.menu_file.addAction(self.action_upgrade)
         self.menu_file.addAction(self.action_save)
         self.menu_file.addSeparator()
         self.menu_file.addAction(self.action_exit)
         self.menu_help.addAction(self.action_about)
-
-        self.actions = [self.action_upgrade, self.action_advanced_configuration,
-                        self.action_calibrate, self.action_config_correction_angle,
-                        self.action_take_readings, self.action_check_persistence, self.action_fault_current]
 
         return self
 

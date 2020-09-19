@@ -14,9 +14,9 @@ PhaseReadingsCells = namedtuple("PhaseReadingsCells", "high_voltage high_current
                                 "scale_current scale_voltage correction_angle persists " +
                                 "firmware_version reporting_data rssi calibrated temperature fault_current")
 
-high_reference = ('D22', 'D23', 'D24', 'D25')
+high_reference_cells = ('D22', 'D23', 'D24', 'D25')
 
-low_reference = ('D27', 'D28', 'D29', 'D30')
+low_reference_cells = ('D27', 'D28', 'D29', 'D30')
 
 phase_1_cells = ('E22', 'E23', 'E24', 'E25',
                  'E27', 'E28', 'E29', 'E30',

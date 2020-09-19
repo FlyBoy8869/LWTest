@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 import functools
 from enum import Enum
-from typing import List
+from typing import List, Optional
 
 
 class FlagsEnum(Enum):
@@ -38,7 +38,10 @@ class Flags:
 managed_flags = Flags()
 
 
-def flags(*, read: List[FlagsEnum] = None, set_: List[FlagsEnum] = None, clear: List[FlagsEnum] = None):
+def flags(*, read: Optional[List[str]] = None,
+          set_: Optional[List[str]] = None,
+          clear: Optional[List[str]] = None):
+
     def outer(func):
         @functools.wraps(func)
         def wrapper(self, *args, **kwargs):

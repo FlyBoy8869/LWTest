@@ -34,7 +34,8 @@ def create_test_record(serial_numbers, path: str):
 
 
 def get_serial_numbers(path: str) -> Tuple[str]:
-    """Loads serial numbers from a spreadsheet.
+    """Load serial numbers from a spreadsheet.
+
     Parameters
     ----------
     path: str
@@ -52,16 +53,8 @@ def save_test_results(workbook_path, data_sets, references) -> returns.Result:
     worksheet = _get_worksheet_from_workbook(workbook_path)
     temperature_reference, high_references, low_references = references
 
-    for data_set in data_sets:
-        for index, (location, reading) in enumerate(data_set):
-            if not reading:
-                continue
-
-            if reading != 'NA':
-                reading = _convert_reading_for_spreadsheet(reading, _CONVERSIONS[index])
-                worksheet[location].value = reading
-
     _save_reference_data(worksheet, temperature_reference, high_references, low_references)
+    _save_test_data(data_sets, worksheet)
     _save_admin_data(worksheet)
     _protect_worksheet(worksheet)
     _save_workbook(workbook_path)
@@ -178,6 +171,17 @@ def _save_reference_data(worksheet, temperature_reference, high_references, low_
     for references, data_cells\
             in [(high_references, constants.high_reference_cells), (low_references, constants.low_reference_cells)]:
         _save_references(references, data_cells)
+
+
+def _save_test_data(data_sets, worksheet):
+    for data_set in data_sets:
+        for index, (location, reading) in enumerate(data_set):
+            if not reading:
+                continue
+
+            if reading != 'NA':
+                reading = _convert_reading_for_spreadsheet(reading, _CONVERSIONS[index])
+                worksheet[location].value = reading
 
 
 class Spreadsheet:

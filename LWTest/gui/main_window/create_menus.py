@@ -1,3 +1,4 @@
+from PyQt5.QtCore import Qt
 from typing import Optional
 
 from PyQt5.QtGui import QIcon
@@ -64,6 +65,12 @@ class MenuHelper:
 
         self.action_check_persistence = QAction("Check\npersistence", window)
         self.action_check_persistence.setEnabled(False)
+
+        # customize actions
+        self.action_create_set.setShortcut(Qt.Key_N | Qt.ControlModifier)
+        self.action_enter_references.setShortcut(Qt.Key_R | Qt.ControlModifier)
+        self.action_save.setShortcut(Qt.Key_S | Qt.ControlModifier)
+        self.action_upgrade.setShortcut(Qt.Key_U | Qt.ControlModifier)
 
         # add actions to menu
         self.menu_file.addAction(self.action_create_set)

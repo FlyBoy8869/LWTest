@@ -95,13 +95,7 @@ class MainWindow(QMainWindow):
         self.menu_bar = self.menuBar()
         self.menu_helper = MenuHelper(self.menu_bar).create_menus(self)
         self.menu_helper.action_create_set.triggered.connect(self._manual_set_entry)
-        self.menu_helper.action_create_set.setShortcut(Qt.Key_N | Qt.ControlModifier)
-
         self.menu_helper.action_enter_references.triggered.connect(self._enter_references)
-        self.menu_helper.action_enter_references.setShortcut(Qt.Key_R | Qt.ControlModifier)
-
-        self.menu_helper.action_upgrade.setShortcut(Qt.Key_U | Qt.ControlModifier)
-
         self.menu_helper.action_about.triggered.connect(lambda: menu_help_about_handler(parent=self))
         # end of Menu Stuff
 

@@ -93,10 +93,8 @@ class MainWindow(QMainWindow):
 
         # Menu Stuff
         self.menu_bar = self.menuBar()
-        self.menu_helper = MenuHelper(self.menu_bar).create_menus(self)
-        self.menu_helper.action_create_set.triggered.connect(self._manual_set_entry)
-        self.menu_helper.action_enter_references.triggered.connect(self._enter_references)
-        self.menu_helper.action_about.triggered.connect(lambda: menu_help_about_handler(parent=self))
+        self.menu_helper = MenuHelper(self, self.menu_bar).create_menus(self)
+        self.menu_helper.connect_actions()
         # end of Menu Stuff
 
         self.sensor_table = LWTTableWidget(self.panel)
@@ -131,6 +129,9 @@ class MainWindow(QMainWindow):
         else:
             closing_event.ignore()
 
+    def _handle_action_exit(self):
+        self.close()
+
     def dragEnterEvent(self, event):
         if event.mimeData().hasUrls:
             event.setDropAction(Qt.CopyAction)
@@ -149,17 +150,17 @@ class MainWindow(QMainWindow):
 
     def keyReleaseEvent(self, event: QtGui.QKeyEvent) -> None:
         if event.key() == Qt.Key_N and event.modifiers() == Qt.ControlModifier:
-            self._manual_set_entry()
+            self._handle_action_create_set()
         elif event.key() == Qt.Key_R and event.modifiers() == Qt.ControlModifier:
-            self._enter_references()
+            self._handle_action_enter_references()
         else:
             super().keyReleaseEvent(event)
 
-    def _manual_set_entry(self):
+    def _handle_action_create_set(self):
         if path := manual_set_entry(self):
             self.signals.file_dropped.emit(path)
 
-    def _enter_references(self):
+    def _handle_action_enter_references(self):
         reference_dialog = ReferenceDialog(self, self.high_voltage_reference, self.low_voltage_reference)
         reference_dialog.exec()
         self.high_voltage_reference = reference_dialog.high_voltage_reference
@@ -197,7 +198,7 @@ class MainWindow(QMainWindow):
         self._table_view_updater.update_from_model(self.sensor_log.get_sensors())
 
     @flags(set_=[FlagsEnum.SERIALS])
-    def _configure_collector_serial_numbers(self):
+    def _handle_action_configure_serial_numbers(self, checked: bool):
         configurator = ConfigureSerialNumbers(
             misc.ensure_six_numbers(self.sensor_log.get_serial_numbers_as_list()),
             QSettingsAdapter().value("main/config_password"),
@@ -240,7 +241,9 @@ class MainWindow(QMainWindow):
         )
         self.thread_pool.start(link_thread)
 
-    def _upgrade_sensor(self, row: int):
+    def _handle_action_upgrade_sensor(self):
+        row = self.sensor_table.currentRow()
+
         if not self.firmware_upgrade_in_progress:
             self.firmware_upgrade_in_progress = True
 
@@ -275,16 +278,11 @@ class MainWindow(QMainWindow):
         self._show_information_dialog("Sensor firmware successfully upgraded.")
 
     def _failed_to_enter_program_mode(self, row: int):
-        result = QMessageBox.warning(QMessageBox(self), LWTest.app_title, "Failed to upgrade sensor.",
-                                     QMessageBox.Retry | QMessageBox.Cancel)
-
+        QMessageBox.warning(QMessageBox(self), LWTest.app_title, "Failed to upgrade sensor.", QMessageBox.Ok)
         self.firmware_upgrade_in_progress = False
 
-        if result == QMessageBox.Retry:
-            self._upgrade_sensor(row)
-
     @flags(read=[FlagsEnum.SERIALS], set_=[FlagsEnum.ADVANCED])
-    def _do_advanced_configuration(self):
+    def _handle_action_advanced_configuration(self, checked: bool):
         self._get_browser()
         length = len(self.sensor_log)
         configure.do_advanced_configuration(length, self._get_browser(), QSettings())
@@ -296,11 +294,11 @@ class MainWindow(QMainWindow):
         driver.find_element_by_css_selector("input[type='password']").send_keys("Q854Xj8X")
         driver.find_element_by_css_selector("input[type='submit']").click()
 
-    def _start_calibration(self):
+    def _handle_action_calibrate(self):
         utilities.misc.get_page_login_if_needed(lwt.URL_CALIBRATE, self._get_browser(), "calibration")
 
     @flags(read=[FlagsEnum.SERIALS, FlagsEnum.ADVANCED], set_=[FlagsEnum.CORRECTION])
-    def _config_correction_angle(self):
+    def _handle_action_config_correction_angle(self, checked: bool):
         if configure.configure_correction_angle(len(self.sensor_log), lwt.URL_CONFIGURATION,
                                                 self._get_browser(), QSettings()):
             return
@@ -364,11 +362,11 @@ class MainWindow(QMainWindow):
 
         self.lock.unlock()
 
-    def _load_fault_current_page(self):
+    def _handle_action_fault_current(self, checked: bool):
         self._get_browser().get(lwt.URL_FAULT_CURRENT)
 
     @flags(read=[FlagsEnum.SERIALS, FlagsEnum.ADVANCED, FlagsEnum.CORRECTION])
-    def _take_readings(self):
+    def _handle_action_take_readings(self, checked: bool):
         data_reader = DataReader(lwt.URL_SENSOR_DATA, lwt.URL_RAW_CONFIGURATION)
         data_reader.signals.high_data_readings.connect(self._process_high_data_readings)
         data_reader.signals.low_data_readings.connect(self._process_low_data_readings)
@@ -381,7 +379,7 @@ class MainWindow(QMainWindow):
         self._show_information_dialog("Unable to retrieve readings. Check the collector.")
 
     def _process_high_data_readings(self, readings: tuple):
-        """Receives data in the following order: voltage, current, factors, power."""
+        """Receives data in the following order: voltage, current, power factor, power."""
 
         self.sensor_log.record_high_voltage_readings(readings[lwt.VOLTAGE])
         self.sensor_log.record_high_current_readings(readings[lwt.CURRENT])
@@ -427,7 +425,7 @@ class MainWindow(QMainWindow):
             self._show_information_dialog("Plug in the collector.\nClick 'OK' when ready.")
             self._wait_for_collector_to_boot()
 
-    def _start_persistence_test(self):
+    def _handle_action_check_persistence(self):
         self._show_information_dialog("Unplug the collector.\nClick 'OK' when ready to proceed.")
 
         td = CountDownDialog(self, "Persistence",
@@ -437,9 +435,9 @@ class MainWindow(QMainWindow):
         td.finished.connect(self._handle_persistence_countdown_dialog_finished_signal)
         td.open()
 
-    def _save_data(self):
+    def _handle_action_save(self):
         if not all(self.high_voltage_reference) or not all(self.low_voltage_reference):
-            self._enter_references()
+            self._handle_action_enter_references()
 
         log_file_path = file_utils.create_log_filename(
             self.spreadsheet_file_name, self.sensor_log.get_serial_numbers_as_tuple()
@@ -454,30 +452,18 @@ class MainWindow(QMainWindow):
         if result == QDialog.Accepted:
             self.changes.clear_change_flag()
 
+    def _handle_action_about(self):
+        menu_help_about_handler(parent=self)
+
     def _create_toolbar(self):
         toolbar = QToolBar("ToolBar")
         toolbar.setIconSize(QSize(48, 48))
         self.addToolBar(toolbar)
 
-        toolbar.addAction(self.menu_helper.action_configure)
-        self.menu_helper.action_configure.setData(self._configure_collector_serial_numbers)
-        self.menu_helper.action_configure.triggered.connect(self._action_router)
-
-        self.menu_helper.action_upgrade.setData(lambda: self._upgrade_sensor(
-            self.sensor_table.currentRow()))
-        self.menu_helper.action_upgrade.triggered.connect(self._action_router)
-
+        toolbar.addAction(self.menu_helper.action_configure_serial_numbers)
         toolbar.addAction(self.menu_helper.action_advanced_configuration)
-        self.menu_helper.action_advanced_configuration.setData(self._do_advanced_configuration)
-        self.menu_helper.action_advanced_configuration.triggered.connect(self._action_router)
-
         toolbar.addAction(self.menu_helper.action_calibrate)
-        self.menu_helper.action_calibrate.setData(self._start_calibration)
-        self.menu_helper.action_calibrate.triggered.connect(self._action_router)
-
         toolbar.addAction(self.menu_helper.action_config_correction_angle)
-        self.menu_helper.action_config_correction_angle.setData(self._config_correction_angle)
-        self.menu_helper.action_config_correction_angle.triggered.connect(self._action_router)
 
         self.menu_helper.insert_spacer(toolbar, self)
 
@@ -496,34 +482,18 @@ class MainWindow(QMainWindow):
         self.menu_helper.insert_spacer(toolbar, self)
 
         toolbar.addAction(self.menu_helper.action_take_readings)
-        self.menu_helper.action_take_readings.setData(self._take_readings)
-        self.menu_helper.action_take_readings.triggered.connect(self._action_router)
-
         toolbar.addAction(self.menu_helper.action_check_persistence)
-        self.menu_helper.action_check_persistence.setData(self._start_persistence_test)
-        self.menu_helper.action_check_persistence.triggered.connect(self._action_router)
 
         self.menu_helper.insert_spacer(toolbar, self)
 
         toolbar.addAction(self.menu_helper.action_fault_current)
-        self.menu_helper.action_fault_current.setData(self._load_fault_current_page)
-        self.menu_helper.action_fault_current.triggered.connect(self._action_router)
 
         self.menu_helper.insert_spacer(toolbar, self)
 
         toolbar.addAction(self.menu_helper.action_save)
-        self.menu_helper.action_save.setData(self._save_data)
-        self.menu_helper.action_save.triggered.connect(self._action_router)
 
         self.menu_helper.insert_spacer(toolbar, self)
         toolbar.addAction(self.menu_helper.action_exit)
-
-    def _action_router(self):
-        if self.sensor_log.is_empty():
-            return
-
-        if self.sender() is not None:
-            self.sender().data()()
 
     def _close_browser(self):
         if self.browser:

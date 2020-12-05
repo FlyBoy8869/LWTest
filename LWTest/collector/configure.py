@@ -4,6 +4,8 @@ from PyQt5.QtCore import QSettings
 from selenium import webdriver
 
 from LWTest.constants import dom, lwt
+import LWTest.utilities.misc as utils_misc
+
 
 _VOLTAGE_TEMPERATURE_SCALE = "-0.00012"
 _REMAINING_TEMPERATURE_FIELDS_CONFIGURATION_VALUE = "0"
@@ -22,7 +24,9 @@ _CONFIG_PASSWORD_KEY = "main/config_password"
 def do_advanced_configuration(sensor_count: int, driver: webdriver.Chrome, settings: QSettings):
     config_password = settings.value(_CONFIG_PASSWORD_KEY)
 
-    _login_if_necessary(driver, settings.value("main/admin_user"), settings.value("main/admin_password"))
+    # TODO: remove once live tested
+    # _login_if_necessary(driver, settings.value("main/admin_user"), settings.value("main/admin_password"))
+    _login_if_necessary(driver)
 
     # url, function, function args, dom elements
     operations = [
@@ -124,11 +128,16 @@ def _enter_password_and_submit(driver, config_password, password_element, submit
     _submit(driver, submit_button)
 
 
-def _login_if_necessary(driver: webdriver.Chrome, user_name: str, password: str):
-    driver.get(lwt.URL_TEMPERATURE)
-    if "Login" in driver.page_source:
-        # Landed on the 'Login' page.
-        driver.find_element_by_xpath(dom.login_username_field).send_keys(user_name)
-        driver.find_element_by_xpath(dom.login_password_field).send_keys(password)
-        driver.find_element_by_xpath(dom.login_button).click()
-        sleep(1.0)
+# TODO: remove once live tested
+# def _login_if_necessary(driver: webdriver.Chrome, user_name: str, password: str):
+#     driver.get(lwt.URL_TEMPERATURE)
+#     if "Login" in driver.page_source:
+#         # Landed on the 'Login' page.
+#         driver.find_element_by_xpath(dom.login_username_field).send_keys(user_name)
+#         driver.find_element_by_xpath(dom.login_password_field).send_keys(password)
+#         driver.find_element_by_xpath(dom.login_button).click()
+#         sleep(1.0)
+
+
+def _login_if_necessary(driver: webdriver.Chrome):
+    utils_misc.get_page_login_if_needed(lwt.URL_TEMPERATURE, driver)

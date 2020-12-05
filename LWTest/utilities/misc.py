@@ -1,15 +1,18 @@
 # utilities/misc.py
-import os
-import re
-import sys
+import logging
 import traceback
-from typing import List, Tuple, Optional
 
+import os
+import sys
 from PyQt5.QtCore import QSettings
 from selenium import webdriver
-from selenium.common.exceptions import NoSuchElementException
+from selenium.common.exceptions import WebDriverException
+from typing import List, Tuple, Optional
 
 from LWTest.constants import dom, lwt
+
+
+_logger = logging.getLogger(__name__)
 
 
 def ensure_six_numbers(serial_numbers: List[str]) -> Tuple[str]:
@@ -39,73 +42,31 @@ def ensure_six_numbers(serial_numbers: List[str]) -> Tuple[str]:
     return tuple(numbers)
 
 
-def get_page_login_if_needed(url: str, browser: webdriver.Chrome, text=""):
+def get_page_login_if_needed(url: str, browser: webdriver.Chrome):
+    _logger.debug(f"requesting {url}, checking if login is required")
+
     settings = QSettings()
-    max_retries: int = 2
-    retries = 0
     user = settings.value("main/admin_user")
     password = settings.value("main/admin_password")
 
-    while retries < max_retries:
-        print(f"{__name__}.get_page_login_if_needed: about to load page")
-        browser.get(url)
-        print(f"{__name__}.get_page_login_if_needed: loaded page")
-
-        if text not in browser.page_source:
-            print(f"{__name__}.get_page_login_if_needed: text not on page, attempting login")
-            try:
-                # _driver.get(_url)
-                browser.find_element_by_xpath(dom.login_header)
-                browser.find_element_by_xpath(dom.login_username_field).send_keys(user)
-                browser.find_element_by_xpath(dom.login_password_field).send_keys(password)
-                browser.find_element_by_xpath(dom.login_button).click()
-
-                if text in browser.page_source:
-                    print(f"{__name__}.get_page_login_if_needed: navigation successful")
-                    break
-            except NoSuchElementException:
-                print(f"{__name__}.get_page_login_if_needed: received a 'NoSuchElementException'")
-
-        retries += 1
-
-
-def indicator():
-    characters = ['\u259A', '\u259E']
-    index = 0
-
-    while True:
-        yield characters[index]
-        index += 1
-        if index > 1:
-            index = 0
-
-
-def load_start_page(browser: webdriver.Chrome):
-    browser.get("file://" + os.path.abspath('LWTest/resources/startup/start_page.html'))
-
-
-def page_failed_to_load(browser: webdriver.Chrome, path_to_element):
     try:
-        browser.find_element_by_xpath(path_to_element)
-    except NoSuchElementException:
-        return True
+        browser.get(url)
+    except WebDriverException:
+        return
 
-    return False
+    if "login" in browser.page_source.lower():
+        _logger.debug("logging in")
+
+        browser.find_element_by_xpath(dom.login_username_field).send_keys(user)
+        browser.find_element_by_xpath(dom.login_password_field).send_keys(password)
+        browser.find_element_by_xpath(dom.login_button).click()
+
+        browser.get(url)
 
 
 def print_exception_info():
     for line in traceback.format_exception(*sys.exc_info()):
         print(line.strip())
-
-
-def to_bool(value) -> bool:
-    """Converts any variation the strings 'true' and 'false' to boolean values."""
-
-    # explicit cast is for protection
-    if str(value).lower() == "true":
-        return True
-    else:
-        return False
 
 
 def normalize_reading(reading: str) -> str:
@@ -119,13 +80,6 @@ def x_is_what_percent_of_y(dividend: int, divisor: int) -> Optional[float]:
 
 def filter_out_na(readings: list) -> list:
     return list(filter(lambda r: r != lwt.NO_DATA, readings))
-
-
-serial_number_pattern = re.compile(r"\s*\d{7}")
-
-
-def line_starts_with_serial_number(line: str):
-    return serial_number_pattern.match(line)
 
 
 if __name__ == '__main__':

@@ -26,29 +26,19 @@ def _find_all_indexes_of_na_in_list(readings):
     return indexes
 
 
-class Signals(QObject):
-    data_fault_current = pyqtSignal(str)
-
-    data_reading = pyqtSignal(tuple, str)
-    data_readings_complete = pyqtSignal()
-
-    high_data_readings = pyqtSignal(tuple)
-    low_data_readings = pyqtSignal(tuple)
-    page_load_error = pyqtSignal()
-
-    resize_columns = pyqtSignal()
-
-    finished = pyqtSignal()
-
-
 class DataReader:
+    class Signals(QObject):
+        high_data_readings = pyqtSignal(tuple)
+        low_data_readings = pyqtSignal(tuple)
+        page_load_error = pyqtSignal()
+
     _HIGH_LOW_THRESHOLD = 10500
     _PERCENTAGE_HIGH_VOLTAGE_READINGS = 66.0
 
     def __init__(self, sensor_data_url: str, raw_config_url: str) -> None:
         self._sensor_data_url = sensor_data_url
         self._raw_configuration_url = raw_config_url
-        self.signals = Signals()
+        self.signals = self.Signals()
 
     def read(self, browser: webdriver.Chrome, count: int) -> returns.Result:
         browser.get(self._sensor_data_url)
@@ -62,28 +52,30 @@ class DataReader:
         results[3] = self._massage_real_power_readings(results[3])
         temperature_readings = self._scrape_readings(readings, "textContent", len(readings) - count, len(readings))
 
-        if self._reading_high_voltage(results[0]):
+        if self._is_high_voltage(results[0]):
             self.signals.high_data_readings.emit(tuple(results))
 
         else:  # these readings gathered only when low voltage is dialed in
-            utils_misc.get_page_login_if_needed(self._raw_configuration_url, browser)
-            readings = browser.find_elements_by_css_selector("div.tcell > input")
-
-            # scale current, scale voltage, correction angle
-            advanced_readings = self._extract_advanced_readings(readings, count)
-
-            na_indexes: List[int, ...] = _find_all_indexes_of_na_in_list(results[0])
-            for readings in advanced_readings:
-                for index in na_indexes:
-                    readings[index] = lwt.NO_DATA
-
-            results.extend(advanced_readings)
+            results = self._get_advanced_readings(results, count, browser)
             results.append(temperature_readings)
-            self.signals.low_data_readings.emit(
-                tuple(results)
-            )
+            self.signals.low_data_readings.emit(tuple(results))
 
             return returns.Result(True, None)
+
+    def _get_advanced_readings(self, results, count, browser):
+        utils_misc.get_page_login_if_needed(self._raw_configuration_url, browser)
+        readings = browser.find_elements_by_css_selector("div.tcell > input")
+
+        # scale current, scale voltage, correction angle
+        advanced_readings = self._extract_advanced_readings(readings, count)
+
+        na_indexes: List[int, ...] = _find_all_indexes_of_na_in_list(results[0])
+        for readings in advanced_readings:
+            for index in na_indexes:
+                readings[index] = lwt.NO_DATA
+
+        results.extend(advanced_readings)
+        return results
 
     def _extract_sensor_readings(self, readings, count):
         voltage_index = 0
@@ -125,7 +117,7 @@ class DataReader:
         return [value.get_attribute(attribute) for value in readings[start:stop]]
 
     @staticmethod
-    def _reading_high_voltage(readings: list) -> bool:
+    def _is_high_voltage(readings: list) -> bool:
         return True if DataReader._get_percentage_of_high_voltage_readings(readings)\
                        >= DataReader._PERCENTAGE_HIGH_VOLTAGE_READINGS else False
 

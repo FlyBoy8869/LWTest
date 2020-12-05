@@ -35,3 +35,5 @@ class SpinDialog(QDialog):
         if self.timeout < 1:
             self.timer.stop()
             self.accept()
+
+        self.raise_()

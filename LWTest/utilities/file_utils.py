@@ -29,11 +29,9 @@ def create_log_filename(path: str, serial_numbers: Tuple[str, ...]) -> Path:
     return spreadsheet_path.parent / Path("logfiles" + _create_serial_string("-SN", serial_numbers) + ".zip")
 
 
-def create_new_file_path(file_name: str, serial_numbers: Tuple[str, ...], base_name: str = "ATR-PRD#") -> Path:
-    file_path = Path(file_name)
-
+def create_atr_path(file_name: Path, serial_numbers: Tuple[str, ...], base_name: str = "ATR-PRD#") -> Path:
     new_name = base_name + _create_serial_string("-SN", serial_numbers)
-    return file_path.parent / Path(new_name + file_path.suffix)
+    return file_name.parent / Path(new_name + file_name.suffix)
 
 
 if __name__ == '__main__':

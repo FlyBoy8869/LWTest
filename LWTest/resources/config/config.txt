@@ -46,4 +46,4 @@ main/debug_level=debug
 # used when manually defining a set using Ctrl-S
 save_folder=/Users/charles/Offline Documents/MVSS/Test Results
 
-drivers/chromedriver=LWTest\resources\drivers\chromedriver\windows\version_83_0_4103_39\chromedriver.exe
+# drivers/chromedriver=LWTest\resources\drivers\chromedriver\windows\version_83_0_4103_39\chromedriver.exe

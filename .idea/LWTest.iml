@@ -8,10 +8,6 @@
     </content>
     <orderEntry type="jdk" jdkName="Python 3.8 (LWTest)" jdkType="Python SDK" />
     <orderEntry type="sourceFolder" forTests="false" />
-    <orderEntry type="module" module-name="mockcollector" />
-    <orderEntry type="module" module-name="laboot" />
-    <orderEntry type="module" module-name="linewatchshared" />
-    <orderEntry type="module" module-name="linewatchshared" />
     <orderEntry type="module" module-name="linewatchshared" />
   </component>
   <component name="PyDocumentationSettings">

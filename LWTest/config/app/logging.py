@@ -11,11 +11,12 @@ def _get_logging_level_constant(level: str):
                        "error": logging.ERROR,
                        "critical": logging.CRITICAL}
 
-    return level_constants.get(level, logging.DEBUG)
+    return level_constants.get(level, logging.WARNING)
 
 
 def initialize():
     settings = QSettings()
+    print(f"log level from config.txt: {settings.value('main/debug_level')}")
 
     console_handler = logging.StreamHandler()  # defaults to sys.stderr
     console_handler.addFilter(lambda r: False if "selenium" in r.name else True)

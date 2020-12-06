@@ -41,23 +41,22 @@ class ModemStatusPageLoader:
 class LinkWorker(QRunnable):
     def __init__(self, serial_numbers: list, url):
         super().__init__()
-        self._logger = logging.getLogger(__name__)
-
         self.signals = Signals()
 
+        self.__logger = logging.getLogger(__name__)
         self.__serial_numbers = serial_numbers
         self.__page_loader = ModemStatusPageLoader(url)
 
         # zero or more whitespace \s* followed by 7 digits \d{7}
-        self._serial_number_pattern = re.compile(r"\s*\d{7}")
+        self.__serial_number_pattern = re.compile(r"\s*\d{7}")
 
-        self._time_to_sleep = lwt.TimeOut.LINK_PAGE_LOAD_INTERVAL.value
-        self.timeout = lwt.TimeOut.LINK_CHECK.value
+        self.__time_to_sleep = lwt.TimeOut.LINK_PAGE_LOAD_INTERVAL.value
+        self.__timeout = lwt.TimeOut.LINK_CHECK.value
 
     def run(self):
         start_time = time.time()
         try:
-            while time.time() - start_time < self.timeout:
+            while time.time() - start_time < self.__timeout:
                 if (page := self.__page_loader.page) is None or self._page_not_found(page.status_code):
                     self._notify_page_not_found()
                     return
@@ -68,11 +67,11 @@ class LinkWorker(QRunnable):
                         self.signals.finished.emit()
                         return
 
-                sleep(self._time_to_sleep)
+                sleep(self.__time_to_sleep)
 
             self._handle_timeout()
         except requests.exceptions.RequestException as exc:
-            self._logger.exception("Error checking link status", exc_info=exc)
+            self.__logger.exception("Error checking link status", exc_info=exc)
         finally:
             self.signals.finished.emit()
 
@@ -96,7 +95,7 @@ class LinkWorker(QRunnable):
         self.signals.finished.emit()
 
     def _line_starts_with_serial_number(self, line: str):
-        return self._serial_number_pattern.match(line)
+        return self.__serial_number_pattern.match(line)
 
     def _notify_page_not_found(self):
         message = ("Received error 404 Page not found.\n" +

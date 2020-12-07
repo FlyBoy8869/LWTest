@@ -23,12 +23,8 @@ class SpinDialog(QDialog):
         self.timer = QTimer(self)
         self.timer.timeout.connect(self._timer_timeout)
 
-    def showEvent(self, q_show_event):
-        if self.timeout != 0 and not self.timer.isActive():
-            self.timer.start(1000)
-
-    def go_away(self):
-        self.done(QDialog.Accepted)
+        if timeout:
+            QTimer.singleShot(1000, lambda: self.timer.start(1000))
 
     def _timer_timeout(self):
         self.timeout -= 1

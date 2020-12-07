@@ -4,6 +4,6 @@ TESTING_MODE = True if "DEBUG" in sys.argv else False
 
 version = "0.2.4"
 
-app_title = "LWTest"
+app_title = f"LWTest - v{version}"
 if TESTING_MODE:
     app_title += " - TESTING_MODE"

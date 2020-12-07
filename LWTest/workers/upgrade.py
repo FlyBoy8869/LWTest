@@ -8,7 +8,7 @@ from LWTest.constants import lwt
 from LWTest.signals import WorkerSignals
 
 if lwt.TESTING_MODE:
-    import LWTest.tests.mock.requests.requests as requests
+    import tests.mock.requests.requests as requests
 else:
     import requests
 

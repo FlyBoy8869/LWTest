@@ -5,7 +5,7 @@ from PyQt5.QtWidgets import QDialog, QVBoxLayout, QLabel, QProgressBar
 
 
 class SpinDialog(QDialog):
-    def __init__(self, parent, message: str, timeout: int):
+    def __init__(self, parent, message: str, timeout: int = 0):
         super().__init__(parent=parent)
 
         self.main_layout = QVBoxLayout()

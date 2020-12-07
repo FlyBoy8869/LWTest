@@ -5,9 +5,8 @@ from PyQt5.QtWidgets import QDialog, QVBoxLayout, QLabel, QHBoxLayout, QMessageB
 
 from LWTest.spreadsheet import spreadsheet as spreadsheet
 from LWTest.spreadsheet.constants import PhaseReadingsCells, phases_cells
-from LWTest.utilities import file_utils
-from linewatchshared import oscomp
-from linewatchshared.oscomp import OSBrand
+from LWTest.utilities import file_utils, oscomp
+from LWTest.utilities.oscomp import OSBrand
 
 
 class SaveDialog(QDialog):

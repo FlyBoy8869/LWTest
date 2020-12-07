@@ -32,3 +32,15 @@ class SpinDialog(QDialog):
             self.accept()
 
         self.raise_()
+
+
+if __name__ == '__main__':
+    import sys
+    from PyQt5.QtWidgets import QApplication
+
+    SPIN_TIME = 15
+
+    app = QApplication([])
+    dialog = SpinDialog(None, f"SpinDialog spinning for {SPIN_TIME} seconds...", SPIN_TIME)
+    dialog.show()
+    sys.exit(app.exec())

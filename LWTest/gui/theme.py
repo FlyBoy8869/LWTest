@@ -2,7 +2,7 @@ import darkdetect
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QColor, QPalette
 
-import linewatchshared.oscomp as oscomp
+import LWTest.utilities.oscomp as oscomp
 
 
 _alternate_row_color = QColor(Qt.lightGray)

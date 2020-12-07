@@ -7,7 +7,6 @@ from PyQt5.QtWidgets import QMainWindow, QVBoxLayout, QWidget, QTableWidgetItem,
     QDialog, QDoubleSpinBox, QApplication
 from pathlib import Path
 from selenium import webdriver
-from selenium.common.exceptions import WebDriverException
 from typing import Optional, Tuple
 
 import LWTest
@@ -15,7 +14,7 @@ import LWTest.gui.main_window.sensortable as sensortable
 import LWTest.gui.theme as theme
 import LWTest.utilities as utilities
 import LWTest.utilities.misc as utilities_misc
-import linewatchshared
+import LWTest.changetracker as changetracker
 from LWTest import sensor
 from LWTest.collector import configure
 from LWTest.collector.read.read import DataReader, PersistenceComparator, FirmwareVersionReader, \
@@ -37,7 +36,7 @@ from LWTest.serial import ConfigureSerialNumbers
 from LWTest.spreadsheet import spreadsheet
 from LWTest.utilities import misc, file_utils
 from LWTest.workers import upgrade, link
-from linewatchshared.oscomp import QSettingsAdapter
+from LWTest.utilities.oscomp import QSettingsAdapter
 
 style_sheet = "QProgressBar{ max-height: 10px; }"
 
@@ -87,7 +86,7 @@ class MainWindow(QMainWindow):
         self.spreadsheet_file_name: str = ""
         self.room_temp: QDoubleSpinBox = QDoubleSpinBox(self)
 
-        self.changes = linewatchshared.changetracker.ChangeTracker()
+        self.changes = changetracker.ChangeTracker()
 
         self.panel = QWidget(self)
         self.panel_layout = QVBoxLayout(self.panel)

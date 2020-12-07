@@ -1,10 +1,10 @@
 from collections import namedtuple
 
 from PyQt5.QtGui import QBrush
-from PyQt5.QtWidgets import QTableWidget, QTableWidgetItem, QWidget
+from PyQt5.QtWidgets import QTableWidget, QTableWidgetItem
 from typing import Tuple, Callable, Union
 
-import linewatchshared.constants.brushes as brushes
+import LWTest.gui.brushes as brushes
 from LWTest.constants import lwt_constants as lwt
 from LWTest.constants.lwt_constants.tolerance import Tolerance as tol
 from LWTest.constants.lwt_constants.sensor_table_columns import TableColumn as tc

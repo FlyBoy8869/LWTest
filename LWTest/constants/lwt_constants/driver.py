@@ -1,5 +1,5 @@
-from linewatchshared import oscomp
-from linewatchshared.oscomp import OSBrand
+from LWTest.utilities import oscomp
+from LWTest.utilities.oscomp import OSBrand
 
 CHROMEDRIVER_PATH: str = ""
 if oscomp.os_brand == OSBrand.MAC:

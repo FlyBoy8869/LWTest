@@ -3,6 +3,7 @@ from selenium import webdriver
 
 class CSSXPath:
     def __init__(self, xpath: str):
+        assert isinstance(xpath, str)
         self.__path = xpath
 
     @property

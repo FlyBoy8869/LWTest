@@ -5,7 +5,7 @@ app.log
 .DS_Store
 *.log
 __pycache__
-/LWTest/tests/webpages/serve.bat
+/tests/webpages/serve.bat
 ### Python template
 # Byte-compiled / optimized / DLL files
 __pycache__/

@@ -221,7 +221,7 @@ class MainWindow(QMainWindow):
                                   "Insure the collector is powered on and the ethernet cable is connected.")
 
     def _start_confirm_serial_update(self):
-        dialog = SpinDialog(self, "Collecting startup data...\t\t\t", 0)
+        dialog = SpinDialog(self, "Collecting startup data...\t\t\t")
         dialog.show()
         dialog.raise_()
         dialog.activateWindow()

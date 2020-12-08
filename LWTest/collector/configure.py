@@ -4,8 +4,6 @@ from PyQt5.QtCore import QSettings
 from selenium import webdriver
 
 from LWTest.constants import dom, lwt
-import LWTest.utilities.misc as utils_misc
-
 
 _VOLTAGE_TEMPERATURE_SCALE = "-0.00012"
 _REMAINING_TEMPERATURE_FIELDS_CONFIGURATION_VALUE = "0"
@@ -24,7 +22,7 @@ _CONFIG_PASSWORD_KEY = "main/config_password"
 def do_advanced_configuration(sensor_count: int, driver: webdriver.Chrome, login, settings: QSettings):
     config_password = settings.value(_CONFIG_PASSWORD_KEY)
 
-    login.login(driver)
+    login.login(lwt.URL_TEMPERATURE, driver)
 
     # url, function, function args, dom elements
     operations = [

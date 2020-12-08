@@ -35,7 +35,7 @@ from LWTest.gui.widgets import LWTTableWidget
 from LWTest.serial import ConfigureSerialNumbers
 from LWTest.spreadsheet import spreadsheet
 from LWTest.utilities import misc, file_utils
-from LWTest.web.interface.login import Login
+from LWTest.web.interface.login import Login, Credentials
 from LWTest.workers import upgrade, link
 from LWTest.utilities.oscomp import QSettingsAdapter
 
@@ -280,27 +280,13 @@ class MainWindow(QMainWindow):
     def _handle_action_advanced_configuration(self, _: bool):
         driver = self._get_browser()
         count = len(self.sensor_log)
-        login = Login.create_from_strings(
-            lwt.URL_TEMPERATURE,
-            "admin",
-            "FMIadm!n",
-            '//*[@id="username"]',
-            '//*[@id="password"]',
-            '/html/body/div/div/form/p[3]/input'
-        )
+        login = Login()
         configure.do_advanced_configuration(count, driver, login, QSettings())
 
     def _handle_action_calibrate(self):
-        login = Login.create_from_strings(
-            lwt.URL_CALIBRATE,
-            "admin",
-            "FMIadm!n",
-            '//*[@id="username"]',
-            '//*[@id="password"]',
-            '/html/body/div/div/form/p[3]/input'
-        )
-        driver = self._get_browser()
-        login.login(driver)
+        # just brings you to the calibration page for convenience
+        login = Login()
+        login.login(lwt.URL_CALIBRATE, self._get_browser())
 
     @flags(read=[FlagsEnum.SERIALS, FlagsEnum.ADVANCED], set_=[FlagsEnum.CORRECTION])
     def _handle_action_config_correction_angle(self, _: bool):

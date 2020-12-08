@@ -21,12 +21,10 @@ _NUMBER_OF_FIELDS_TO_SKIP = 6
 _CONFIG_PASSWORD_KEY = "main/config_password"
 
 
-def do_advanced_configuration(sensor_count: int, driver: webdriver.Chrome, settings: QSettings):
+def do_advanced_configuration(sensor_count: int, driver: webdriver.Chrome, login, settings: QSettings):
     config_password = settings.value(_CONFIG_PASSWORD_KEY)
 
-    # TODO: remove once live tested
-    # _login_if_necessary(driver, settings.value("main/admin_user"), settings.value("main/admin_password"))
-    _login_if_necessary(driver)
+    login.login(driver)
 
     # url, function, function args, dom elements
     operations = [
@@ -126,18 +124,3 @@ def _submit(driver, element) -> None:
 def _enter_password_and_submit(driver, config_password, password_element, submit_button):
     driver.find_element_by_xpath(password_element).send_keys(config_password)
     _submit(driver, submit_button)
-
-
-# TODO: remove once live tested
-# def _login_if_necessary(driver: webdriver.Chrome, user_name: str, password: str):
-#     driver.get(lwt.URL_TEMPERATURE)
-#     if "Login" in driver.page_source:
-#         # Landed on the 'Login' page.
-#         driver.find_element_by_xpath(dom.login_username_field).send_keys(user_name)
-#         driver.find_element_by_xpath(dom.login_password_field).send_keys(password)
-#         driver.find_element_by_xpath(dom.login_button).click()
-#         sleep(1.0)
-
-
-def _login_if_necessary(driver: webdriver.Chrome):
-    utils_misc.get_page_login_if_needed(lwt.URL_TEMPERATURE, driver)

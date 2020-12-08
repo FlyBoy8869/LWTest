@@ -1,16 +1,10 @@
 # utilities/misc.py
 import logging
-import traceback
-
-import os
 import sys
-from PyQt5.QtCore import QSettings
-from selenium import webdriver
-from selenium.common.exceptions import WebDriverException
+import traceback
 from typing import List, Tuple, Optional
 
-from LWTest.constants import dom, lwt
-
+from LWTest.constants import lwt
 
 _logger = logging.getLogger(__name__)
 
@@ -40,28 +34,6 @@ def ensure_six_numbers(serial_numbers: List[str]) -> Tuple[str]:
     assert len(numbers) == 6, "return value must contain exactly six numbers"
 
     return tuple(numbers)
-
-
-def get_page_login_if_needed(url: str, browser: webdriver.Chrome):
-    _logger.debug(f"requesting {url}, checking if login is required")
-
-    settings = QSettings()
-    user = settings.value("main/admin_user")
-    password = settings.value("main/admin_password")
-
-    try:
-        browser.get(url)
-    except WebDriverException:
-        return
-
-    if "login" in browser.page_source.lower():
-        _logger.debug("logging in")
-
-        browser.find_element_by_xpath(dom.login_username_field).send_keys(user)
-        browser.find_element_by_xpath(dom.login_password_field).send_keys(password)
-        browser.find_element_by_xpath(dom.login_button).click()
-
-        browser.get(url)
 
 
 def print_exception_info():

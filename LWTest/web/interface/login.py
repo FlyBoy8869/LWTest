@@ -4,33 +4,27 @@ from collections import namedtuple
 from selenium import webdriver
 import LWTest.web.interface.htmlelements as html
 
+from LWTest.constants import dom
 
 Credentials = namedtuple("Credentials", "user_name password")
-LoginFields = namedtuple("LoginFields", "user_name password submit_button")
 
+# default credentials
 _credentials = Credentials(
     user_name=os.getenv("LWTESTADMIN"),
     password=os.getenv("LWTESTADMINPASSWORD")
 )
 
+LoginFields = namedtuple("LoginFields", "user_name password submit_button")
+
+# default login fields
 _login_fields = LoginFields(
-    user_name=html.HTMLTextInput(html.CSSXPath('//*[@id="username"]')),
-    password=html.HTMLTextInput(html.CSSXPath('//*[@id="password"]')),
-    submit_button=html.HTMLButton(html.CSSXPath('/html/body/div/div/form/p[3]/input'))
+    user_name=html.HTMLTextInput(html.CSSXPath(dom.LOGIN_USERNAME_FIELD)),
+    password=html.HTMLTextInput(html.CSSXPath(dom.LOGIN_PASSWORD_FIELD)),
+    submit_button=html.HTMLButton(html.CSSXPath(dom.LOGIN_BUTTON))
 )
 
 
 class Login:
-    @classmethod
-    def create_from_strings(cls, user: str, password: str, user_field: str, password_field: str, submit_button: str):
-        credentials = Credentials(user_name=user, password=password)
-        login_fields = LoginFields(
-            user_name=html.HTMLTextInput(html.CSSXPath(user_field)),
-            password=html.HTMLTextInput(html.CSSXPath(password_field)),
-            submit_button=html.HTMLButton(html.CSSXPath(submit_button))
-        )
-        return cls(credentials, login_fields)
-
     def __init__(self, credentials: Credentials = _credentials, login_fields: LoginFields = _login_fields):
         self.__credentials = credentials
         self.__login_fields = login_fields

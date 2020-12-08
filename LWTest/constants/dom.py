@@ -5,9 +5,9 @@ from PyQt5.QtCore import QSettings
 TESTING = True if QSettings().value("DEBUG") == 'true' else False
 
 login_header = '/html/body/div/h1'
-login_username_field = '//*[@id="username"]'
-login_password_field = '//*[@id="password"]'
-login_button = '/html/body/div/div/form/p[3]/input'
+LOGIN_USERNAME_FIELD = '//*[@id="username"]'
+LOGIN_PASSWORD_FIELD = '//*[@id="password"]'
+LOGIN_BUTTON = '/html/body/div/div/form/p[3]/input'
 
 # Configuration elements
 serial_number_elements = ('//*[@id="maindiv"]/form/div[1]/div[2]/div[3]/input',

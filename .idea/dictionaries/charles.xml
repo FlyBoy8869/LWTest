@@ -7,6 +7,8 @@
       <w>iadm</w>
       <w>linewatchshared</w>
       <w>logfiles</w>
+      <w>lwtestadmin</w>
+      <w>lwtestadminpassword</w>
       <w>macos</w>
       <w>mainwindow</w>
       <w>oscomp</w>

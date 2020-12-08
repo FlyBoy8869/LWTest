@@ -1,32 +1,30 @@
 import logging
+from pathlib import Path
+from typing import Optional, Tuple
 
 from PyQt5 import QtGui
 from PyQt5.QtCore import QThreadPool, QSettings, QSize, Qt, QReadWriteLock, QObject, pyqtSignal
 from PyQt5.QtGui import QIcon, QCloseEvent, QBrush
 from PyQt5.QtWidgets import QMainWindow, QVBoxLayout, QWidget, QTableWidgetItem, QMessageBox, QToolBar, \
     QDialog, QDoubleSpinBox, QApplication
-from pathlib import Path
 from selenium import webdriver
-from typing import Optional, Tuple
 
 import LWTest
+import LWTest.changetracker as changetracker
 import LWTest.gui.main_window.sensortable as sensortable
 import LWTest.gui.theme as theme
-import LWTest.utilities as utilities
-import LWTest.utilities.misc as utilities_misc
-import LWTest.changetracker as changetracker
 from LWTest import sensor
 from LWTest.collector import configure
 from LWTest.collector.read.read import DataReader, PersistenceComparator, FirmwareVersionReader, \
     ReportingDataReader
 from LWTest.common.flags.flags import flags, FlagsEnum
 from LWTest.constants import lwt
-from LWTest.dialogs.createset import manual_set_entry
-from LWTest.dialogs.spin import SpinDialog
 from LWTest.dialogs.countdown import CountDownDialog
+from LWTest.dialogs.createset import manual_set_entry
 from LWTest.dialogs.persistence import PersistenceBootMonitorDialog
-from LWTest.dialogs.upgrade import UpgradeDialog
 from LWTest.dialogs.save import SaveDialog
+from LWTest.dialogs.spin import SpinDialog
+from LWTest.dialogs.upgrade import UpgradeDialog
 from LWTest.gui.main_window.create_menus import MenuHelper
 from LWTest.gui.main_window.menu_help_handlers import menu_help_about_handler
 from LWTest.gui.main_window.tablemodelview import SensorTableViewUpdater
@@ -35,9 +33,9 @@ from LWTest.gui.widgets import LWTTableWidget
 from LWTest.serial import ConfigureSerialNumbers
 from LWTest.spreadsheet import spreadsheet
 from LWTest.utilities import misc, file_utils
-from LWTest.web.interface.login import Login, Credentials
-from LWTest.workers import upgrade, link
 from LWTest.utilities.oscomp import QSettingsAdapter
+from LWTest.web.interface.login import Login
+from LWTest.workers import upgrade, link
 
 style_sheet = "QProgressBar{ max-height: 10px; }"
 
@@ -119,6 +117,7 @@ class MainWindow(QMainWindow):
             self.thread_pool.clear()
             self._close_browser()
             self._save_window_geometry_to_settings()
+            self._logger.debug("program terminated")
             closing_event.accept()
         else:
             closing_event.ignore()
@@ -237,20 +236,21 @@ class MainWindow(QMainWindow):
         self.thread_pool.start(link_thread)
 
     def _handle_action_upgrade_sensor(self):
-        row = self.sensor_table.currentRow()
+        phase = self.sensor_table.currentRow()
 
         if not self.firmware_upgrade_in_progress:
             self.firmware_upgrade_in_progress = True
 
             browser = self._get_browser()
-            serial_number = self.sensor_log.get_sensor_by_phase(row).serial_number
+            serial_number = self.sensor_log.get_sensor_by_phase(phase).serial_number
 
             worker = upgrade.UpgradeWorker(serial_number, lwt.URL_UPGRADE_LOG)
             worker.signals.upgrade_successful.connect(self._upgrade_successful)
             worker.signals.upgrade_failed_to_enter_program_mode.connect(
-                lambda: self._failed_to_enter_program_mode(row))
+                self._failed_to_enter_program_mode
+            )
 
-            upgrade_dialog = UpgradeDialog(serial_number, row, worker, self._start_worker, browser, self)
+            upgrade_dialog = UpgradeDialog(serial_number, phase, worker, self._start_worker, browser, self)
             upgrade_dialog.error.connect(self._handle_upgrade_error_signal)
             upgrade_dialog.exec_()
 
@@ -272,7 +272,7 @@ class MainWindow(QMainWindow):
 
         self._show_information_dialog("Sensor firmware successfully upgraded.")
 
-    def _failed_to_enter_program_mode(self, row: int):
+    def _failed_to_enter_program_mode(self):
         QMessageBox.warning(QMessageBox(self), LWTest.app_title, "Failed to upgrade sensor.", QMessageBox.Ok)
         self.firmware_upgrade_in_progress = False
 
@@ -441,6 +441,15 @@ class MainWindow(QMainWindow):
             self.browser.quit()
             self.browser = None
 
+    def _can_save(self):
+        return not self.spreadsheet_file_name == ""
+
+    def _check_references_entered(self) -> bool:
+        if not all(self.high_voltage_reference) or not all(self.low_voltage_reference):
+            return False
+
+        return True
+
     def _get_browser(self):
         if self.browser is None:
             geometry = self.geometry()
@@ -469,20 +478,26 @@ class MainWindow(QMainWindow):
         td.open()
 
     def _handle_action_save(self):
-        if not all(self.high_voltage_reference) or not all(self.low_voltage_reference):
-            self._handle_action_enter_references()
+        if not self._can_save():
+            self._logger.debug("save action triggered, but no spreadsheet dropped in window")
+            return
 
         log_file_path = file_utils.create_log_filename(
             self.spreadsheet_file_name, self.sensor_log.get_serial_numbers_as_tuple()
         )
-        save_data_dialog = SaveDialog(self, self.spreadsheet_file_name, log_file_path, iter(self.sensor_log),
-                                      (self.sensor_log.room_temperature,
-                                       self.high_voltage_reference,
-                                       self.low_voltage_reference)
-                                      )
-        result = save_data_dialog.exec()
 
-        if result == QDialog.Accepted:
+        if not self._check_references_entered():
+            self._handle_action_enter_references()
+
+        save_data_dialog = SaveDialog(
+            self,
+            self.spreadsheet_file_name,
+            log_file_path, iter(self.sensor_log),
+            (self.sensor_log.room_temperature,
+             self.high_voltage_reference,
+             self.low_voltage_reference)
+        )
+        if save_data_dialog.exec() == QDialog.Accepted:
             self.changes.clear_change_flag()
 
     def _handle_persistence_boot_monitor_finished_signal(self, result_code):

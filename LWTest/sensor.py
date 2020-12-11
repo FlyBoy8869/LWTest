@@ -52,6 +52,25 @@ class SensorLog:
     def __init__(self):
         self._log = dict()
         self._room_temperature: str = "21.7"
+        self._high_voltage_reference = ("", "", "", "")
+        self._low_voltage_reference = ("", "", "", "")
+
+    @property
+    def have_references(self):
+        if not all(self._high_voltage_reference) or not all(self._low_voltage_reference):
+            return False
+
+        return True
+
+    @property
+    def references(self):
+        return self._high_voltage_reference, self._low_voltage_reference
+
+    @references.setter
+    def references(self, values):
+        high_refs, low_refs = values
+        self._high_voltage_reference = high_refs
+        self._low_voltage_reference = low_refs
 
     @property
     def room_temperature(self):

@@ -54,6 +54,7 @@ class LinkWorker(QRunnable):
         self.__timeout = lwt.TimeOut.LINK_CHECK.value
 
     def run(self):
+        self.__logger.debug("LinkWorker thread run method started")
         start_time = time.time()
         try:
             while time.time() - start_time < self.__timeout:
@@ -73,6 +74,7 @@ class LinkWorker(QRunnable):
         except requests.exceptions.RequestException as exc:
             self.__logger.exception("Error checking link status", exc_info=exc)
         finally:
+            self.__logger.debug("emitting 'finished' signal")
             self.signals.finished.emit()
 
     def _all_sensors_linked(self):
@@ -80,10 +82,10 @@ class LinkWorker(QRunnable):
 
     def _emit_not_linked_signal_for_these_serial_numbers(self, serial_numbers):
         self.signals.link_timeout.emit(tuple(serial_numbers))
-        print("timed out waiting for sensors to link")
+        self.__logger.debug("timed out waiting for sensors to link")
 
     def _emit_signal_if_linked(self, data):
-        print(f"{time.time()} found a link for sensor {data[0]} with an rssi of {data[3]}")
+        self.__logger.debug(f"{time.time()} found a link for sensor {data[0]} with an rssi of {data[3]}")
         self.signals.successful_link.emit((data[0], data[3]))  # serial number, rssi
 
     def _extract_sensor_record_from_page(self, text):

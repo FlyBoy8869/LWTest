@@ -5,6 +5,10 @@ class ChangeTracker:
     def __init__(self):
         self._unsaved_changes = False
 
+    @property
+    def is_changes(self):
+        return self._unsaved_changes
+
     def can_discard(self, *, parent, clear_flag=True):
         if self._unsaved_changes:
             button = QMessageBox.question(parent, "Unsaved Test Results",

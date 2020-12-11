@@ -6,8 +6,8 @@ import LWTest.gui.main_window.helper as helper
 from LWTest.constants import lwt
 
 
-def setup_table_widget(parent, serial_numbers: tuple, table: QTableWidget, calibrated_override: Callable,
-                       fault_current_override: Callable):
+def setup_table(parent, serial_numbers: tuple, table: QTableWidget, calibrated_override: Callable,
+                fault_current_override: Callable):
     headers = ["Serial Number", "\t\t\t\t\t\tRSSI\t\t\t\t\t\t", "Firmware", "Reporting Data",
                "Calibration",
                "\t\t\t\t\t\t13.8K\t\t\t\t\t\t", "\t\t\t\t120A\t\t\t\t", "Power Factor", "Real Power",

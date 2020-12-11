@@ -12,12 +12,14 @@
       <w>lwtestadminpassword</w>
       <w>macos</w>
       <w>mainwindow</w>
+      <w>mockcollector</w>
       <w>oscomp</w>
       <w>sensortable</w>
       <w>tcell</w>
       <w>testid</w>
       <w>testrecord</w>
       <w>wtest</w>
+      <w>yokogawa</w>
     </words>
   </dictionary>
 </component>

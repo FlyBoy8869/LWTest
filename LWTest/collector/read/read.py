@@ -1,3 +1,4 @@
+import logging
 from typing import List
 
 from PyQt5.QtCore import pyqtSignal, QObject
@@ -63,7 +64,8 @@ class DataReader:
             return returns.Result(True, None)
 
     def _get_advanced_readings(self, results, count, browser):
-        utils_misc.get_page_login_if_needed(self._raw_configuration_url, browser)
+        # utils_misc.get_page_login_if_needed(self._raw_configuration_url, browser)
+        browser.get(self._raw_configuration_url)
         readings = browser.find_elements_by_css_selector("div.tcell > input")
 
         # scale current, scale voltage, correction angle
@@ -158,13 +160,14 @@ class PersistenceComparator:
 
     def _live_readings(self, sensor_count: int, url: str, driver: webdriver.Chrome):
         return self._reading_element_values(
-            self._reading_elements(url, driver),
+            self._read_elements(url, driver),
             sensor_count
         )
 
     @staticmethod
-    def _reading_elements(url: str, driver: webdriver.Chrome):
-        utils_misc.get_page_login_if_needed(url, driver)
+    def _read_elements(url: str, driver: webdriver.Chrome):
+        # utils_misc.get_page_login_if_needed(url, driver)
+        driver.get(url)
         return driver.find_elements_by_css_selector("div.tcell > input")
 
     def _reading_element_values(self, reading_elements, count: int):
@@ -206,9 +209,11 @@ class ReportingDataReader:
         finished = pyqtSignal()
 
     def __init__(self):
+        self._logger = logging.getLogger(__name__)
         self.signals = self.Signals()
 
     def read(self, phase: int, url: str, driver: webdriver.Chrome):
+        self._logger.debug(f"confirming Phase {phase} is reading data")
         driver.get(url)
 
         try:
@@ -231,9 +236,11 @@ class FirmwareVersionReader:
         finished = pyqtSignal()
 
     def __init__(self):
+        self._logger = logging.getLogger(__name__)
         self.signals = self.Signals()
 
     def read(self, phase: int, url: str, driver: webdriver.Chrome):
+        self._logger.debug(f"reading firmware version for Phase {phase}")
         driver.get(url)
 
         try:

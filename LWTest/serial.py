@@ -5,8 +5,6 @@ from selenium import webdriver
 import LWTest.constants.dom as dom
 from LWTest.web.interface.page import Page
 
-PAGE_LOAD_CONFIRMATION_TEXT: str = "Sensor Configuration"
-
 
 class ConfigureSerialNumbers:
     def __init__(self, serial_numbers, password, browser, url):
@@ -20,7 +18,7 @@ class ConfigureSerialNumbers:
             self._setup_collector()
             return True, ""
 
-        network_msg = "<h3>Network Error configuring collector</h3>" + \
+        network_msg = "<h3>Network Error</h3>" + \
                       "Ensure all connections are made and the collector is powered on."
 
         server_msg = "<h3>Server Error configuring collector</h3>" + \

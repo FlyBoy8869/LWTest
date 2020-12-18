@@ -1,5 +1,7 @@
 import logging
 import re
+from typing import Tuple
+
 import requests
 import time
 from PyQt5.QtCore import QRunnable, QObject, pyqtSignal
@@ -7,6 +9,7 @@ from time import sleep
 
 from LWTest.constants import lwt
 
+_serial_number_regex = re.compile(r"\s*\d{7}")
 linked_regex = r"\s*\d{7}\s*\d{7}\s*\d{7}\s*-?\d{2}"
 
 
@@ -38,6 +41,34 @@ class ModemStatusPageLoader:
         return page
 
 
+class SerialNumberUpdateVerifier:
+    class Signals(QObject):
+        serial_numbers_updated = pyqtSignal()
+        timed_out = pyqtSignal()
+
+    def __init__(self, serial_numbers: Tuple[str]):
+        self.signals = SerialNumberUpdateVerifier.Signals()
+        self._serial_numbers = serial_numbers
+        self._page_loader = ModemStatusPageLoader(lwt.URL_MODEM_STATUS)
+        self._timeout = 180
+
+    def verify(self):
+        end_time = time.time() + self._timeout
+        while time.time() < end_time:
+            page = self._page_loader.page
+            if page.status_code != 200:
+                return
+
+            if len(_extract_sensor_record_from_page(page.text, self._serial_numbers)) == len(self._serial_numbers):
+                print("serials updated...")
+                self.signals.serial_numbers_updated.emit()
+                return
+
+            sleep(0.300)
+
+        self.signals.timed_out.emit()
+
+
 class LinkWorker(QRunnable):
     def __init__(self, serial_numbers: list, url):
         super().__init__()
@@ -46,9 +77,6 @@ class LinkWorker(QRunnable):
         self.__logger = logging.getLogger(__name__)
         self.__serial_numbers = serial_numbers
         self.__page_loader = ModemStatusPageLoader(url)
-
-        # zero or more whitespace \s* followed by 7 digits \d{7}
-        self.__serial_number_pattern = re.compile(r"\s*\d{7}")
 
         self.__time_to_sleep = lwt.TimeOut.LINK_PAGE_LOAD_INTERVAL.value
         self.__timeout = lwt.TimeOut.LINK_CHECK.value
@@ -63,9 +91,8 @@ class LinkWorker(QRunnable):
                     return
 
                 if page.status_code == 200:
-                    self._process_sensor_records(self._extract_sensor_record_from_page(page.text))
+                    self._process_sensor_records(_extract_sensor_record_from_page(page.text, self.__serial_numbers))
                     if self._all_sensors_linked():
-                        self.signals.finished.emit()
                         return
 
                 sleep(self.__time_to_sleep)
@@ -88,16 +115,8 @@ class LinkWorker(QRunnable):
         self.__logger.debug(f"{time.time()} found a link for sensor {data[0]} with an rssi of {data[3]}")
         self.signals.successful_link.emit((data[0], data[3]))  # serial number, rssi
 
-    def _extract_sensor_record_from_page(self, text):
-        sensors = [line.split() for line in text.split('\n') if self._line_starts_with_serial_number(line)]
-        return [sensor for sensor in sensors if sensor[0] in self.__serial_numbers]
-
     def _handle_timeout(self):
         self._emit_not_linked_signal_for_these_serial_numbers(self.__serial_numbers)
-        self.signals.finished.emit()
-
-    def _line_starts_with_serial_number(self, line: str):
-        return self.__serial_number_pattern.match(line)
 
     def _notify_page_not_found(self):
         message = ("Received error 404 Page not found.\n" +
@@ -115,3 +134,14 @@ class LinkWorker(QRunnable):
     @staticmethod
     def _page_not_found(status_code):
         return status_code == 404
+
+
+#
+# stand-alone functions
+def _line_starts_with_serial_number(line: str):
+    return _serial_number_regex.match(line)
+
+
+def _extract_sensor_record_from_page(text, serial_numbers):
+    sensor_records = [line.split() for line in text.split('\n') if _line_starts_with_serial_number(line)]
+    return [sensor for sensor in sensor_records if sensor[0] in serial_numbers]

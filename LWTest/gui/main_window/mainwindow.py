@@ -1,20 +1,21 @@
 import logging
 from pathlib import Path
-from time import sleep
 from typing import Optional, Tuple
 
 from PyQt5 import QtGui
-from PyQt5.QtCore import QThreadPool, QSettings, QSize, Qt, QReadWriteLock, QObject, pyqtSignal
+from PyQt5.QtCore import QThreadPool, QSettings, QSize, Qt, QReadWriteLock, QObject, pyqtSignal, QTimer, QMutexLocker, \
+    QMutex
 from PyQt5.QtGui import QIcon, QCloseEvent, QBrush
 from PyQt5.QtWidgets import QMainWindow, QVBoxLayout, QWidget, QTableWidgetItem, QMessageBox, QToolBar, \
     QDialog, QDoubleSpinBox, QApplication
 from selenium import webdriver
+from selenium.common.exceptions import WebDriverException
 
 import LWTest
 import LWTest.changetracker as changetracker
 import LWTest.gui.main_window.sensortable as sensortable
 import LWTest.gui.theme as theme
-from LWTest import sensor, save, getrefs, web
+from LWTest import sensor, save, getrefs, web, cdriver
 from LWTest.collector import configure
 from LWTest.collector.read.read import DataReader, PersistenceComparator, FirmwareVersionReader, \
     ReportingDataReader
@@ -194,8 +195,9 @@ class MainWindow(QMainWindow):
 
     @flags(set_=[FlagsEnum.SERIALS])
     def _handle_action_configure_serial_numbers(self, _: bool):
+        serial_numbers = self.sensor_log.get_serial_numbers_as_list()
         configurator = ConfigureSerialNumbers(
-            misc.ensure_six_numbers(self.sensor_log.get_serial_numbers_as_list()),
+            misc.ensure_six_numbers(serial_numbers),
             QSettingsAdapter().value("main/config_password"),
             self._get_browser(),
             lwt.URL_CONFIGURATION
@@ -203,7 +205,8 @@ class MainWindow(QMainWindow):
 
         result, error_msg = configurator.configure()
         if result:
-            self._start_confirm_serial_update()
+            # self._start_sensor_link_check()
+            self._start_serial_update_verifier(serial_numbers)
         else:
             self._handle_serial_number_configuration_failure(error_msg)
 
@@ -211,7 +214,19 @@ class MainWindow(QMainWindow):
     def _handle_serial_number_configuration_failure(self, error_msg: str):
         self._show_warning_dialog(error_msg)
 
-    def _start_confirm_serial_update(self):
+    def _start_serial_update_verifier(self, serial_numbers):
+        verifier = link.SerialNumberUpdateVerifier(serial_numbers)
+        verifier.signals.serial_numbers_updated.connect(self._serial_numbers_successfully_updated)
+        verifier.signals.timed_out.connect(
+            lambda: self.statusBar().showMessage("Timed out verifying serial number update.")
+        )
+        verifier.verify()
+
+    def _serial_numbers_successfully_updated(self):
+        self.statusBar().showMessage("Serial Numbers Updated.")
+        QTimer.singleShot(1000, self._start_sensor_link_check)
+
+    def _start_sensor_link_check(self):
         dialog = SpinDialog(self, "Collecting startup data...\t\t\t")
         dialog.show()
         dialog.raise_()
@@ -292,6 +307,7 @@ class MainWindow(QMainWindow):
         if configure.configure_phase_angle(
                 lwt.URL_CONFIGURATION,
                 self._get_browser(),
+                Page,
                 submit_button
         ):
             return
@@ -304,8 +320,8 @@ class MainWindow(QMainWindow):
 
     def _verify_raw_configuration_readings_persist(self):
         comparator = PersistenceComparator()
-        comparator.signals.persisted.connect(self.sensor_log.record_persistence_readings)
-        comparator.signals.finished.connect(
+        comparator.persisted.connect(self.sensor_log.record_persistence_readings)
+        comparator.finished.connect(
             lambda: self._table_view_updater.update_from_model(self.sensor_log.get_sensors())
         )
         comparator.compare(
@@ -317,13 +333,13 @@ class MainWindow(QMainWindow):
 
     def _create_reporting_reader(self):
         reporting_reader = ReportingDataReader()
-        reporting_reader.signals.reporting.connect(self.sensor_log.record_reporting_data)
+        reporting_reader.update.connect(self.sensor_log.record_reporting_data)
         self._logger.debug("created reporting reader")
         return reporting_reader
 
     def _create_firmware_reader(self):
         firmware_reader = FirmwareVersionReader()
-        firmware_reader.signals.version.connect(
+        firmware_reader.update.connect(
             lambda phase, version: self.sensor_log.record_firmware_version(phase, version))
         self._logger.debug("created firmware reader")
         return firmware_reader
@@ -336,22 +352,14 @@ class MainWindow(QMainWindow):
     def _get_sensor_phase(self, serial_number):
         return self.sensor_log[serial_number].phase
 
-    # responds to LinkWorker.successful_link signal
+    # responds to signal: LinkWorker.successful_link
     def _get_sensor_link_data(self, serial_number):
-        self.lock.lockForRead()
-        self._logger.debug(f"locked for firmware and reporting read on sensor {serial_number}")
-
         driver = self._get_browser()
         phase = self._get_sensor_phase(serial_number)
         firmware_reader, reporting_reader = self._get_sensor_link_data_readers()
 
         firmware_reader.read(phase, lwt.URL_SOFTWARE_UPGRADE, driver)
         reporting_reader.read(phase, lwt.URL_SENSOR_DATA, driver)
-
-        self._table_view_updater.update_from_model(self.sensor_log.get_sensors())
-
-        self._logger.debug(f"unlocking after firmware and reporting read on sensor {serial_number}")
-        self.lock.unlock()
 
     def _handle_action_fault_current(self, _: bool):
         self._get_browser().get(lwt.URL_FAULT_CURRENT)
@@ -362,7 +370,7 @@ class MainWindow(QMainWindow):
         data_reader.signals.high_data_readings.connect(self._process_high_data_readings)
         data_reader.signals.low_data_readings.connect(self._process_low_data_readings)
         data_reader.signals.page_load_error.connect(self._handle_take_readings_page_load_error)
-        data_reader.read(self._get_browser(), self._get_sensor_count())
+        data_reader.read(self._get_browser())
 
         self.changes.set_change_flag()
 
@@ -457,9 +465,6 @@ class MainWindow(QMainWindow):
 
         return self.browser
 
-    def _get_sensor_count(self):
-        return len(self.sensor_log)
-
     def _handle_action_about(self):
         menu_help_about_handler(parent=self)
 
@@ -515,6 +520,10 @@ class MainWindow(QMainWindow):
         QMessageBox.warning(self, LWTest.app_title, message, QMessageBox.Ok, QMessageBox.Ok)
 
     def _table_item_double_clicked(self, row: int):
+        # prevent a calibration cycle from being started for an un-linked sensor
+        if not self.sensor_log.get_sensor_by_phase(row).linked:
+            return
+
         driver: webdriver.Chrome = self._get_browser()
         driver.get(lwt.URL_CALIBRATE)
         element = driver.find_elements_by_css_selector("option")[row]
@@ -523,7 +532,7 @@ class MainWindow(QMainWindow):
         driver.find_element_by_css_selector("input[type='password']").send_keys("Q854Xj8X")
         driver.find_element_by_css_selector("input[type='submit']").click()
 
-        # ask for results
+        # ask user to indicate results of calibration cycle
         result = QMessageBox.question(
             self,
             f"{phase} Calibration Result",
@@ -532,7 +541,7 @@ class MainWindow(QMainWindow):
             QMessageBox.Yes
         )
 
-        # record results
+        # record that result in the table
         result_map = {
             QMessageBox.Yes: lambda: self._manually_override_calibration_result("Pass", row),
             QMessageBox.No: lambda: self._manually_override_calibration_result("Fail", row),

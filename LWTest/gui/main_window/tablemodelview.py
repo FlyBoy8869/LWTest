@@ -1,5 +1,7 @@
+import logging
 from collections import namedtuple
 
+from PyQt5.QtCore import QMutex, QMutexLocker, QReadWriteLock
 from PyQt5.QtGui import QBrush
 from PyQt5.QtWidgets import QTableWidget, QTableWidgetItem
 from typing import Tuple, Callable, Union
@@ -101,6 +103,7 @@ class CellLocation:
 
 class SensorTableViewUpdater:
     def __init__(self, table: QTableWidget, get_temp_ref: Callable):
+        self._logger = logging.getLogger(__name__)
         self._table = table
         self._get_temp_ref = get_temp_ref
 

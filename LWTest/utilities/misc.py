@@ -2,7 +2,7 @@
 import logging
 import sys
 import traceback
-from typing import List, Tuple, Optional
+from typing import List, Tuple
 
 from LWTest.constants import lwt
 
@@ -45,13 +45,9 @@ def normalize_reading(reading: str) -> str:
     return reading.replace(",", "")
 
 
-def x_is_what_percent_of_y(dividend: int, divisor: int) -> Optional[float]:
+def x_is_what_percent_of_y(dividend: int, divisor: int) -> float:
     assert divisor > 0, "divisor can not be less than 1"
     return dividend / divisor * 100
-
-
-def filter_out_na(readings: list) -> list:
-    return list(filter(lambda r: r != lwt.NO_DATA, readings))
 
 
 if __name__ == '__main__':

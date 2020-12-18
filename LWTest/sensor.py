@@ -1,4 +1,5 @@
 # sensor.py
+import copy
 from typing import Optional, List, Tuple, cast
 
 import LWTest.constants.lwt_constants as lwt
@@ -31,7 +32,7 @@ class Sensor:
 
     @property
     def linked(self):
-        return self.rssi != "Not Linked"
+        return self.rssi != "NA"
 
     def __repr__(self):
         r = (f"Sensor(serial_number={self.serial_number}, rssi={self.rssi}, "

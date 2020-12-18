@@ -358,8 +358,8 @@ class MainWindow(QMainWindow):
         phase = self._get_sensor_phase(serial_number)
         firmware_reader, reporting_reader = self._get_sensor_link_data_readers()
 
-        firmware_reader.read(phase, lwt.URL_SOFTWARE_UPGRADE, driver)
-        reporting_reader.read(phase, lwt.URL_SENSOR_DATA, driver)
+        firmware_reader.read(phase, driver)
+        reporting_reader.read(phase, driver)
 
     def _handle_action_fault_current(self, _: bool):
         self._get_browser().get(lwt.URL_FAULT_CURRENT)

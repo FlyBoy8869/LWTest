@@ -1,6 +1,6 @@
 import logging
 from functools import partial
-from typing import List, Union
+from typing import List, Union, Tuple
 
 from PyQt5.QtCore import pyqtSignal, QObject
 from PyQt5.QtWidgets import QMessageBox
@@ -48,11 +48,9 @@ def _get_elements(selector, driver):
     return driver.find_elements_by_css_selector(selector)
 
 
-class DataReader:
-    class Signals(QObject):
-        high_data_readings = pyqtSignal(tuple)
-        low_data_readings = pyqtSignal(tuple)
-        page_load_error = pyqtSignal()
+class DataReader(QObject):
+    page_load_error = pyqtSignal()
+    readings = pyqtSignal(str, tuple)  # readings.emit("HIGH_VOLTAGE", ("13000.00", "13000.00", "13000.00"))
 
     _HIGH_VOLTAGE_THRESHOLD = 10500.0
     _HIGH_CURRENT_THRESHOLD = 90.0
@@ -64,7 +62,7 @@ class DataReader:
     _LOW_RANGE = -1
 
     def __init__(self, sensor_data_url: str, raw_config_url: str) -> None:
-        self.signals = self.Signals()
+        super().__init__()
         self._sensor_data_url = sensor_data_url
         self._raw_configuration_url = raw_config_url
         self._columns = None
@@ -72,7 +70,8 @@ class DataReader:
     def read(self, driver: webdriver.Chrome):
         driver.get(self._sensor_data_url)
         if "Auto Update" not in driver.page_source:
-            self.signals.page_load_error.emit()
+            self.page_load_error.emit()
+            return
 
         self._columns = _get_columns(driver)
         readings = _get_elements(_READING_ELEMENTS, driver)
@@ -85,7 +84,10 @@ class DataReader:
             return
 
         if range_ == self._HIGH_RANGE:
-            self.signals.high_data_readings.emit(tuple(results))
+            self.readings.emit("HIGH_VOLTAGE", tuple(results[0]))
+            self.readings.emit("HIGH_CURRENT", tuple(results[1]))
+            self.readings.emit("HIGH_POWER_FACTOR", tuple(results[2]))
+            self.readings.emit("HIGH_REAL_POWER", tuple(results[3]))
         else:  # these readings gathered only when low voltage is dialed in
             driver.get(self._raw_configuration_url)
             readings = _get_elements("div.tcell > input", driver)
@@ -95,7 +97,14 @@ class DataReader:
                 self._columns
             )
             results.append(temperature_readings)
-            self.signals.low_data_readings.emit(tuple(results))
+            self.readings.emit("LOW_VOLTAGE", tuple(results[0]))
+            self.readings.emit("LOW_CURRENT", tuple(results[1]))
+            self.readings.emit("LOW_POWER_FACTOR", tuple(results[2]))
+            self.readings.emit("LOW_REAL_POWER", tuple(results[3]))
+            self.readings.emit("SCALE_CURRENT", tuple(results[4]))
+            self.readings.emit("SCALE_VOLTAGE", tuple(results[5]))
+            self.readings.emit("CORRECTION_ANGLE", tuple(results[6]))
+            self.readings.emit("TEMPERATURE", tuple(results[7]))
 
     @staticmethod
     def _extract_sensor_readings(readings, columns):
@@ -112,8 +121,13 @@ class DataReader:
             [real_power_index, real_power_index + columns]
         ]
 
-        return [DataReader._scrape_readings(readings, "textContent", start, stop)
-                for start, stop in reading_slice_indexes]
+        values = [DataReader._scrape_readings(readings, "textContent", start, stop)
+                  for start, stop in reading_slice_indexes]
+
+        voltage_list = values[0]
+        values[0] = [value.replace(",", "") for value in voltage_list]
+
+        return values
 
     @staticmethod
     def _extract_advanced_readings(readings, columns) -> List[List[str]]:
@@ -215,30 +229,32 @@ class DataReader:
 
 
 class PersistenceComparator(QObject):
-    persisted = pyqtSignal(list)
+    persisted = pyqtSignal(str, tuple)
     finished = pyqtSignal()
 
     def __init__(self):
         super().__init__()
 
-    def compare(self, saved_readings, sensor_count: int, url: str, driver: webdriver.Chrome):
+    def compare(self, saved_readings, url: str, driver: webdriver.Chrome):
+        driver.get(url)
+        columns = _get_columns(driver)
         self.persisted.emit(
+            "PERSISTS",
             self._compare(
                 saved_readings,
-                self._live_readings(sensor_count, url, driver)
+                self._live_readings(columns, driver)
             )
         )
         self.finished.emit()
 
-    def _live_readings(self, sensor_count: int, url: str, driver: webdriver.Chrome):
+    def _live_readings(self, sensor_count: int, driver: webdriver.Chrome):
         return self._reading_element_values(
-            self._read_elements(url, driver),
+            self._read_elements(driver),
             sensor_count
         )
 
     @staticmethod
-    def _read_elements(url: str, driver: webdriver.Chrome):
-        driver.get(url)
+    def _read_elements(driver: webdriver.Chrome):
         return driver.find_elements_by_css_selector("div.tcell > input")
 
     def _reading_element_values(self, reading_elements, count: int):
@@ -264,14 +280,14 @@ class PersistenceComparator(QObject):
         return [reading.get_attribute("value") for reading in elements[start:stop]]
 
     @staticmethod
-    def _compare(saved_readings, live_readings) -> List[str]:
+    def _compare(saved_readings, live_readings) -> Tuple[str]:
         persistence_results = ["Pass"] * len(saved_readings)
 
         for sensor_index, sensor_readings in enumerate(saved_readings):
             if live_readings[sensor_index] != sensor_readings:
                 persistence_results[sensor_index] = "Fail"
 
-        return persistence_results
+        return tuple(persistence_results)
 
 
 class Reader(QObject):

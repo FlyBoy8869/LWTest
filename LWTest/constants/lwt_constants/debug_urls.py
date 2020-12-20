@@ -1,7 +1,7 @@
 URL_CONFIGURATION = "http://localhost:5000/configuration"
 URL_MODEM_STATUS = "http://localhost:5000/modemstatus"
 URL_SOFTWARE_UPGRADE = "http://localhost:5000/softwareupgrade"
-URL_UPGRADE_LOG = ""
+URL_UPGRADE_LOG = "/Users/charles/PycharmProjects/LWTest/tests/mock/software_upgrade_example_1.html"
 # . URL_UPGRADE_LOG = r"LWTest\tests\webpages\software upgrade example of failure.html"
 URL_SENSOR_DATA = "http://localhost:5000/sensordata"
 URL_TEMPERATURE = "http://localhost:5000/temperaturescale"

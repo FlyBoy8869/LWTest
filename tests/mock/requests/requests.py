@@ -53,10 +53,17 @@ def _setup_page(contents: str):
     _page = _Page(contents)
 
 
-def get(url: str) -> _Page:
+def get(url: str, timeout=0) -> _Page:
     if _page is None:
         _setup_page(url)
 
     if _page:
         _page.add_more_lines()
         return copy.deepcopy(_page)
+
+
+if __name__ == '__main__':
+    for _ in range(5):
+        page = get("/Users/charles/PycharmProjects/LWTest/tests/mock/software_upgrade_example_1.html", timeout=5)
+        print(page.text)
+

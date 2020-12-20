@@ -15,6 +15,7 @@
       <w>mainwindow</w>
       <w>mockcollector</w>
       <w>oscomp</w>
+      <w>patchexceptionhook</w>
       <w>sensortable</w>
       <w>tcell</w>
       <w>testid</w>

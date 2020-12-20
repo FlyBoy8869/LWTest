@@ -68,6 +68,7 @@ class MainWindow(QMainWindow):
         self.thread_pool = QThreadPool.globalInstance()
         print(f"using max threads: {self.thread_pool.maxThreadCount()}")
         self.sensor_log = sensor.SensorLog()
+        self.sensor_log.changed.connect(self._update_table)
         self.firmware_upgrade_in_progress = False
         self.link_activity_string = ""
 
@@ -105,7 +106,7 @@ class MainWindow(QMainWindow):
         self._create_toolbar()
 
         self.signals.file_dropped.connect(lambda filename: self._handle_dropped_file(filename, self.sensor_log))
-        self.signals.serial_numbers_imported.connect(self.sensor_log.append_all)
+        self.signals.serial_numbers_imported.connect(self.sensor_log.create_all)
 
         self.setCentralWidget(self.panel)
 
@@ -173,7 +174,7 @@ class MainWindow(QMainWindow):
 
     def _import_serial_numbers_from_spreadsheet(self, filename: str, sensor_log) -> bool:
         if self.changes.can_discard(parent=self):
-            sensor_log.append_all(spreadsheet.get_serial_numbers(filename))
+            sensor_log.create_all(spreadsheet.get_serial_numbers(filename))
             return True
 
         return False
@@ -281,7 +282,7 @@ class MainWindow(QMainWindow):
         self._show_information_dialog("Sensor firmware successfully upgraded.")
 
     def _failed_to_enter_program_mode(self):
-        QMessageBox.warning(QMessageBox(self), LWTest.app_title, "Failed to upgrade sensor.", QMessageBox.Ok)
+        QMessageBox.warning(self, LWTest.app_title, "Failed to upgrade sensor.", QMessageBox.Ok)
         self.firmware_upgrade_in_progress = False
 
     @flags(read=[FlagsEnum.SERIALS], set_=[FlagsEnum.ADVANCED])
@@ -320,13 +321,9 @@ class MainWindow(QMainWindow):
 
     def _verify_raw_configuration_readings_persist(self):
         comparator = PersistenceComparator()
-        comparator.persisted.connect(self.sensor_log.record_persistence_readings)
-        comparator.finished.connect(
-            lambda: self._table_view_updater.update_from_model(self.sensor_log.get_sensors())
-        )
+        comparator.persisted.connect(self.sensor_log.save_readings)
         comparator.compare(
             self.sensor_log.get_advanced_readings(),
-            len(self.sensor_log),
             lwt.URL_RAW_CONFIGURATION,
             self._get_browser()
         )
@@ -367,9 +364,9 @@ class MainWindow(QMainWindow):
     @flags(read=[FlagsEnum.SERIALS, FlagsEnum.ADVANCED, FlagsEnum.CORRECTION])
     def _handle_action_take_readings(self, _: bool):
         data_reader = DataReader(lwt.URL_SENSOR_DATA, lwt.URL_RAW_CONFIGURATION)
-        data_reader.signals.high_data_readings.connect(self._process_high_data_readings)
-        data_reader.signals.low_data_readings.connect(self._process_low_data_readings)
-        data_reader.signals.page_load_error.connect(self._handle_take_readings_page_load_error)
+        data_reader.readings.connect(self.sensor_log.save_readings)
+        data_reader.readings.connect(lambda k, v: self._enable_persistence_check(k))
+        data_reader.page_load_error.connect(self._handle_take_readings_page_load_error)
         data_reader.read(self._get_browser())
 
         self.changes.set_change_flag()
@@ -377,32 +374,9 @@ class MainWindow(QMainWindow):
     def _handle_take_readings_page_load_error(self):
         self._show_information_dialog("Unable to retrieve readings. Check the collector.")
 
-    def _process_high_data_readings(self, readings: tuple):
-        """Receives data in the following order: voltage, current, power factor, power."""
-
-        self.sensor_log.record_high_voltage_readings(readings[lwt.VOLTAGE])
-        self.sensor_log.record_high_current_readings(readings[lwt.CURRENT])
-        self.sensor_log.record_high_power_factor_readings(readings[lwt.FACTORS])
-        self.sensor_log.record_high_real_power_readings(readings[lwt.POWER])
-
-        self._table_view_updater.update_from_model(self.sensor_log.get_sensors())
-
-    def _process_low_data_readings(self, readings: tuple):
-        """Receives data in the following order: voltage, current, factors, power, scale current,
-        scale voltage, correction angle, temperature."""
-
-        self.sensor_log.record_low_voltage_readings(readings[lwt.VOLTAGE])
-        self.sensor_log.record_low_current_readings(readings[lwt.CURRENT])
-        self.sensor_log.record_low_power_factor_readings(readings[lwt.FACTORS])
-        self.sensor_log.record_low_real_power_readings(readings[lwt.POWER])
-        self.sensor_log.record_scale_current_readings(readings[lwt.SCALE_CURRENT])
-        self.sensor_log.record_scale_voltage_readings(readings[lwt.SCALE_VOLTAGE])
-        self.sensor_log.record_correction_angle_readings(readings[lwt.CORRECTION_ANGLE])
-        self.sensor_log.record_temperature_readings(readings[lwt.TEMPERATURE])
-
-        self._table_view_updater.update_from_model(self.sensor_log.get_sensors())
-
-        self.menu_helper.action_check_persistence.setEnabled(True)
+    def _enable_persistence_check(self, reading_type: str):
+        if reading_type == "TEMPERATURE":
+            self.menu_helper.action_check_persistence.setEnabled(True)
 
     def _create_toolbar(self):
         toolbar = QToolBar("ToolBar")
@@ -548,6 +522,9 @@ class MainWindow(QMainWindow):
             QMessageBox.Cancel: lambda: None
         }
         result_map[result]()
+        self._update_table()
+
+    def _update_table(self):
         self._table_view_updater.update_from_model(self.sensor_log.get_sensors())
 
     def _wait_for_collector_to_boot(self):

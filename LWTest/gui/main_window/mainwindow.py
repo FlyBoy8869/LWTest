@@ -254,7 +254,6 @@ class MainWindow(QMainWindow):
         dialog.activateWindow()
 
         link_thread = link.LinkWorker(self.sensor_log.get_serial_numbers_as_list(), lwt.URL_MODEM_STATUS)
-        # link_thread.signals.successful_link.connect(lambda d: self.sensor_log.record_rssi_readings(d[0], d[1]))
         link_thread.signals.successful_link.connect(self.sensor_log.save)
         link_thread.signals.successful_link.connect(
             lambda rssi, kind, serial_number: self._get_sensor_link_data(serial_number)

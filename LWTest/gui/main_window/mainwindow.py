@@ -175,7 +175,7 @@ class MainWindow(QMainWindow):
                     Path(filename),
                     sensor_log.get_serial_numbers_as_tuple(),
                     self._logger
-            ).as_posix()
+                ).as_posix()
             self._setup_sensor_table()
             self.changes.clear_change_flag()
             self.collector_configured = False

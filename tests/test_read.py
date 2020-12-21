@@ -65,10 +65,6 @@ class TestStandAloneFunctions(TestCase):
         self.driver_6_column = self.Driver(page_source="Phase 4")
         self.driver_3_column = self.Driver(page_source="No Phase info here.")
 
-    def test__find_all_indexes_of_na_in_list(self):
-        values = ["Value1", "NA", "Value2", "Value3", "NA", "NA"]
-        self.assertEqual([1, 4, 5], collector_read._find_all_indexes_of_na_in_list(values))
-
     def test__get_columns_is_6(self):
         self.assertEqual(6, collector_read._get_columns(self.driver_6_column))
 

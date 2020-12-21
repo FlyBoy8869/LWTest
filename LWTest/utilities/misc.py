@@ -4,8 +4,6 @@ import sys
 import traceback
 from typing import List, Tuple
 
-from LWTest.constants import lwt
-
 _logger = logging.getLogger(__name__)
 
 
@@ -48,11 +46,3 @@ def normalize_reading(reading: str) -> str:
 def x_is_what_percent_of_y(dividend: int, divisor: int) -> float:
     assert divisor > 0, "divisor can not be less than 1"
     return dividend / divisor * 100
-
-
-if __name__ == '__main__':
-    import doctest
-
-    count, _ = doctest.testmod()
-    if count == 0:
-        print("All tests passed.")

@@ -3,21 +3,22 @@ from pathlib import Path
 from typing import Optional, Tuple
 
 from PyQt5 import QtGui
-from PyQt5.QtCore import QThreadPool, QSettings, QSize, Qt, QReadWriteLock, QObject, pyqtSignal, QTimer, QMutexLocker, \
-    QMutex
+from PyQt5.QtCore import QThreadPool, QSettings, QSize, Qt, QReadWriteLock, \
+    QObject, pyqtSignal, QTimer
 from PyQt5.QtGui import QIcon, QCloseEvent, QBrush
-from PyQt5.QtWidgets import QMainWindow, QVBoxLayout, QWidget, QTableWidgetItem, QMessageBox, QToolBar, \
+from PyQt5.QtWidgets import QMainWindow, QVBoxLayout, QWidget, \
+    QTableWidgetItem, QMessageBox, QToolBar, \
     QDialog, QDoubleSpinBox, QApplication
 from selenium import webdriver
-from selenium.common.exceptions import WebDriverException
 
 import LWTest
 import LWTest.changetracker as changetracker
 import LWTest.gui.main_window.sensortable as sensortable
 import LWTest.gui.theme as theme
-from LWTest import sensor, save, getrefs, web, cdriver
-from LWTest.collector import configure
-from LWTest.collector.read.read import DataReader, PersistenceComparator, FirmwareVersionReader, \
+from LWTest import sensor, save, getrefs, web
+from LWTest.collector import configure, ReadingType
+from LWTest.collector.read.read import DataReader, PersistenceComparator, \
+    FirmwareVersionReader, \
     ReportingDataReader
 from LWTest.common.flags.flags import flags, FlagsEnum
 from LWTest.constants import lwt
@@ -39,11 +40,13 @@ from LWTest.workers import upgrade, link
 
 style_sheet = "QProgressBar{ max-height: 10px; }"
 
-_DATA_IN_SPREADSHEET_ORDER = ("high_voltage", "high_current", "high_power_factor", "high_real_power",
-                              "low_voltage", "low_current", "low_power_factor", "low_real_power",
-                              "scale_current", "scale_voltage", "correction_angle", "persists",
-                              "firmware_version", "reporting_data", "rssi", "calibrated",
-                              "temperature", "fault_current")
+_DATA_IN_SPREADSHEET_ORDER = (
+    "high_voltage", "high_current", "high_power_factor", "high_real_power",
+    "low_voltage", "low_current", "low_power_factor", "low_real_power",
+    "scale_current", "scale_voltage", "correction_angle", "persists",
+    "firmware_version", "reporting_data", "rssi",
+    "calibrated", "temperature", "fault_current"
+)
 
 
 class MainWindow(QMainWindow):
@@ -96,16 +99,24 @@ class MainWindow(QMainWindow):
         # end of Menu Stuff
 
         self.sensor_table = LWTTableWidget(self.panel)
-        self.sensor_table.signals.double_clicked.connect(self._table_item_double_clicked)
+        self.sensor_table.signals.double_clicked.connect(
+            self._table_item_double_clicked
+        )
         self.sensor_table.setAlternatingRowColors(True)
         self.sensor_table.setPalette(theme.sensor_table_palette)
         self.panel_layout.addWidget(self.sensor_table)
 
-        self._table_view_updater = SensorTableViewUpdater(self.sensor_table, lambda: self.sensor_log.room_temperature)
+        self._table_view_updater = SensorTableViewUpdater(
+            self.sensor_table, lambda: self.sensor_log.room_temperature
+        )
 
         self._create_toolbar()
 
-        self.signals.file_dropped.connect(lambda filename: self._handle_dropped_file(filename, self.sensor_log))
+        self.signals.file_dropped.connect(
+            lambda filename: self._handle_dropped_file(
+                filename, self.sensor_log
+            )
+        )
         self.signals.serial_numbers_imported.connect(self.sensor_log.create_all)
 
         self.setCentralWidget(self.panel)
@@ -144,13 +155,13 @@ class MainWindow(QMainWindow):
         else:
             event.ignore()
 
-    def keyReleaseEvent(self, event: QtGui.QKeyEvent) -> None:
-        if event.key() == Qt.Key_N and event.modifiers() == Qt.ControlModifier:
+    def keyReleaseEvent(self, evt: QtGui.QKeyEvent) -> None:
+        if evt.key() == Qt.Key_N and evt.modifiers() == Qt.ControlModifier:
             self._handle_action_create_set()
-        elif event.key() == Qt.Key_R and event.modifiers() == Qt.ControlModifier:
+        elif evt.key() == Qt.Key_R and evt.modifiers() == Qt.ControlModifier:
             self._handle_action_enter_references()
         else:
-            super().keyReleaseEvent(event)
+            super().keyReleaseEvent(evt)
 
     def _handle_action_create_set(self):
         if path := manual_set_entry(self):
@@ -159,10 +170,11 @@ class MainWindow(QMainWindow):
     # listens for MainWindow().signals.file_dropped
     def _handle_dropped_file(self, filename: str, sensor_log):
         if self._import_serial_numbers_from_spreadsheet(filename, sensor_log):
-            self.spreadsheet_file_name = self._rename_dropped_file_to_atp_standard_filename(
-                Path(filename),
-                sensor_log.get_serial_numbers_as_tuple(),
-                self._logger
+            self.spreadsheet_file_name =\
+                self._rename_dropped_file_to_atp_standard_filename(
+                    Path(filename),
+                    sensor_log.get_serial_numbers_as_tuple(),
+                    self._logger
             ).as_posix()
             self._setup_sensor_table()
             self.changes.clear_change_flag()
@@ -172,7 +184,9 @@ class MainWindow(QMainWindow):
         ref_getter = getrefs.GetReferences(self, *self.sensor_log.references)
         self.sensor_log.references = ref_getter.get_references()
 
-    def _import_serial_numbers_from_spreadsheet(self, filename: str, sensor_log) -> bool:
+    def _import_serial_numbers_from_spreadsheet(
+            self, filename: str, sensor_log
+    ) -> bool:
         if self.changes.can_discard(parent=self):
             sensor_log.create_all(spreadsheet.get_serial_numbers(filename))
             return True
@@ -180,7 +194,9 @@ class MainWindow(QMainWindow):
         return False
 
     @staticmethod
-    def _rename_dropped_file_to_atp_standard_filename(filename: Path, serial_numbers: Tuple[str, ...], logger) -> Path:
+    def _rename_dropped_file_to_atp_standard_filename(
+            filename: Path, serial_numbers: Tuple[str, ...], logger
+    ) -> Path:
         logger.debug(f"received file: {filename}")
         new_path: Path = file_utils.create_atr_path(filename, serial_numbers)
         logger.debug(f"dropped file renamed to: {new_path}")
@@ -188,11 +204,14 @@ class MainWindow(QMainWindow):
         return filename.rename(new_path.as_posix())
 
     def _setup_sensor_table(self):
-        sensortable.setup_table(self, self.sensor_log.get_serial_numbers_as_tuple(), self.sensor_table,
-                                self._manually_override_calibration_result,
-                                self._manually_override_fault_current_result)
-
-        self._table_view_updater.update_from_model(self.sensor_log.get_sensors())
+        sensortable.setup_table(
+            self,
+            self.sensor_log.get_serial_numbers_as_tuple(),
+            self.sensor_table,
+            self._manually_override_calibration_result,
+            self._manually_override_fault_current_result
+        )
+        self._update_table()
 
     @flags(set_=[FlagsEnum.SERIALS])
     def _handle_action_configure_serial_numbers(self, _: bool):
@@ -217,14 +236,18 @@ class MainWindow(QMainWindow):
 
     def _start_serial_update_verifier(self, serial_numbers):
         verifier = link.SerialNumberUpdateVerifier(serial_numbers)
-        verifier.signals.serial_numbers_updated.connect(self._serial_numbers_successfully_updated)
+        verifier.signals.serial_numbers_updated.connect(
+            self._serial_numbers_successfully_updated
+        )
         verifier.signals.timed_out.connect(
-            lambda: self.statusBar().showMessage("Timed out verifying serial number update.")
+            lambda: self.statusBar().showMessage(
+                "Timed out verifying serial number update.", 10000
+            )
         )
         verifier.verify()
 
     def _serial_numbers_successfully_updated(self):
-        self.statusBar().showMessage("Serial Numbers Updated.")
+        self.statusBar().showMessage("Serial Numbers Updated.", 5000)
         QTimer.singleShot(1000, self._start_sensor_link_check)
 
     def _start_sensor_link_check(self):
@@ -234,13 +257,14 @@ class MainWindow(QMainWindow):
         dialog.activateWindow()
 
         link_thread = link.LinkWorker(self.sensor_log.get_serial_numbers_as_list(), lwt.URL_MODEM_STATUS)
-        link_thread.signals.successful_link.connect(lambda d: self.sensor_log.record_rssi_readings(d[0], d[1]))
-        link_thread.signals.successful_link.connect(lambda d: self._get_sensor_link_data(d[0]))
+        # link_thread.signals.successful_link.connect(lambda d: self.sensor_log.record_rssi_readings(d[0], d[1]))
+        link_thread.signals.successful_link.connect(self.sensor_log.save)
+        link_thread.signals.successful_link.connect(
+            lambda rssi, kind, serial_number: self._get_sensor_link_data(serial_number)
+        )
         link_thread.signals.link_timeout.connect(lambda nls: self.sensor_log.record_non_linked_sensors(nls))
         link_thread.signals.finished.connect(lambda: dialog.done(QDialog.Accepted))
-        link_thread.signals.finished.connect(
-            lambda: self._table_view_updater.update_from_model(self.sensor_log.get_sensors())
-        )
+        link_thread.signals.finished.connect(self._update_table)
         self._logger.debug("starting link thread worker")
         self.thread_pool.start(link_thread)
 
@@ -282,7 +306,12 @@ class MainWindow(QMainWindow):
         self._show_information_dialog("Sensor firmware successfully upgraded.")
 
     def _failed_to_enter_program_mode(self):
-        QMessageBox.warning(self, LWTest.app_title, "Failed to upgrade sensor.", QMessageBox.Ok)
+        QMessageBox.warning(
+            self,
+            LWTest.app_title,
+            "Failed to upgrade sensor.",
+            QMessageBox.Ok
+        )
         self.firmware_upgrade_in_progress = False
 
     @flags(read=[FlagsEnum.SERIALS], set_=[FlagsEnum.ADVANCED])
@@ -317,11 +346,13 @@ class MainWindow(QMainWindow):
 
     @flags(clear=[FlagsEnum.CORRECTION])
     def _handle_correction_angle_failure(self):
-        self._show_information_dialog("An error occurred configuring the correction angle.")
+        self._show_information_dialog(
+            "An error occurred configuring the correction angle."
+        )
 
     def _verify_raw_configuration_readings_persist(self):
         comparator = PersistenceComparator()
-        comparator.persisted.connect(self.sensor_log.save_readings)
+        comparator.persisted.connect(self.sensor_log.save)
         comparator.compare(
             self.sensor_log.get_advanced_readings(),
             lwt.URL_RAW_CONFIGURATION,
@@ -330,14 +361,21 @@ class MainWindow(QMainWindow):
 
     def _create_reporting_reader(self):
         reporting_reader = ReportingDataReader()
-        reporting_reader.update.connect(self.sensor_log.record_reporting_data)
+        reporting_reader.update.connect(
+            lambda phase, reporting: self.sensor_log.save(
+                reporting, ReadingType.REPORTING, self.sensor_log.get_sensor_by_phase(phase).serial_number
+            )
+        )
         self._logger.debug("created reporting reader")
         return reporting_reader
 
     def _create_firmware_reader(self):
         firmware_reader = FirmwareVersionReader()
         firmware_reader.update.connect(
-            lambda phase, version: self.sensor_log.record_firmware_version(phase, version))
+            lambda phase, version: self.sensor_log.save(
+                version, ReadingType.FIRMWARE, self.sensor_log.get_sensor_by_phase(phase).serial_number
+            )
+        )
         self._logger.debug("created firmware reader")
         return firmware_reader
 
@@ -364,8 +402,8 @@ class MainWindow(QMainWindow):
     @flags(read=[FlagsEnum.SERIALS, FlagsEnum.ADVANCED, FlagsEnum.CORRECTION])
     def _handle_action_take_readings(self, _: bool):
         data_reader = DataReader(lwt.URL_SENSOR_DATA, lwt.URL_RAW_CONFIGURATION)
-        data_reader.readings.connect(self.sensor_log.save_readings)
-        data_reader.readings.connect(lambda k, v: self._enable_persistence_check(k))
+        data_reader.readings.connect(self.sensor_log.save)
+        data_reader.readings.connect(lambda values, kind: self._enable_persistence_check(kind))
         data_reader.page_load_error.connect(self._handle_take_readings_page_load_error)
         data_reader.read(self._get_browser())
 
@@ -375,7 +413,7 @@ class MainWindow(QMainWindow):
         self._show_information_dialog("Unable to retrieve readings. Check the collector.")
 
     def _enable_persistence_check(self, reading_type: str):
-        if reading_type == "TEMPERATURE":
+        if reading_type == ReadingType.TEMPERATURE:
             self.menu_helper.action_check_persistence.setEnabled(True)
 
     def _create_toolbar(self):

@@ -1,10 +1,12 @@
 # sensor.py
 from dataclasses import dataclass, field
+from functools import singledispatchmethod
 from typing import Optional, List, Tuple, cast
 
 from PyQt5.QtCore import QObject, pyqtSignal
 
 import LWTest.constants.lwt_constants as lwt
+from LWTest.collector import ReadingType
 
 
 @dataclass
@@ -127,47 +129,41 @@ class SensorLog(QObject):
             ]
         )
 
-    def record_reporting_data(self, line_position: int, reporting: str):
-        self.get_sensor_by_phase(line_position).reporting_data = reporting
-
-    def record_sensor_calibration(self, result, index):
-        self.get_sensor_by_phase(index).calibrated = result
-
-    def record_fault_current_readings(self, value: str):
-        unit: Sensor
-
-        for unit in self:
-            if unit.linked:
-                unit.fault_current = value
-
-    def record_firmware_version(self, phase, version):
-        self.get_sensor_by_phase(phase).firmware_version = version
-
-    def record_rssi_readings(self, serial_number, rssi):
-        self._log_by_serial_number[serial_number].rssi = rssi
-
     def record_non_linked_sensors(self, serial_numbers):
         for serial_number in serial_numbers:
             self._log_by_serial_number[serial_number].rssi = lwt.NO_DATA
 
     record_attributes = {
-        "HIGH_VOLTAGE": "high_voltage",
-        "HIGH_CURRENT": "high_current",
-        "HIGH_POWER_FACTOR": "high_power_factor",
-        "HIGH_REAL_POWER": "high_real_power",
-        "LOW_VOLTAGE": "low_voltage",
-        "LOW_CURRENT": "low_current",
-        "LOW_POWER_FACTOR": "low_power_factor",
-        "LOW_REAL_POWER": "low_real_power",
-        "SCALE_CURRENT": "scale_current",
-        "SCALE_VOLTAGE": "scale_voltage",
-        "CORRECTION_ANGLE": "correction_angle",
-        "TEMPERATURE": "temperature",
-        "PERSISTS": "persists",
+        ReadingType.HIGH_VOLTAGE: "high_voltage",
+        ReadingType.HIGH_CURRENT: "high_current",
+        ReadingType.HIGH_POWER_FACTOR: "high_power_factor",
+        ReadingType.HIGH_REAL_POWER: "high_real_power",
+        ReadingType.LOW_VOLTAGE: "low_voltage",
+        ReadingType.LOW_CURRENT: "low_current",
+        ReadingType.LOW_POWER_FACTOR: "low_power_factor",
+        ReadingType.LOW_REAL_POWER: "low_real_power",
+        ReadingType.SCALE_CURRENT: "scale_current",
+        ReadingType.SCALE_VOLTAGE: "scale_voltage",
+        ReadingType.CORRECTION_ANGLE: "correction_angle",
+        ReadingType.TEMPERATURE: "temperature",
+        ReadingType.PERSISTS: "persists",
+        ReadingType.RSSI: "rssi",
+        ReadingType.FIRMWARE: "firmware_version",
+        ReadingType.REPORTING: "reporting_data"
     }
 
-    def save_readings(self, kind: str, values: Tuple[str]):
+    @singledispatchmethod
+    def save(self, values, kind, serial_number: str = ""):
+        raise NotImplementedError("default for use with @singledispatchmethod")
+
+    @save.register
+    def _(self, values: tuple, kind: str, serial_number: str = ""):
         self._save(self.record_attributes[kind], values)
+
+    @save.register
+    def _(self, value: str, kind: str, serial_number: str = ""):
+        unit: Sensor = self._log_by_serial_number[serial_number]
+        setattr(unit, self.record_attributes[kind], value)
 
     def _save(self, attribute, values):
         for index, unit in enumerate(self):

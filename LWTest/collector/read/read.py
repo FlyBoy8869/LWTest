@@ -12,8 +12,10 @@ from selenium.webdriver.support.ui import WebDriverWait
 
 import LWTest.utilities.misc as utils_misc
 from LWTest.constants import lwt
+from LWTest.collector import ReadingType
 
-_READING_ELEMENTS = "div.tcellShort:not([id^='last'])"
+_READING_SELECTOR = "div.tcellShort:not([id^='last'])"
+_ADVANCED_CONFIG_SELECTOR = "div.tcell > input"
 
 
 def _confirm(message, box_type=QMessageBox.question, title="") -> int:
@@ -28,18 +30,6 @@ _confirm_continue = partial(
 )
 
 
-def _filter_out_na(readings: list) -> list:
-    return list(filter(lambda r: r != lwt.NO_DATA, readings))
-
-
-def _find_all_indexes_of_na_in_list(readings):
-    indexes = []
-    for index, value in enumerate(readings):
-        if value == "NA":
-            indexes.append(index)
-    return indexes
-
-
 def _get_columns(driver):
     return 6 if "phase 4" in driver.page_source.lower() else 3
 
@@ -50,7 +40,7 @@ def _get_elements(selector, driver):
 
 class DataReader(QObject):
     page_load_error = pyqtSignal()
-    readings = pyqtSignal(str, tuple)  # readings.emit("HIGH_VOLTAGE", ("13000.00", "13000.00", "13000.00"))
+    readings = pyqtSignal(tuple, int)
 
     _HIGH_VOLTAGE_THRESHOLD = 10500.0
     _HIGH_CURRENT_THRESHOLD = 90.0
@@ -74,37 +64,36 @@ class DataReader(QObject):
             return
 
         self._columns = _get_columns(driver)
-        readings = _get_elements(_READING_ELEMENTS, driver)
-        # [voltage], [current], [power factor], [real power]
-        results: List[List[str, ...]] = self._get_sensor_readings(readings, self._columns)
-        DataReader._replace_real_power_readings_with_massaged_readings(results, 3)
-        temperature_readings = DataReader._get_temperature_readings(readings, self._columns)
+        readings = _get_elements(_READING_SELECTOR, driver)
+        voltage, current, power_factor, real_power = self._get_sensor_readings(readings, self._columns)
+        real_power = DataReader._replace_real_power_readings_with_massaged_readings(real_power)
+        temperature = DataReader._get_temperature_readings(readings, self._columns)
 
-        if (range_ := DataReader._resolve_undetermined_state(self._readings_range(results))) == "QUIT":
+        readings_list_lists = [voltage, current, power_factor, real_power]
+        if (range_ := DataReader._resolve_undetermined_state(self._readings_range(readings_list_lists))) == "QUIT":
             return
 
         if range_ == self._HIGH_RANGE:
-            self.readings.emit("HIGH_VOLTAGE", tuple(results[0]))
-            self.readings.emit("HIGH_CURRENT", tuple(results[1]))
-            self.readings.emit("HIGH_POWER_FACTOR", tuple(results[2]))
-            self.readings.emit("HIGH_REAL_POWER", tuple(results[3]))
+            self.readings.emit(tuple(voltage), ReadingType.HIGH_VOLTAGE)
+            self.readings.emit(tuple(current), ReadingType.HIGH_CURRENT)
+            self.readings.emit(tuple(power_factor), ReadingType.HIGH_POWER_FACTOR)
+            self.readings.emit(tuple(real_power), ReadingType.HIGH_REAL_POWER)
         else:  # these readings gathered only when low voltage is dialed in
             driver.get(self._raw_configuration_url)
-            readings = _get_elements("div.tcell > input", driver)
-            results = DataReader._get_advanced_readings(
-                results,
-                readings,
-                self._columns
+
+            readings = _get_elements(_ADVANCED_CONFIG_SELECTOR, driver)
+            scale_current, scale_voltage, correction_angle = DataReader._get_advanced_readings(
+                readings, self._columns
             )
-            results.append(temperature_readings)
-            self.readings.emit("LOW_VOLTAGE", tuple(results[0]))
-            self.readings.emit("LOW_CURRENT", tuple(results[1]))
-            self.readings.emit("LOW_POWER_FACTOR", tuple(results[2]))
-            self.readings.emit("LOW_REAL_POWER", tuple(results[3]))
-            self.readings.emit("SCALE_CURRENT", tuple(results[4]))
-            self.readings.emit("SCALE_VOLTAGE", tuple(results[5]))
-            self.readings.emit("CORRECTION_ANGLE", tuple(results[6]))
-            self.readings.emit("TEMPERATURE", tuple(results[7]))
+
+            self.readings.emit(tuple(voltage), ReadingType.LOW_VOLTAGE)
+            self.readings.emit(tuple(current), ReadingType.LOW_CURRENT)
+            self.readings.emit(tuple(power_factor), ReadingType.LOW_POWER_FACTOR)
+            self.readings.emit(tuple(real_power), ReadingType.LOW_REAL_POWER)
+            self.readings.emit(tuple(scale_current), ReadingType.SCALE_CURRENT)
+            self.readings.emit(tuple(scale_voltage), ReadingType.SCALE_VOLTAGE)
+            self.readings.emit(tuple(correction_angle), ReadingType.CORRECTION_ANGLE)
+            self.readings.emit(tuple(temperature), ReadingType.TEMPERATURE)
 
     @staticmethod
     def _extract_sensor_readings(readings, columns):
@@ -150,17 +139,10 @@ class DataReader(QObject):
         )
 
     @staticmethod
-    def _get_advanced_readings(results: List[List[str]], readings, columns: int):
+    def _get_advanced_readings(readings, columns: int):
         # scale current, scale voltage, correction angle
         advanced_readings = DataReader._extract_advanced_readings(readings, columns)
-
-        na_indexes: List[int, ...] = _find_all_indexes_of_na_in_list(results[0])
-        for readings in advanced_readings:
-            for index in na_indexes:
-                readings[index] = lwt.NO_DATA
-
-        results.extend(advanced_readings)
-        return results
+        return advanced_readings
 
     @staticmethod
     def _get_sensor_readings(readings, columns):
@@ -182,6 +164,9 @@ class DataReader(QObject):
             -1: low voltage
              0: indeterminate
              1: high voltage"""
+
+        def _filter_out_na(readings_: list) -> list:
+            return list(filter(lambda r: r != lwt.NO_DATA, readings_))
 
         def _is_high_range_reading(reading_, threshold_) -> bool:
             return float(reading_) >= threshold_
@@ -208,8 +193,8 @@ class DataReader(QObject):
         return DataReader._LOW_RANGE
 
     @staticmethod
-    def _replace_real_power_readings_with_massaged_readings(results, index: int):
-        results[index] = DataReader._massage_real_power_readings(results[index])
+    def _replace_real_power_readings_with_massaged_readings(power_readings):
+        return DataReader._massage_real_power_readings(power_readings)
 
     @staticmethod
     def _resolve_undetermined_state(range_) -> Union[str, int]:
@@ -229,7 +214,7 @@ class DataReader(QObject):
 
 
 class PersistenceComparator(QObject):
-    persisted = pyqtSignal(str, tuple)
+    persisted = pyqtSignal(tuple, int)
     finished = pyqtSignal()
 
     def __init__(self):
@@ -239,11 +224,11 @@ class PersistenceComparator(QObject):
         driver.get(url)
         columns = _get_columns(driver)
         self.persisted.emit(
-            "PERSISTS",
             self._compare(
                 saved_readings,
                 self._live_readings(columns, driver)
-            )
+            ),
+            ReadingType.PERSISTS
         )
         self.finished.emit()
 

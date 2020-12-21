@@ -8,13 +8,14 @@ from PyQt5.QtCore import QRunnable, QObject, pyqtSignal
 from time import sleep
 
 from LWTest.constants import lwt
+from LWTest.collector import ReadingType
 
 _serial_number_regex = re.compile(r"\s*\d{7}")
 linked_regex = r"\s*\d{7}\s*\d{7}\s*\d{7}\s*-?\d{2}"
 
 
 class Signals(QObject):
-    successful_link = pyqtSignal(tuple)
+    successful_link = pyqtSignal(str, int, str)
     link_timeout = pyqtSignal(tuple)  # emits the serial numbers that did not link to the collector
     finished = pyqtSignal()
     url_read_exception = pyqtSignal(tuple)
@@ -113,7 +114,8 @@ class LinkWorker(QRunnable):
 
     def _emit_signal_if_linked(self, data):
         self.__logger.debug(f"{time.time()} found a link for sensor {data[0]} with an rssi of {data[3]}")
-        self.signals.successful_link.emit((data[0], data[3]))  # serial number, rssi
+        serial_number, rssi = data[0], data[3]
+        self.signals.successful_link.emit(rssi, ReadingType.RSSI, serial_number)
 
     def _handle_timeout(self):
         self._emit_not_linked_signal_for_these_serial_numbers(self.__serial_numbers)

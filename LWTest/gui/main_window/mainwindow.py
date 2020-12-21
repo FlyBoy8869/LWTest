@@ -184,9 +184,7 @@ class MainWindow(QMainWindow):
         ref_getter = getrefs.GetReferences(self, *self.sensor_log.references)
         self.sensor_log.references = ref_getter.get_references()
 
-    def _import_serial_numbers_from_spreadsheet(
-            self, filename: str, sensor_log
-    ) -> bool:
+    def _import_serial_numbers_from_spreadsheet(self, filename: str, sensor_log) -> bool:
         if self.changes.can_discard(parent=self):
             sensor_log.create_all(spreadsheet.get_serial_numbers(filename))
             return True

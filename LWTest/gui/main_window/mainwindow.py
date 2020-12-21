@@ -223,7 +223,6 @@ class MainWindow(QMainWindow):
 
         result, error_msg = configurator.configure()
         if result:
-            # self._start_sensor_link_check()
             self._start_serial_update_verifier(serial_numbers)
         else:
             self._handle_serial_number_configuration_failure(error_msg)

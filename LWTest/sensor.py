@@ -1,5 +1,6 @@
 # sensor.py
-from dataclasses import dataclass, field
+import logging
+from dataclasses import dataclass, field, InitVar
 from functools import singledispatchmethod
 from typing import Optional, List, Tuple, cast
 
@@ -34,6 +35,10 @@ class Sensor:
     persists: str = field(init=False, default="NA")
 
     @property
+    def advance_readings(self) -> Tuple[str, ...]:
+        return self.scale_current, self.scale_voltage, self.correction_angle
+
+    @property
     def phase(self):
         return self._phase
 
@@ -48,12 +53,36 @@ class Sensor:
         except ValueError:
             return False
 
+    def __setattr__(self, key, value):
+        object.__setattr__(self, key, value)
+
+
+_sensor_attributes = {
+    ReadingType.HIGH_VOLTAGE: "high_voltage",
+    ReadingType.HIGH_CURRENT: "high_current",
+    ReadingType.HIGH_POWER_FACTOR: "high_power_factor",
+    ReadingType.HIGH_REAL_POWER: "high_real_power",
+    ReadingType.LOW_VOLTAGE: "low_voltage",
+    ReadingType.LOW_CURRENT: "low_current",
+    ReadingType.LOW_POWER_FACTOR: "low_power_factor",
+    ReadingType.LOW_REAL_POWER: "low_real_power",
+    ReadingType.SCALE_CURRENT: "scale_current",
+    ReadingType.SCALE_VOLTAGE: "scale_voltage",
+    ReadingType.CORRECTION_ANGLE: "correction_angle",
+    ReadingType.TEMPERATURE: "temperature",
+    ReadingType.PERSISTS: "persists",
+    ReadingType.RSSI: "rssi",
+    ReadingType.FIRMWARE: "firmware_version",
+    ReadingType.REPORTING: "reporting_data"
+}
+
 
 class SensorLog(QObject):
     changed = pyqtSignal()
 
     def __init__(self):
         super().__init__()
+        self._logger = logging.getLogger(__name__)
         self._log_by_serial_number = {}
         self._log_by_phase = {}
         self._room_temperature: str = "21.7"
@@ -83,38 +112,25 @@ class SensorLog(QObject):
         return self._room_temperature
 
     @room_temperature.setter
-    def room_temperature(self, value):
+    def room_temperature(self, value: float):
         self._room_temperature = f"{value:.1f}"
-        print(f"room temperature = {self._room_temperature}")
+        self._logger.debug(f"room temperature reference set to: {self._room_temperature}")
 
     def create_all(self, iterable):
         self._clear()
         for index, number in enumerate(iterable):
-            self._append(Sensor(index, number))
+            sensor = Sensor(index, number)
+            self._append(sensor)
+            self._logger.debug(f"added sensor {number} to sensor log")
 
-    def get_serial_numbers_as_tuple(self) -> Tuple[str]:
-        return tuple(
-            cast(
-                List[str],
-                [sensor.serial_number
-                 for sensor in self._log_by_serial_number.values()]
-            )
-        )
+    def get_serial_numbers_as_tuple(self) -> Tuple[str, ...]:
+        return tuple(cast(List[str], [sensor.serial_number for sensor in self._log_by_serial_number.values()]))
 
     def get_serial_numbers_as_list(self) -> List[str]:
-        return [sensor.serial_number
-                for sensor in self._log_by_serial_number.values()]
+        return [sensor.serial_number for sensor in self._log_by_serial_number.values()]
 
-    def get_advanced_readings(self):
-        values = []
-        for sensor in self._log_by_serial_number.values():
-            values.append(
-                (sensor.scale_current,
-                 sensor.scale_voltage,
-                 sensor.correction_angle)
-            )
-
-        return tuple(values)
+    def get_advanced_readings(self) -> Tuple[Tuple[str], ...]:
+        return tuple([sensor.advance_readings for sensor in self._log_by_serial_number.values()])
 
     def get_sensor_by_phase(self, phase: int) -> Optional[Sensor]:
         assert phase in [0, 1, 2, 3, 4, 5],\
@@ -122,54 +138,43 @@ class SensorLog(QObject):
         return self._log_by_phase.get(phase, None)
 
     def get_sensors(self) -> Tuple[Sensor]:
-        return tuple(
-            [
-                cast(Sensor, sensor)
-                for sensor in self._log_by_serial_number.values()
-            ]
-        )
+        return tuple([cast(Sensor, sensor) for sensor in self._log_by_serial_number.values()])
+
+    def record_calibration_results(self, result: str, index: int):
+        self.get_sensor_by_phase(index).calibrated = result
+        self.changed.emit()
+
+    def record_fault_current_results(self, result: str, index: int):
+        self.get_sensor_by_phase(index).fault_current = result
+        self.changed.emit()
 
     def record_non_linked_sensors(self, serial_numbers):
         for serial_number in serial_numbers:
             self._log_by_serial_number[serial_number].rssi = lwt.NO_DATA
-
-    record_attributes = {
-        ReadingType.HIGH_VOLTAGE: "high_voltage",
-        ReadingType.HIGH_CURRENT: "high_current",
-        ReadingType.HIGH_POWER_FACTOR: "high_power_factor",
-        ReadingType.HIGH_REAL_POWER: "high_real_power",
-        ReadingType.LOW_VOLTAGE: "low_voltage",
-        ReadingType.LOW_CURRENT: "low_current",
-        ReadingType.LOW_POWER_FACTOR: "low_power_factor",
-        ReadingType.LOW_REAL_POWER: "low_real_power",
-        ReadingType.SCALE_CURRENT: "scale_current",
-        ReadingType.SCALE_VOLTAGE: "scale_voltage",
-        ReadingType.CORRECTION_ANGLE: "correction_angle",
-        ReadingType.TEMPERATURE: "temperature",
-        ReadingType.PERSISTS: "persists",
-        ReadingType.RSSI: "rssi",
-        ReadingType.FIRMWARE: "firmware_version",
-        ReadingType.REPORTING: "reporting_data"
-    }
+        self._logger.info(f"recorded sensors {serial_numbers} as non-linking")
 
     @singledispatchmethod
-    def save(self, values, kind, serial_number: str = ""):
+    def save(self, values, kind, _: str = ""):
         raise NotImplementedError("default for use with @singledispatchmethod")
 
     @save.register
-    def _(self, values: tuple, kind: str, serial_number: str = ""):
-        self._save(self.record_attributes[kind], values)
+    def _(self, values: tuple, reading_type: ReadingType, _: str = ""):
+        self._save(values, _sensor_attributes[reading_type])
 
     @save.register
-    def _(self, value: str, kind: str, serial_number: str = ""):
-        unit: Sensor = self._log_by_serial_number[serial_number]
-        setattr(unit, self.record_attributes[kind], value)
+    def _(self, value: str, reading_type: ReadingType, serial_number: str = ""):
+        assert serial_number != "", "missing serial_number"
 
-    def _save(self, attribute, values):
+        unit: Sensor = self._log_by_serial_number[serial_number]
+        setattr(unit, _sensor_attributes[reading_type], value)
+        # 'change' signal is not emitted here for performance reasons
+        self._logger.debug(f"set sensor({unit.serial_number}).{_sensor_attributes[reading_type]} = {value}")
+
+    def _save(self, values, attribute):
         for index, unit in enumerate(self):
             if unit.linked:
                 setattr(unit, attribute, values[index])
-
+                self._logger.debug(f"set sensor({unit.serial_number}).{attribute} = {values[index]}")
         self.changed.emit()
 
     # "private" interface
@@ -179,6 +184,7 @@ class SensorLog(QObject):
 
     def _clear(self):
         self._log_by_serial_number.clear()
+        self._log_by_phase.clear()
 
     def __getitem__(self, key):
         return self._log_by_serial_number[key]

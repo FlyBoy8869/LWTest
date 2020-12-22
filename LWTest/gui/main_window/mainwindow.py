@@ -4,7 +4,7 @@ from typing import Optional, Tuple
 
 from PyQt5 import QtGui
 from PyQt5.QtCore import QThreadPool, QSettings, QSize, Qt, QReadWriteLock, \
-    QObject, pyqtSignal, QTimer
+    QObject, pyqtSignal, QTimer, QMutexLocker, QMutex
 from PyQt5.QtGui import QIcon, QCloseEvent, QBrush
 from PyQt5.QtWidgets import QMainWindow, QVBoxLayout, QWidget, \
     QTableWidgetItem, QMessageBox, QToolBar, \
@@ -48,6 +48,8 @@ _DATA_IN_SPREADSHEET_ORDER = (
     "calibrated", "temperature", "fault_current"
 )
 
+_mutex = QMutex()
+
 
 class MainWindow(QMainWindow):
     class Signals(QObject):
@@ -69,7 +71,7 @@ class MainWindow(QMainWindow):
 
         self.signals = self.Signals()
         self.thread_pool = QThreadPool.globalInstance()
-        print(f"using max threads: {self.thread_pool.maxThreadCount()}")
+        print(f"using max threads: {QThreadPool.globalInstance().maxThreadCount()}")
         self.sensor_log = sensor.SensorLog()
         self.sensor_log.changed.connect(self._update_table)
         self.firmware_upgrade_in_progress = False
@@ -98,18 +100,16 @@ class MainWindow(QMainWindow):
         self.menu_helper.connect_actions()
         # end of Menu Stuff
 
-        self.sensor_table = LWTTableWidget(self.panel)
-        self.sensor_table.signals.double_clicked.connect(
-            self._table_item_double_clicked
-        )
-        self.sensor_table.setAlternatingRowColors(True)
-        self.sensor_table.setPalette(theme.sensor_table_palette)
-        self.panel_layout.addWidget(self.sensor_table)
-
-        self._table_view_updater = SensorTableViewUpdater(
-            self.sensor_table, lambda: self.sensor_log.room_temperature
-        )
-
+        self.sensor_table = None
+        # self.sensor_table = LWTTableWidget(self.panel)
+        # self.sensor_table.signals.double_clicked.connect(
+        #     self._table_item_double_clicked
+        # )
+        # self.sensor_table.setAlternatingRowColors(True)
+        # self.sensor_table.setPalette(theme.sensor_table_palette)
+        # self.panel_layout.addWidget(self.sensor_table)
+        # self._table_view_updater = SensorTableViewUpdater(lambda: self.sensor_log.room_temperature)
+        self._setup_sensor_table()
         self._create_toolbar()
 
         self.signals.file_dropped.connect(
@@ -123,7 +123,7 @@ class MainWindow(QMainWindow):
 
     def closeEvent(self, closing_event: QCloseEvent):
         if self.changes.can_discard(parent=self):
-            self.thread_pool.clear()
+            # self.thread_pool.clear()
             self._close_browser()
             self._save_window_geometry_to_settings()
             self._logger.debug("program terminated")
@@ -176,7 +176,6 @@ class MainWindow(QMainWindow):
                     sensor_log.get_serial_numbers_as_tuple(),
                     self._logger
                 ).as_posix()
-            self._setup_sensor_table()
             self.changes.clear_change_flag()
             self.collector_configured = False
 
@@ -186,7 +185,10 @@ class MainWindow(QMainWindow):
 
     def _import_serial_numbers_from_spreadsheet(self, filename: str, sensor_log) -> bool:
         if self.changes.can_discard(parent=self):
-            sensor_log.create_all(spreadsheet.get_serial_numbers(filename))
+            serial_numbers = spreadsheet.get_serial_numbers(filename)
+            sensor_log.create_all(serial_numbers)
+            self._setup_sensor_table(rows=len(serial_numbers))
+            self._update_table()
             return True
 
         return False
@@ -201,13 +203,24 @@ class MainWindow(QMainWindow):
 
         return filename.rename(new_path.as_posix())
 
-    def _setup_sensor_table(self):
+    def _setup_sensor_table(self, rows=6):
+        if self.sensor_table:
+            self.panel_layout.removeWidget(self.sensor_table)
+
+        self.sensor_table = LWTTableWidget(self.panel)
+        self.panel_layout.addWidget(self.sensor_table)
+        self.sensor_table.signals.double_clicked.connect(
+            self._table_item_double_clicked
+        )
+        self.sensor_table.setAlternatingRowColors(True)
+        self.sensor_table.setPalette(theme.sensor_table_palette)
+        self._table_view_updater = SensorTableViewUpdater(lambda: self.sensor_log.room_temperature)
         sensortable.setup_table(
             self,
-            self.sensor_log.get_serial_numbers_as_tuple(),
             self.sensor_table,
             self._manually_override_calibration_result,
-            self._manually_override_fault_current_result
+            self._manually_override_fault_current_result,
+            rows
         )
         self._update_table()
 
@@ -232,37 +245,46 @@ class MainWindow(QMainWindow):
         self._show_warning_dialog(error_msg)
 
     def _start_serial_update_verifier(self, serial_numbers):
+        self._logger.info("starting serial number update verification")
         verifier = link.SerialNumberUpdateVerifier(serial_numbers)
-        verifier.signals.serial_numbers_updated.connect(
+        verifier.serial_numbers_updated.connect(
             self._serial_numbers_successfully_updated
         )
-        verifier.signals.timed_out.connect(
+        verifier.timed_out.connect(
             lambda: self.statusBar().showMessage(
                 "Timed out verifying serial number update.", 10000
             )
         )
         verifier.verify()
+        self._logger.info("finished serial number update verification")
 
     def _serial_numbers_successfully_updated(self):
         self.statusBar().showMessage("Serial Numbers Updated.", 5000)
         QTimer.singleShot(1000, self._start_sensor_link_check)
 
     def _start_sensor_link_check(self):
+        self._logger.info("starting sensor link check")
         dialog = SpinDialog(self, "Collecting startup data...\t\t\t")
         dialog.show()
         dialog.raise_()
         dialog.activateWindow()
 
-        link_thread = link.LinkWorker(self.sensor_log.get_serial_numbers_as_list(), lwt.URL_MODEM_STATUS)
+        serial_numbers = self.sensor_log.get_serial_numbers_as_list()
+        self._logger.info(f"checking links for {len(serial_numbers)} serial numbers")
+        link_thread = link.LinkWorker(serial_numbers, lwt.URL_MODEM_STATUS)
         link_thread.signals.successful_link.connect(self.sensor_log.save)
         link_thread.signals.successful_link.connect(
-            lambda rssi, kind, serial_number: self._get_sensor_link_data(serial_number)
+            lambda _, _2, serial_number: self._get_sensor_link_data(serial_number)
         )
         link_thread.signals.link_timeout.connect(lambda nls: self.sensor_log.record_non_linked_sensors(nls))
         link_thread.signals.finished.connect(lambda: dialog.done(QDialog.Accepted))
+        # Updating the table is done here, instead of emitting the 'changed' signal
+        # in SensorLog.save(value: str, ...) method for every reading, for performance reasons.
         link_thread.signals.finished.connect(self._update_table)
-        self._logger.debug("starting link thread worker")
-        self.thread_pool.start(link_thread)
+        link_thread.signals.finished.connect(lambda: self._logger.info("sensor link check finished"))
+        self._logger.info("starting link check thread")
+        QThreadPool.globalInstance().start(link_thread)
+        self._logger.info("link check thread started")
 
     def _handle_action_upgrade_sensor(self):
         phase = self.sensor_table.currentRow()
@@ -297,7 +319,7 @@ class MainWindow(QMainWindow):
         self.firmware_upgrade_in_progress = False
         phase = self._get_sensor_phase(serial_number)
         self.sensor_log.record_firmware_version(phase, lwt.LATEST_FIRMWARE_VERSION_NUMBER)
-        self._table_view_updater.update_from_model(self.sensor_log.get_sensors())
+        self._update_table()
 
         self._show_information_dialog("Sensor firmware successfully upgraded.")
 
@@ -359,7 +381,9 @@ class MainWindow(QMainWindow):
         reporting_reader = ReportingDataReader()
         reporting_reader.update.connect(
             lambda phase, reporting: self.sensor_log.save(
-                reporting, ReadingType.REPORTING, self.sensor_log.get_sensor_by_phase(phase).serial_number
+                reporting,
+                ReadingType.REPORTING,
+                serial_number=self.sensor_log.get_sensor_by_phase(phase).serial_number
             )
         )
         self._logger.debug("created reporting reader")
@@ -369,7 +393,9 @@ class MainWindow(QMainWindow):
         firmware_reader = FirmwareVersionReader()
         firmware_reader.update.connect(
             lambda phase, version: self.sensor_log.save(
-                version, ReadingType.FIRMWARE, self.sensor_log.get_sensor_by_phase(phase).serial_number
+                version,
+                ReadingType.FIRMWARE,
+                serial_number=self.sensor_log.get_sensor_by_phase(phase).serial_number
             )
         )
         self._logger.debug("created firmware reader")
@@ -390,7 +416,7 @@ class MainWindow(QMainWindow):
         firmware_reader, reporting_reader = self._get_sensor_link_data_readers()
 
         firmware_reader.read(phase, driver)
-        reporting_reader.read(phase, driver)
+        # reporting_reader.read(phase, driver)
 
     def _handle_action_fault_current(self, _: bool):
         self._get_browser().get(lwt.URL_FAULT_CURRENT)
@@ -505,10 +531,10 @@ class MainWindow(QMainWindow):
             self._wait_for_collector_to_boot()
 
     def _manually_override_calibration_result(self, result, index):
-        self.sensor_log.get_sensor_by_phase(index).calibrated = result
+        self.sensor_log.record_calibration_results(result, index)
 
     def _manually_override_fault_current_result(self, result, index):
-        self.sensor_log.get_sensor_by_phase(index).fault_current = result
+        self.sensor_log.record_fault_current_results(result, index)
 
     def _save_window_geometry_to_settings(self):
         self.settings.setValue("geometry/mainwindow/width", self.width())
@@ -518,8 +544,9 @@ class MainWindow(QMainWindow):
         item: QTableWidgetItem = self.sensor_table.item(row, col)
         item.setBackground(color)
 
-    def _start_worker(self, worker):
-        self.thread_pool.start(worker)
+    @staticmethod
+    def _start_worker(worker):
+        QThreadPool.globalInstance().start(worker)
 
     def _show_information_dialog(self, message):
         QMessageBox.information(self, LWTest.app_title, message, QMessageBox.Ok, QMessageBox.Ok)
@@ -556,12 +583,13 @@ class MainWindow(QMainWindow):
             QMessageBox.Cancel: lambda: None
         }
         result_map[result]()
-        self._update_table()
 
     def _update_table(self):
-        self._table_view_updater.update_from_model(self.sensor_log.get_sensors())
+        self._logger.info("updating table")
+        self._table_view_updater.update_from_model(self.sensor_log.get_sensors(), self.sensor_table)
+        self._logger.info("finished updating table")
 
     def _wait_for_collector_to_boot(self):
-        pbm = PersistenceBootMonitorDialog(self, self.thread_pool)
+        pbm = PersistenceBootMonitorDialog(self)
         pbm.finished.connect(self._handle_persistence_boot_monitor_finished_signal)
         pbm.open()

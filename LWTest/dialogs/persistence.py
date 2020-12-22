@@ -1,7 +1,7 @@
 from time import sleep
 
 import requests
-from PyQt5.QtCore import QTimer, QObject, pyqtSignal, QRunnable
+from PyQt5.QtCore import QTimer, QObject, pyqtSignal, QRunnable, QThreadPool
 from PyQt5.QtWidgets import QDialog, QVBoxLayout, QLabel, QProgressBar
 
 from LWTest.constants import lwt_constants
@@ -9,12 +9,11 @@ from LWTest.constants import lwt_constants
 
 class PersistenceBootMonitorDialog(QDialog):
 
-    def __init__(self, parent, thread_pool):
+    def __init__(self, parent):
         super().__init__(parent=parent)
         self.setWindowTitle("Persistence")
 
         self.parent = parent
-        self._thread_pool = thread_pool
         self.timeout = lwt_constants.TimeOut.COLLECTOR_BOOT_WAIT_TIME.value
 
         self._need_to_start_thread: bool = True
@@ -39,7 +38,7 @@ class PersistenceBootMonitorDialog(QDialog):
         monitor = PageReachable(lwt_constants.URL_RAW_CONFIGURATION, self.timeout)
         monitor.signals.collector_booted.connect(self.accept)
         monitor.signals.dialog_timed_out.connect(self.reject)
-        self._thread_pool.start(monitor)
+        QThreadPool.globalInstance().start(monitor)
 
 
 class Signals(QObject):

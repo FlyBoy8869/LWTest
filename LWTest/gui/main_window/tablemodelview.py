@@ -1,21 +1,16 @@
 import logging
 from collections import namedtuple
-
-from PyQt5.QtCore import QMutex, QMutexLocker, QReadWriteLock
-from PyQt5.QtGui import QBrush
-from PyQt5.QtWidgets import QTableWidget, QTableWidgetItem
 from typing import Tuple, Callable, Union
+
+from PyQt5.QtGui import QBrush
+from PyQt5.QtWidgets import QTableWidgetItem
 
 import LWTest.gui.brushes as brushes
 from LWTest.constants import lwt_constants as lwt
-from LWTest.constants.lwt_constants.tolerance import Tolerance as tol
 from LWTest.constants.lwt_constants.sensor_table_columns import TableColumn as tc
+from LWTest.constants.lwt_constants.tolerance import Tolerance as tol
+from LWTest.gui.widgets import LWTTableWidget
 from LWTest.sensor import Sensor
-
-_DATA_IN_TABLE_ORDER = ("rssi", "firmware_version", "reporting_data", "calibrated", "high_voltage", "high_current",
-                        "high_power_factor", "high_real_power", "low_voltage", "low_current",
-                        "low_power_factor", "low_real_power", "scale_current", "scale_voltage",
-                        "correction_angle", "persists", "temperature", "fault_current")
 
 WordMatch = namedtuple("WordMatch", "word")
 ReadingLimits = namedtuple("ReadingLimits", "lower upper")
@@ -61,6 +56,7 @@ class FloatValidator(Validator):
 
 
 validators_by_column = {
+    tc.SERIAL_NUMBER.value: (None, None),
     tc.RSSI.value: (FloatValidator, (-75.0, 0)),
     tc.FIRMWARE.value: (WordMatchValidator, WordMatch('0x75',)),
     tc.REPORTING.value: (WordMatchValidator, WordMatch("Pass",)),
@@ -102,36 +98,45 @@ class CellLocation:
 
 
 class SensorTableViewUpdater:
-    def __init__(self, table: QTableWidget, get_temp_ref: Callable):
+    _DATA_IN_TABLE_ORDER = (
+        "serial_number", "rssi", "firmware_version", "reporting_data", "calibrated", "high_voltage", "high_current",
+        "high_power_factor", "high_real_power", "low_voltage", "low_current",
+        "low_power_factor", "low_real_power", "scale_current", "scale_voltage",
+        "correction_angle", "persists", "temperature", "fault_current"
+    )
+
+    def __init__(self, get_temp_ref: Callable):
         self._logger = logging.getLogger(__name__)
-        self._table = table
         self._get_temp_ref = get_temp_ref
 
-    def update_from_model(self, sensors: Tuple[Sensor, ...]) -> None:
+    def update_from_model(self, sensors: Tuple[Sensor, ...], table: LWTTableWidget) -> None:
         for row, sensor in enumerate(sensors):
-            for column in range(lwt.TableColumn.RSSI.value, lwt.TableColumn.FAULT_CURRENT.value + 1):
+            for column in range(lwt.TableColumn.SERIAL_NUMBER.value, lwt.TableColumn.FAULT_CURRENT.value + 1):
                 if column == lwt.TableColumn.FAULT_CURRENT.value:
                     self._update_combo_box(CellLocation(row, lwt.TableColumn.FAULT_CURRENT.value),
-                                           sensor.fault_current)
+                                           sensor.fault_current, table)
                 elif column == lwt.TableColumn.CALIBRATION.value:
                     self._update_combo_box(CellLocation(row, lwt.TableColumn.CALIBRATION.value),
-                                           sensor.calibrated)
+                                           sensor.calibrated, table)
                 else:
-                    reading = sensor.__getattribute__(_DATA_IN_TABLE_ORDER[column - 1])
-                    self._table.item(row, column).setText(reading)
-                    validated_item = self._validate_reading(reading, row, column)
-                    self._table.setItem(row, column, validated_item)
+                    reading = getattr(sensor, self._DATA_IN_TABLE_ORDER[column])
+                    self._logger.debug(f"reading to be placed at ({row}, {column}): {reading}")
+                    table.item(row, column).setText(reading)
+                    validated_item = self._validate_reading(reading, row, column, table)
+                    table.setItem(row, column, validated_item)
 
-    def _update_combo_box(self, cell_location: CellLocation, text: str) -> None:
+    @staticmethod
+    def _update_combo_box(cell_location: CellLocation, text: str, table) -> None:
         def _determine_index(result: str) -> int:
             indexes = {"Pass": 1, "Fail": 2}
-            return indexes.get(result, 0)
+            return indexes.get(result, 0)  # defaults to "NA"
 
-        self._table.cellWidget(cell_location.row, cell_location.col).setCurrentIndex(_determine_index(text))
+        table.cellWidget(cell_location.row, cell_location.col).setCurrentIndex(_determine_index(text))
 
-    def _validate_reading(self, reading, row, column: int) -> QTableWidgetItem:
-        """Validates reading and returns a new QTableWidgetItem with its background colored to indicate pass or fail."""
-        assert tc.RSSI.value <= column <= tc.FAULT_CURRENT.value, f"invalid column: {column} not in range"
+    def _validate_reading(self, reading, row: int, column: int, table) -> QTableWidgetItem:
+        """Validates reading and returns a new QTableWidgetItem
+        with its background colored to indicate pass or fail."""
+        assert tc.SERIAL_NUMBER.value <= column <= tc.FAULT_CURRENT.value, f"invalid column: {column} not in range"
         validator, limits = validators_by_column[column]
         if validator:
             if column == tc.TEMPERATURE.value:
@@ -139,8 +144,13 @@ class SensorTableViewUpdater:
             else:
                 brush = validator.get_brush(validator.validate(reading, limits))
 
-            highlighted_item = self._create_highlighted_item(brush, self._table.item(row, column))
+            highlighted_item = self._create_highlighted_item(brush, table.item(row, column))
             return highlighted_item
+        else:
+            # need to clone item when returning existing QTableWidgetItem
+            # or else the following error is printed
+            # "QTableWidget: cannot insert an item that is already owned by another QTableWidget"
+            return table.item(row, column).clone()
 
     @staticmethod
     def _get_temperature_brush(reading, validator, temp_ref: float) -> QBrush:

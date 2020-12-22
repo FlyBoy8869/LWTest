@@ -55,7 +55,7 @@ class TestDataReader(TestCase):
             ["1.50000", "1.51010", "1.52020"],
             ["0.0", "1.1", "2.2"]
         ]
-        self.assertEqual(expected, self.data_reader._extract_advanced_readings(readings, 3), "Not equal")
+        self.assertEqual(expected, self.data_reader._scrape_advanced_readings(readings, 3), "Not equal")
 
 
 class TestStandAloneFunctions(TestCase):

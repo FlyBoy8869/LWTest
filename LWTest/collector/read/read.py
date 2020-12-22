@@ -11,8 +11,8 @@ from selenium.webdriver.support import expected_conditions as ec
 from selenium.webdriver.support.ui import WebDriverWait
 
 import LWTest.utilities.misc as utils_misc
-from LWTest.constants import lwt
 from LWTest.collector import ReadingType
+from LWTest.constants import lwt
 
 _READING_SELECTOR = "div.tcellShort:not([id^='last'])"
 _ADVANCED_CONFIG_SELECTOR = "div.tcell > input"
@@ -119,7 +119,7 @@ class DataReader(QObject):
         return values
 
     @staticmethod
-    def _extract_advanced_readings(readings, columns) -> List[List[str]]:
+    def _scrape_advanced_readings(readings, columns) -> List[List[str]]:
         scale_current_index = 0
         scale_voltage_index = scale_current_index + columns
         correction_angle_index = 12 if scale_voltage_index == 3 else 24
@@ -130,10 +130,11 @@ class DataReader(QObject):
             [correction_angle_index, correction_angle_index + columns]
         ]
 
-        return [DataReader._scrape_readings(readings, "value", start, stop) for start, stop in reading_slice_indexes]
+        return [DataReader._scrape_readings(readings, "value", start, stop)
+                for start, stop in reading_slice_indexes]
 
     @staticmethod
-    def _extract_temperature_readings(readings, columns):
+    def _scrape_temperature_readings(readings, columns):
         return DataReader._scrape_readings(
             readings, "textContent", len(readings) - columns, len(readings)
         )
@@ -141,7 +142,7 @@ class DataReader(QObject):
     @staticmethod
     def _get_advanced_readings(readings, columns: int):
         # scale current, scale voltage, correction angle
-        advanced_readings = DataReader._extract_advanced_readings(readings, columns)
+        advanced_readings = DataReader._scrape_advanced_readings(readings, columns)
         return advanced_readings
 
     @staticmethod
@@ -150,7 +151,7 @@ class DataReader(QObject):
 
     @staticmethod
     def _get_temperature_readings(readings, columns):
-        return DataReader._extract_temperature_readings(readings, columns)
+        return DataReader._scrape_temperature_readings(readings, columns)
 
     @staticmethod
     def _massage_real_power_readings(readings) -> List[str]:
@@ -234,13 +235,9 @@ class PersistenceComparator(QObject):
 
     def _live_readings(self, sensor_count: int, driver: webdriver.Chrome):
         return self._reading_element_values(
-            self._read_elements(driver),
+            _get_elements(_ADVANCED_CONFIG_SELECTOR, driver),
             sensor_count
         )
-
-    @staticmethod
-    def _read_elements(driver: webdriver.Chrome):
-        return driver.find_elements_by_css_selector("div.tcell > input")
 
     def _reading_element_values(self, reading_elements, count: int):
         return tuple(
@@ -318,7 +315,6 @@ class ReportingDataReader(Reader):
 
     def read(self, phase: int, driver: webdriver.Chrome):
         self._logger.debug(f"confirming Phase {phase + 1} is reading data")
-
         content = super().read(phase, driver)
         reporting = "Fail" if content == lwt.NO_DATA else "Pass"
         super()._emit_signals(phase, reporting)
@@ -333,6 +329,5 @@ class FirmwareVersionReader(Reader):
 
     def read(self, phase: int, driver: webdriver.Chrome):
         self._logger.debug(f"reading firmware version for Phase {phase + 1}")
-
         version = super().read(phase, driver)
         super()._emit_signals(phase, version)

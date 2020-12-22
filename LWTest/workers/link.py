@@ -42,13 +42,12 @@ class ModemStatusPageLoader:
         return page
 
 
-class SerialNumberUpdateVerifier:
-    class Signals(QObject):
-        serial_numbers_updated = pyqtSignal()
-        timed_out = pyqtSignal()
+class SerialNumberUpdateVerifier(QObject):
+    serial_numbers_updated = pyqtSignal()
+    timed_out = pyqtSignal()
 
     def __init__(self, serial_numbers: Tuple[str]):
-        self.signals = SerialNumberUpdateVerifier.Signals()
+        super().__init__()
         self._serial_numbers = serial_numbers
         self._page_loader = ModemStatusPageLoader(lwt.URL_MODEM_STATUS)
         self._timeout = 180
@@ -61,13 +60,13 @@ class SerialNumberUpdateVerifier:
                 return
 
             if len(_extract_sensor_record_from_page(page.text, self._serial_numbers)) == len(self._serial_numbers):
-                print("serials updated...")
-                self.signals.serial_numbers_updated.emit()
+                logging.getLogger(__name__).info("serial numbers updated...")
+                self.serial_numbers_updated.emit()
                 return
 
             sleep(0.300)
 
-        self.signals.timed_out.emit()
+        self.timed_out.emit()
 
 
 class LinkWorker(QRunnable):
@@ -75,50 +74,50 @@ class LinkWorker(QRunnable):
         super().__init__()
         self.signals = Signals()
 
-        self.__logger = logging.getLogger(__name__)
-        self.__serial_numbers = serial_numbers
-        self.__page_loader = ModemStatusPageLoader(url)
+        self._logger = logging.getLogger(__name__)
+        self._serial_numbers = serial_numbers
+        self._page_loader = ModemStatusPageLoader(url)
 
-        self.__time_to_sleep = lwt.TimeOut.LINK_PAGE_LOAD_INTERVAL.value
-        self.__timeout = lwt.TimeOut.LINK_CHECK.value
+        self._time_to_sleep = lwt.TimeOut.LINK_PAGE_LOAD_INTERVAL.value
+        self._timeout = lwt.TimeOut.LINK_CHECK.value
 
     def run(self):
-        self.__logger.debug("LinkWorker thread run method started")
+        self._logger.debug("LinkWorker thread run method started")
         start_time = time.time()
         try:
-            while time.time() - start_time < self.__timeout:
-                if (page := self.__page_loader.page) is None or self._page_not_found(page.status_code):
+            while time.time() - start_time < self._timeout:
+                if (page := self._page_loader.page) is None or self._page_not_found(page.status_code):
                     self._notify_page_not_found()
                     return
 
                 if page.status_code == 200:
-                    self._process_sensor_records(_extract_sensor_record_from_page(page.text, self.__serial_numbers))
+                    self._process_sensor_records(_extract_sensor_record_from_page(page.text, self._serial_numbers))
                     if self._all_sensors_linked():
                         return
 
-                sleep(self.__time_to_sleep)
+                sleep(self._time_to_sleep)
 
             self._handle_timeout()
         except requests.exceptions.RequestException as exc:
-            self.__logger.exception("Error checking link status", exc_info=exc)
+            self._logger.exception("Error checking link status", exc_info=exc)
         finally:
-            self.__logger.debug("emitting 'finished' signal")
+            self._logger.debug("emitting 'finished' signal")
             self.signals.finished.emit()
 
     def _all_sensors_linked(self):
-        return len(self.__serial_numbers) == 0
+        return len(self._serial_numbers) == 0
 
     def _emit_not_linked_signal_for_these_serial_numbers(self, serial_numbers):
         self.signals.link_timeout.emit(tuple(serial_numbers))
-        self.__logger.debug("timed out waiting for sensors to link")
+        self._logger.debug("timed out waiting for sensors to link")
 
     def _emit_signal_if_linked(self, data):
-        self.__logger.debug(f"{time.time()} found a link for sensor {data[0]} with an rssi of {data[3]}")
+        self._logger.debug(f"{time.time()} found a link for sensor {data[0]} with an rssi of {data[3]}")
         serial_number, rssi = data[0], data[3]
         self.signals.successful_link.emit(rssi, ReadingType.RSSI, serial_number)
 
     def _handle_timeout(self):
-        self._emit_not_linked_signal_for_these_serial_numbers(self.__serial_numbers)
+        self._emit_not_linked_signal_for_these_serial_numbers(self._serial_numbers)
 
     def _notify_page_not_found(self):
         message = ("Received error 404 Page not found.\n" +
@@ -131,7 +130,7 @@ class LinkWorker(QRunnable):
         for record in records:
             if len(record) > 3:
                 self._emit_signal_if_linked(record)
-                self.__serial_numbers.remove(record[0])
+                self._serial_numbers.remove(record[0])
 
     @staticmethod
     def _page_not_found(status_code):

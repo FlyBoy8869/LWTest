@@ -8,7 +8,7 @@ from PyQt5.QtCore import QRunnable, QObject, pyqtSignal
 from time import sleep
 
 from LWTest.constants import lwt
-from LWTest.collector import ReadingType
+from LWTest.collector.common.constants import ReadingType
 
 _serial_number_regex = re.compile(r"\s*\d{7}")
 linked_regex = r"\s*\d{7}\s*\d{7}\s*\d{7}\s*-?\d{2}"

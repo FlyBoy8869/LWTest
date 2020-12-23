@@ -18,3 +18,9 @@ class ReadingType(IntEnum):
     RSSI = auto()
     FIRMWARE = auto()
     REPORTING = auto()
+    CALIBRATED = auto()
+    FAULT_CURRENT = auto()
+
+
+ADVANCED_CONFIG_SELECTOR = "div.tcell > input"
+READING_SELECTOR = "div.tcellShort:not([id^='last'])"

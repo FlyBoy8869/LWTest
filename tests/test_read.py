@@ -1,9 +1,9 @@
 from collections import namedtuple
 from unittest import TestCase
 
-import LWTest.collector.read.read as collector_read
+import LWTest.collector.read.operational as collector_read
 
-from LWTest.collector.read.read import DataReader
+from LWTest.collector.read.operational import DataReader
 
 
 class Element:

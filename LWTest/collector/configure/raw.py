@@ -5,6 +5,7 @@ from typing import List
 from selenium import webdriver
 
 import LWTest.web.interface.page as webpage
+from LWTest.collector.common import helpers
 from LWTest.constants import dom, lwt
 
 _logger = logging.getLogger(__name__)
@@ -60,33 +61,14 @@ def do_advanced_configuration(driver: webdriver.Chrome, page_loader, submit_butt
         sleep(lwt.TimeOut.TIME_BETWEEN_CONFIGURATION_PAGES.value)
 
 
-def configure_phase_angle(url: str, driver: webdriver.Chrome, page_loader, submit_button: webpage.Submit) -> bool:
-    """Enters the Phase Angle displayed on the Yokogawa into the Correction Angle fields on the Configuration page."""
-    _logger.debug("setting phase angle correction factor")
-    page_loader.get(url, driver)
-    fields = driver.find_elements_by_css_selector(PHASE_ANGLE_SELECTOR)
-    _enter_constants(fields, _PHASE_ANGLE)
-    submit_button.click(driver)
-
-    return True
-
-
 # -- private module functions ---
-def _set_field(field, value):
-    field.clear()
-    field.send_keys(value)
-
-
-def _enter_constants(fields, value):
-    for field in fields:
-        _set_field(field, value)
 
 
 def _set_temperature_configuration_values(driver: webdriver.Chrome) -> None:
     _logger.debug("setting temperature constants")
     fields = driver.find_elements_by_css_selector(TEMPERATURE_SELECTOR)
-    _enter_constants(fields[0:_NUMBER_OF_VOLTAGE_TEMPERATURE_SCALE_FIELDS], _VOLTAGE_TEMPERATURE_SCALE)
-    _enter_constants(fields[_NUMBER_OF_FIELDS_TO_SKIP:], _REMAINING_TEMPERATURE_FIELDS_CONFIGURATION_VALUE)
+    helpers.enter_constants(fields[0:_NUMBER_OF_VOLTAGE_TEMPERATURE_SCALE_FIELDS], _VOLTAGE_TEMPERATURE_SCALE)
+    helpers.enter_constants(fields[_NUMBER_OF_FIELDS_TO_SKIP:], _REMAINING_TEMPERATURE_FIELDS_CONFIGURATION_VALUE)
 
 
 def _set_raw_configuration_values(driver: webdriver.Chrome) -> None:
@@ -103,10 +85,10 @@ def _set_raw_configuration_values(driver: webdriver.Chrome) -> None:
     )
 
     for config_constant, selector in values_to_configure:
-        _enter_constants(driver.find_elements_by_css_selector(selector), config_constant)
+        helpers.enter_constants(driver.find_elements_by_css_selector(selector), config_constant)
 
 
 def _set_collector_calibration_factor(driver: webdriver.Chrome) -> None:
     _logger.debug("setting calibration factor constant")
     field = driver.find_element_by_xpath(dom.vrt_calibration_factor)
-    _set_field(field, _VOLTAGE_RIDE_THROUGH_CALIBRATION_FACTOR)
+    helpers.set_field(field, _VOLTAGE_RIDE_THROUGH_CALIBRATION_FACTOR)

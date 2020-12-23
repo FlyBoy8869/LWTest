@@ -1,13 +1,13 @@
 # sensor.py
 import logging
-from dataclasses import dataclass, field, InitVar
+from dataclasses import dataclass, field
 from functools import singledispatchmethod
 from typing import Optional, List, Tuple, cast
 
 from PyQt5.QtCore import QObject, pyqtSignal
 
 import LWTest.constants.lwt_constants as lwt
-from LWTest.collector import ReadingType
+from LWTest.collector.common.constants import ReadingType
 
 
 @dataclass
@@ -73,7 +73,9 @@ _sensor_attributes = {
     ReadingType.PERSISTS: "persists",
     ReadingType.RSSI: "rssi",
     ReadingType.FIRMWARE: "firmware_version",
-    ReadingType.REPORTING: "reporting_data"
+    ReadingType.REPORTING: "reporting_data",
+    ReadingType.CALIBRATED: "calibrated",
+    ReadingType.FAULT_CURRENT: "fault_current",
 }
 
 

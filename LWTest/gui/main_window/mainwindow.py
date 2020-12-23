@@ -4,7 +4,7 @@ from typing import Optional, Tuple
 
 from PyQt5 import QtGui
 from PyQt5.QtCore import QThreadPool, QSettings, QSize, Qt, QReadWriteLock, \
-    QObject, pyqtSignal, QTimer, QMutexLocker, QMutex
+    QObject, pyqtSignal, QTimer, QMutex
 from PyQt5.QtGui import QIcon, QCloseEvent, QBrush
 from PyQt5.QtWidgets import QMainWindow, QVBoxLayout, QWidget, \
     QTableWidgetItem, QMessageBox, QToolBar, \
@@ -12,14 +12,17 @@ from PyQt5.QtWidgets import QMainWindow, QVBoxLayout, QWidget, \
 from selenium import webdriver
 
 import LWTest
-import LWTest.changetracker as changetracker
-import LWTest.gui.main_window.sensortable as sensortable
-import LWTest.gui.theme as theme
+import LWTest.collector.configure.phaseangle
+from LWTest import changetracker
+from LWTest.gui.main_window import sensortable
+from LWTest.gui import theme
 from LWTest import sensor, save, getrefs, web
-from LWTest.collector import configure, ReadingType
-from LWTest.collector.read.read import DataReader, PersistenceComparator, \
-    FirmwareVersionReader, \
+from LWTest.collector.configure import raw
+from LWTest.collector.common.constants import ReadingType
+from LWTest.collector.read.electric import DataReader
+from LWTest.collector.read.operational import FirmwareVersionReader, \
     ReportingDataReader
+from LWTest.collector.read.persistence import PersistenceComparator
 from LWTest.common.flags.flags import flags, FlagsEnum
 from LWTest.constants import lwt
 from LWTest.dialogs.countdown import CountDownDialog
@@ -31,7 +34,7 @@ from LWTest.gui.main_window.create_menus import MenuHelper
 from LWTest.gui.main_window.menu_help_handlers import menu_help_about_handler
 from LWTest.gui.main_window.tablemodelview import SensorTableViewUpdater
 from LWTest.gui.widgets import LWTTableWidget
-from LWTest.serial import ConfigureSerialNumbers
+from LWTest.collector.configure.serial import ConfigureSerialNumbers
 from LWTest.spreadsheet import spreadsheet
 from LWTest.utilities import misc, file_utils
 from LWTest.utilities.oscomp import QSettingsAdapter
@@ -101,14 +104,6 @@ class MainWindow(QMainWindow):
         # end of Menu Stuff
 
         self.sensor_table = None
-        # self.sensor_table = LWTTableWidget(self.panel)
-        # self.sensor_table.signals.double_clicked.connect(
-        #     self._table_item_double_clicked
-        # )
-        # self.sensor_table.setAlternatingRowColors(True)
-        # self.sensor_table.setPalette(theme.sensor_table_palette)
-        # self.panel_layout.addWidget(self.sensor_table)
-        # self._table_view_updater = SensorTableViewUpdater(lambda: self.sensor_log.room_temperature)
         self._setup_sensor_table()
         self._create_toolbar()
 
@@ -341,7 +336,7 @@ class MainWindow(QMainWindow):
             web.interface.page.Submit.create_submit_button_for_raw_config(password),
             web.interface.page.Submit.create_submit_button_for_voltage_ride_through(password)
         ]
-        configure.do_advanced_configuration(driver, Page, submit_buttons)
+        raw.do_advanced_configuration(driver, Page, submit_buttons)
 
     def _handle_action_calibrate(self):
         # just brings you to the calibration page for convenience
@@ -352,7 +347,7 @@ class MainWindow(QMainWindow):
         password = QSettings().value("main/config_password")
         submit_button = web.interface.page.Submit.create_submit_button_for_phase_angle(password)
 
-        if configure.configure_phase_angle(
+        if LWTest.collector.configure.phaseangle.configure_phase_angle(
                 lwt.URL_CONFIGURATION,
                 self._get_browser(),
                 Page,
@@ -416,7 +411,7 @@ class MainWindow(QMainWindow):
         firmware_reader, reporting_reader = self._get_sensor_link_data_readers()
 
         firmware_reader.read(phase, driver)
-        # reporting_reader.read(phase, driver)
+        reporting_reader.read(phase, driver)
 
     def _handle_action_fault_current(self, _: bool):
         self._get_browser().get(lwt.URL_FAULT_CURRENT)
@@ -437,46 +432,6 @@ class MainWindow(QMainWindow):
     def _enable_persistence_check(self, reading_type: str):
         if reading_type == ReadingType.TEMPERATURE:
             self.menu_helper.action_check_persistence.setEnabled(True)
-
-    def _create_toolbar(self):
-        toolbar = QToolBar("ToolBar")
-        toolbar.setIconSize(QSize(48, 48))
-        self.addToolBar(toolbar)
-
-        toolbar.addAction(self.menu_helper.action_configure_serial_numbers)
-        toolbar.addAction(self.menu_helper.action_advanced_configuration)
-        toolbar.addAction(self.menu_helper.action_calibrate)
-        toolbar.addAction(self.menu_helper.action_config_correction_angle)
-
-        self.menu_helper.insert_spacer(toolbar, self)
-
-        self.room_temp.setMinimum(0.0)
-        self.room_temp.setMaximum(99.9)
-        self.room_temp.setDecimals(1)
-        self.room_temp.setSingleStep(0.1)
-        self.room_temp.setPrefix(" ")
-        self.room_temp.setSuffix(" \u00BAC ")
-        self.room_temp.setValue(21.7)
-        self.room_temp.setToolTip("Enter room temperature.")
-        def set_room_temp(t): self.sensor_log.room_temperature = t
-        self.room_temp.valueChanged.connect(lambda v: set_room_temp(v))
-        toolbar.addWidget(self.room_temp)
-
-        self.menu_helper.insert_spacer(toolbar, self)
-
-        toolbar.addAction(self.menu_helper.action_take_readings)
-        toolbar.addAction(self.menu_helper.action_check_persistence)
-
-        self.menu_helper.insert_spacer(toolbar, self)
-
-        toolbar.addAction(self.menu_helper.action_fault_current)
-
-        self.menu_helper.insert_spacer(toolbar, self)
-
-        toolbar.addAction(self.menu_helper.action_save)
-
-        self.menu_helper.insert_spacer(toolbar, self)
-        toolbar.addAction(self.menu_helper.action_exit)
 
     def _close_browser(self):
         if self.browser:
@@ -531,10 +486,13 @@ class MainWindow(QMainWindow):
             self._wait_for_collector_to_boot()
 
     def _manually_override_calibration_result(self, result, index):
-        self.sensor_log.record_calibration_results(result, index)
+        serial_number = self.sensor_log.get_sensor_by_phase(index).serial_number
+        self.sensor_log.save(result, ReadingType.CALIBRATED, serial_number=serial_number)
+        self._update_table()
 
     def _manually_override_fault_current_result(self, result, index):
-        self.sensor_log.record_fault_current_results(result, index)
+        serial_number = self.sensor_log.get_sensor_by_phase(index).serial_number
+        self.sensor_log.save(result, ReadingType.FAULT_CURRENT, serial_number=serial_number)
 
     def _save_window_geometry_to_settings(self):
         self.settings.setValue("geometry/mainwindow/width", self.width())
@@ -593,3 +551,43 @@ class MainWindow(QMainWindow):
         pbm = PersistenceBootMonitorDialog(self)
         pbm.finished.connect(self._handle_persistence_boot_monitor_finished_signal)
         pbm.open()
+
+    def _create_toolbar(self):
+        toolbar = QToolBar("ToolBar")
+        toolbar.setIconSize(QSize(48, 48))
+        self.addToolBar(toolbar)
+
+        toolbar.addAction(self.menu_helper.action_configure_serial_numbers)
+        toolbar.addAction(self.menu_helper.action_advanced_configuration)
+        toolbar.addAction(self.menu_helper.action_calibrate)
+        toolbar.addAction(self.menu_helper.action_config_correction_angle)
+
+        self.menu_helper.insert_spacer(toolbar, self)
+
+        self.room_temp.setMinimum(0.0)
+        self.room_temp.setMaximum(99.9)
+        self.room_temp.setDecimals(1)
+        self.room_temp.setSingleStep(0.1)
+        self.room_temp.setPrefix(" ")
+        self.room_temp.setSuffix(" \u00BAC ")
+        self.room_temp.setValue(21.7)
+        self.room_temp.setToolTip("Enter room temperature.")
+        def set_room_temp(t): self.sensor_log.room_temperature = t
+        self.room_temp.valueChanged.connect(lambda v: set_room_temp(v))
+        toolbar.addWidget(self.room_temp)
+
+        self.menu_helper.insert_spacer(toolbar, self)
+
+        toolbar.addAction(self.menu_helper.action_take_readings)
+        toolbar.addAction(self.menu_helper.action_check_persistence)
+
+        self.menu_helper.insert_spacer(toolbar, self)
+
+        toolbar.addAction(self.menu_helper.action_fault_current)
+
+        self.menu_helper.insert_spacer(toolbar, self)
+
+        toolbar.addAction(self.menu_helper.action_save)
+
+        self.menu_helper.insert_spacer(toolbar, self)
+        toolbar.addAction(self.menu_helper.action_exit)

@@ -10,8 +10,7 @@ _UPDATE_BUTTON = "//*[@id='maindiv']/form/input[3]"
 
 
 class DateVerifier:
-    """Compares the Collector's date and time to the current date and time
-    and sets the collector to the current date and time if the difference is greater than one minute."""
+    """Ensures the collector date and time is within 1 minute of the current date and time."""
     def __init__(self, url: str, password: str):
         self._logger = logging.getLogger(__name__)
         self._url = url

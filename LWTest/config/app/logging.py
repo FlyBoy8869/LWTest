@@ -29,7 +29,7 @@ def initialize():
     file_handler.addFilter(lambda r: False if "test _log" in r.name else True)
 
     logging_format = [
-        "%(levelname)s : ",
+        "%(levelname)s: ",
         "%(asctime)s : ",
         "%(name)s : ",
         "%(module)s.",

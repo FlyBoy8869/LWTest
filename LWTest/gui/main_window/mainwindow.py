@@ -14,6 +14,7 @@ from selenium import webdriver
 import LWTest
 import LWTest.collector.configure.phaseangle
 from LWTest import changetracker
+from LWTest.collector.state import DateVerifier
 from LWTest.gui.main_window import sensortable
 from LWTest.gui import theme
 from LWTest import sensor, save, getrefs, web
@@ -64,9 +65,9 @@ class MainWindow(QMainWindow):
         super().__init__(*args, *kwargs)
         self._logger = logging.getLogger(__name__)
         self.settings = QSettings()
-        self.resize(1505, 315)
+        self.resize(1550, 335)
         x_pos = (QApplication.primaryScreen().geometry().width() - self.width()) // 2
-        self.setGeometry(x_pos, 5, self.width(), self.height())
+        self.move(x_pos, 5)
         self.setWindowIcon(QIcon("LWTest/resources/images/app_128.png"))
         self.setWindowTitle(LWTest.app_title)
         self.setAcceptDrops(True)
@@ -116,11 +117,17 @@ class MainWindow(QMainWindow):
 
         self.setCentralWidget(self.panel)
 
+        QTimer.singleShot(1500, self._startup)
+
+    def _startup(self):
+        # verify data and time on the collector
+        dv = DateVerifier(lwt.URL_DATE_TIME, "Q854Xj8X")
+        QTimer.singleShot(1000, lambda: dv.verify_date(self._get_browser()))
+        self.statusBar().showMessage("Checking the collector data and time.", 10000)
+
     def closeEvent(self, closing_event: QCloseEvent):
         if self.changes.can_discard(parent=self):
-            # self.thread_pool.clear()
             self._close_browser()
-            self._save_window_geometry_to_settings()
             self._logger.debug("program terminated")
             closing_event.accept()
         else:
@@ -444,10 +451,13 @@ class MainWindow(QMainWindow):
 
     def _get_browser(self):
         if self.browser is None:
+            screen_height = QApplication.primaryScreen().geometry().height()
             geometry = self.geometry()
             frame_geometry = self.frameGeometry()
+            app_bottom = frame_geometry.bottom()
+            browser_height = screen_height - app_bottom
             options = webdriver.ChromeOptions()
-            options.add_argument(f"window-size={self.width()},830")
+            options.add_argument(f"window-size={self.width()},{browser_height}")
             options.add_argument(f"window-position={geometry.x()},{frame_geometry.height() + 25}")
             self.browser = webdriver.Chrome(executable_path=LWTest.constants.CHROMEDRIVER_PATH, options=options)
             self._logger.debug("created instance of webdriver.Chrome")

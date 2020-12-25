@@ -16,7 +16,7 @@ class DateVerifier:
         self._url = url
         self._password = password
 
-    def verify_date(self, driver: webdriver.Chrome):
+    def sync_data_time(self, driver: webdriver.Chrome):
         driver.get(self._url)
         time_delta = self._get_delta_in_minutes(
             datetime.now(), self._get_collector_date(driver, self._logger),
@@ -51,10 +51,3 @@ class DateVerifier:
         date_time = datetime.strptime(element.get_attribute("textContent").split('\n', 1)[0], "%c")
         logger.debug(f"date and time read from the collector = {date_time}")
         return date_time
-
-
-if __name__ == '__main__':
-    d = webdriver.Chrome(executable_path="../resources/drivers/chromedriver/macos/version_87/chromedriver")
-    dv = DateVerifier("http://localhost:5000/date_time", "Q854Xj8X")
-    dv.verify_date(d)
-    d.quit()

@@ -14,7 +14,7 @@ from selenium import webdriver
 import LWTest
 import LWTest.collector.configure.phaseangle
 from LWTest import changetracker
-from LWTest.collector.state import DateVerifier
+from LWTest.collector.state import DateTimeSynchronizer
 from LWTest.gui.main_window import sensortable
 from LWTest.gui import theme
 from LWTest import sensor, save, getrefs, web
@@ -121,7 +121,7 @@ class MainWindow(QMainWindow):
 
     def _startup(self):
         # verify data and time on the collector
-        dv = DateVerifier(lwt.URL_DATE_TIME, "Q854Xj8X")
+        dv = DateTimeSynchronizer(lwt.URL_DATE_TIME, "Q854Xj8X")
         QTimer.singleShot(1000, lambda: dv.sync_data_time(self._get_browser()))
         self.statusBar().showMessage("Checking the collector data and time.", 10000)
 

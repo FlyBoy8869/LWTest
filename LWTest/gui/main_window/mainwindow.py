@@ -122,7 +122,7 @@ class MainWindow(QMainWindow):
     def _startup(self):
         # verify data and time on the collector
         dv = DateTimeSynchronizer(lwt.URL_DATE_TIME, "Q854Xj8X")
-        QTimer.singleShot(1000, lambda: dv.sync_data_time(self._get_browser()))
+        QTimer.singleShot(1000, lambda: dv.sync_date_time(self._get_browser()))
         self.statusBar().showMessage("Checking the collector data and time.", 10000)
 
     def closeEvent(self, closing_event: QCloseEvent):

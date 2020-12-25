@@ -16,7 +16,7 @@ class DateTimeSynchronizer:
         self._url = url
         self._password = password
 
-    def sync_data_time(self, driver: webdriver.Chrome):
+    def sync_date_time(self, driver: webdriver.Chrome):
         driver.get(self._url)
         time_delta = self._get_delta_in_minutes(
             datetime.now(), self._get_collector_date(driver, self._logger),

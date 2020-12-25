@@ -30,7 +30,7 @@ class DateVerifier:
     def _set_date(password: str, driver: webdriver.Chrome, logger):
         now = datetime.now()
         current_date_time_str = \
-            f"{now.year}-{now.month:02d}-{now.day:02d} {now.hour:02d}:{now.minute:02d}"
+            f"{now.year}-{now.month:02d}-{now.day:02d} {now.hour:02d}:{now.minute:02d}:{now.second:02d}"
         logger.debug(f"setting date to {current_date_time_str}")
 
         driver.find_element_by_xpath(_DATE_AND_TIME_INPUT_ELEMENT).send_keys(

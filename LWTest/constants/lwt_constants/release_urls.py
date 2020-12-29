@@ -15,3 +15,4 @@ URL_CALIBRATE = "http://192.168.2.1/index.php/main/calibrate"
 URL_FAULT_CURRENT = "http://192.168.2.1/index.php/main/viewdata/fault_current"
 URL_VOLTAGE_RIDE_THROUGH = "http://192.168.2.1/index.php/snow_ctrl/config"
 URL_LOG_FILES = 'http://192.168.2.1/downloadLogs.php'
+URL_DATE_TIME = 'http://192.168.2.1/index.php/upgrade/date_and_time'

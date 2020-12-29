@@ -14,16 +14,15 @@ from selenium import webdriver
 import LWTest
 import LWTest.collector.configure.phaseangle
 from LWTest import changetracker
-from LWTest.collector.state import DateTimeSynchronizer
-from LWTest.gui.main_window import sensortable
-from LWTest.gui import theme
 from LWTest import sensor, save, getrefs, web
-from LWTest.collector.configure import raw
 from LWTest.collector.common.constants import ReadingType
+from LWTest.collector.configure import raw
+from LWTest.collector.configure.serial import ConfigureSerialNumbers
 from LWTest.collector.read.electric import DataReader
 from LWTest.collector.read.operational import FirmwareVersionReader, \
     ReportingDataReader
 from LWTest.collector.read.persistence import PersistenceComparator
+from LWTest.collector.state.state import DateTimeSynchronizer, Power
 from LWTest.common.flags.flags import flags, FlagsEnum
 from LWTest.constants import lwt
 from LWTest.dialogs.countdown import CountDownDialog
@@ -31,11 +30,12 @@ from LWTest.dialogs.createset import manual_set_entry
 from LWTest.dialogs.persistence import PersistenceBootMonitorDialog
 from LWTest.dialogs.spin import SpinDialog
 from LWTest.dialogs.upgrade import UpgradeDialog
+from LWTest.gui import theme
+from LWTest.gui.main_window import sensortable
 from LWTest.gui.main_window.create_menus import MenuHelper
 from LWTest.gui.main_window.menu_help_handlers import menu_help_about_handler
 from LWTest.gui.main_window.tablemodelview import SensorTableViewUpdater
 from LWTest.gui.widgets import LWTTableWidget
-from LWTest.collector.configure.serial import ConfigureSerialNumbers
 from LWTest.spreadsheet import spreadsheet
 from LWTest.utilities import misc, file_utils
 from LWTest.utilities.oscomp import QSettingsAdapter
@@ -120,10 +120,27 @@ class MainWindow(QMainWindow):
         QTimer.singleShot(1500, self._startup)
 
     def _startup(self):
+        # check to see if the collector is responsive
+        power = Power()
+        while power.is_off:
+            if QMessageBox.question(self,
+                                    "Searching for collector...",
+                                    "The collector appears to be offline.\n\n"
+                                    "Check the following:\n"
+                                    "  - ethernet cable is connected\n"
+                                    "  - collector is plugged in\n\n"
+                                    "When the collector is ready, click\n"
+                                    "'OK' to try again or\n'Cancel' to exit program.",
+                                    QMessageBox.Ok, QMessageBox.Cancel
+                                    ) == QMessageBox.Cancel:
+                self.close()
+                return
+
         # verify data and time on the collector
         dv = DateTimeSynchronizer(lwt.URL_DATE_TIME, "Q854Xj8X")
-        QTimer.singleShot(1000, lambda: dv.sync_date_time(self._get_browser()))
-        self.statusBar().showMessage("Checking the collector data and time.", 10000)
+        date = dv.sync_date_time(self._get_headless_browser())
+        if date:
+            self.statusBar().showMessage(f"Updated the collector date and time to {date}.")
 
     def closeEvent(self, closing_event: QCloseEvent):
         if self.changes.can_discard(parent=self):
@@ -463,6 +480,12 @@ class MainWindow(QMainWindow):
             self._logger.debug("created instance of webdriver.Chrome")
 
         return self.browser
+
+    @staticmethod
+    def _get_headless_browser():
+        options = webdriver.ChromeOptions()
+        options.add_argument("headless=True")
+        return webdriver.Chrome(executable_path=LWTest.constants.CHROMEDRIVER_PATH, options=options)
 
     def _handle_action_about(self):
         menu_help_about_handler(parent=self)

@@ -39,27 +39,24 @@ class WordMatchValidator(Validator):
     def validate(reading, limits: WordMatch) -> str:
         if WordMatchValidator.is_na(reading):
             return "NA"
-        elif reading == limits.word:
-            return "IN"
-        else:
-            return "OUT"
+
+        return "IN" if reading == limits.word else "OUT"
 
 
 class FloatValidator(Validator):
     @staticmethod
-    def validate(reading, limits: Tuple[float, ...]) -> str:
-        lower, upper = limits
+    def validate(reading, limits: ReadingLimits) -> str:
         if FloatValidator.is_na(reading):
             return reading
 
-        return "IN" if lower < float(reading.replace(",", "")) < upper else "OUT"
+        return "IN" if limits.lower < float(reading.replace(",", "")) < limits.upper else "OUT"
 
 
 validators_by_column = {
     tc.SERIAL_NUMBER.value: (None, None),
-    tc.RSSI.value: (FloatValidator, (-75.0, 0)),
-    tc.FIRMWARE.value: (WordMatchValidator, WordMatch('0x75',)),
-    tc.REPORTING.value: (WordMatchValidator, WordMatch("Pass",)),
+    tc.RSSI.value: (FloatValidator, ReadingLimits(-75.0, 0.0)),
+    tc.FIRMWARE.value: (WordMatchValidator, WordMatch('0x75')),
+    tc.REPORTING.value: (WordMatchValidator, WordMatch("Pass")),
     tc.CALIBRATION: (None, None, None),
     tc.HIGH_VOLTAGE.value: (FloatValidator, ReadingLimits(tol.HIGH_VOLTAGE_MIN.value, tol.HIGH_VOLTAGE_MAX.value)),
     tc.HIGH_CURRENT.value: (FloatValidator, ReadingLimits(tol.HIGH_CURRENT_MIN.value, tol.HIGH_CURRENT_MAX.value)),
@@ -69,21 +66,24 @@ validators_by_column = {
     tc.LOW_CURRENT.value: (FloatValidator, ReadingLimits(tol.LOW_CURRENT_MIN.value, tol.LOW_CURRENT_MAX.value)),
     tc.LOW_POWER_FACTOR.value: (FloatValidator, ReadingLimits(0.8000, 1.0000)),
     tc.LOW_REAL_POWER.value: (FloatValidator, ReadingLimits(tol.LOW_POWER_MIN.value, tol.LOW_POWER_MAX.value)),
-    tc.SCALE_CURRENT.value: (FloatValidator, ReadingLimits(tol.SCALE_CURRENT_MIN.value, tol.SCALE_CURRENT_MAX.value)),
-    tc.SCALE_VOLTAGE.value: (FloatValidator, ReadingLimits(tol.SCALE_VOLTAGE_MIN.value, tol.SCALE_VOLTAGE_MAX.value)),
-    tc.CORRECTION_ANGLE.value: (FloatValidator, ReadingLimits(tol.CORRECTION_ANGLE_MIN.value, tol.CORRECTION_ANGLE_MAX.value)),
+    tc.SCALE_CURRENT.value: (FloatValidator,
+                             ReadingLimits(tol.SCALE_CURRENT_MIN.value, tol.SCALE_CURRENT_MAX.value)
+                             ),
+    tc.SCALE_VOLTAGE.value: (FloatValidator,
+                             ReadingLimits(tol.SCALE_VOLTAGE_MIN.value, tol.SCALE_VOLTAGE_MAX.value)
+                             ),
+    tc.CORRECTION_ANGLE.value: (FloatValidator,
+                                ReadingLimits(tol.CORRECTION_ANGLE_MIN.value, tol.CORRECTION_ANGLE_MAX.value)
+                                ),
     tc.TEMPERATURE.value: (FloatValidator, ReadingLimits(None, None)),
-    tc.PERSISTS.value: (WordMatchValidator, WordMatch("Pass",)),
+    tc.PERSISTS.value: (WordMatchValidator, WordMatch("Pass")),
 }
 
 
 class CellLocation:
     def __init__(self, row: int, col: int):
-        if row < 0:
-            raise ValueError(f"value {row} given for row must be 0 or greater")
-
-        if col < 0:
-            raise ValueError(f"value {col} given for col must be 0 or greater")
+        assert row >= 0, f"invalid row {row}, must be 0 or greater"
+        assert col >= 0, f"invalid col {col}, must be 0 or greater"
 
         self._row = row
         self._col = col
@@ -154,8 +154,8 @@ class SensorTableViewUpdater:
 
     @staticmethod
     def _get_temperature_brush(reading, validator, temp_ref: float) -> QBrush:
-        tolerances = temp_ref - tol.TEMPERATURE_DELTA.value, temp_ref + tol.TEMPERATURE_DELTA.value
-        pass_fail = validator.validate(reading, tolerances)
+        limits = ReadingLimits(temp_ref - tol.TEMPERATURE_DELTA.value, temp_ref + tol.TEMPERATURE_DELTA.value)
+        pass_fail = validator.validate(reading, limits)
         return validator.get_brush(pass_fail)
 
     @staticmethod

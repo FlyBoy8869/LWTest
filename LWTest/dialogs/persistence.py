@@ -1,20 +1,21 @@
-from time import sleep
+import time
 
-import requests
-from PyQt5.QtCore import QTimer, QObject, pyqtSignal, QRunnable, QThreadPool
+from PyQt5.QtCore import QTimer, QThreadPool
 from PyQt5.QtWidgets import QDialog, QVBoxLayout, QLabel, QProgressBar
 
+from LWTest.collector.state.reachable import PageReachable
 from LWTest.constants import lwt_constants
 
 
 class PersistenceBootMonitorDialog(QDialog):
+    """Waits three minutes for the collector to boot before automatically closing."""
 
-    def __init__(self, parent):
+    def __init__(self, parent, *, timeout=180):
         super().__init__(parent=parent)
         self.setWindowTitle("Persistence")
 
         self.parent = parent
-        self.timeout = lwt_constants.TimeOut.COLLECTOR_BOOT_WAIT_TIME.value
+        self.monitor = PageReachable(lwt_constants.URL_RAW_CONFIGURATION)
 
         self._need_to_start_thread: bool = True
         self.main_layout = QVBoxLayout()
@@ -32,39 +33,12 @@ class PersistenceBootMonitorDialog(QDialog):
 
         self.setLayout(self.main_layout)
 
-        QTimer.singleShot(1000, self._wait_for_collector_to_boot)
+        self.end_time = time.time() + timeout
+        self.timer = QTimer(self)
+        self.timer.timeout.connect(self._wait_for_collector_to_boot)
+        QTimer.singleShot(1000, lambda: self.timer.start(5000))
 
     def _wait_for_collector_to_boot(self):
-        monitor = PageReachable(lwt_constants.URL_RAW_CONFIGURATION, self.timeout)
-        monitor.signals.collector_booted.connect(self.accept)
-        monitor.signals.dialog_timed_out.connect(self.reject)
-        QThreadPool.globalInstance().start(monitor)
-
-
-class Signals(QObject):
-    collector_booted = pyqtSignal()
-    dialog_timed_out = pyqtSignal()
-
-
-class PageReachable(QRunnable):
-    def __init__(self, url: str, timeout: int):
-        super().__init__()
-        self._url: str = url
-        self._timeout: int = timeout
-        self.signals = Signals()
-
-    def run(self):
-        while self._timeout > 0:
-            print(f"timeout = {self._timeout}")
-            try:
-                if 200 == requests.get(self._url, timeout=lwt_constants.TimeOut.URL_REQUEST.value).status_code:
-                    self.signals.collector_booted.emit()
-                    sleep(1)
-                    return
-            except requests.exceptions.RequestException:
-                print("unable to load raw config page")
-
-            sleep(1)
-            self._timeout -= 1
-
-        self.signals.dialog_timed_out.emit()
+        if self.monitor.try_to_load() or time.time() >= self.end_time:
+            self.timer.stop()
+            self.accept()

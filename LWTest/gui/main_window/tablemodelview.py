@@ -3,7 +3,7 @@ from collections import namedtuple
 from typing import Tuple, Callable, Union
 
 from PyQt5.QtGui import QBrush
-from PyQt5.QtWidgets import QTableWidgetItem
+from PyQt5.QtWidgets import QTableWidgetItem, QApplication
 
 import LWTest.gui.brushes as brushes
 from LWTest.constants import lwt_constants as lwt
@@ -99,8 +99,8 @@ class CellLocation:
 
 class SensorTableViewUpdater:
     _DATA_IN_TABLE_ORDER = (
-        "serial_number", "rssi", "firmware_version", "reporting_data", "calibrated", "high_voltage", "high_current",
-        "high_power_factor", "high_real_power", "low_voltage", "low_current",
+        "serial_number", "rssi", "firmware_version", "reporting_data", "calibrated", "high_voltage",
+        "high_current", "high_power_factor", "high_real_power", "low_voltage", "low_current",
         "low_power_factor", "low_real_power", "scale_current", "scale_voltage",
         "correction_angle", "persists", "temperature", "fault_current"
     )

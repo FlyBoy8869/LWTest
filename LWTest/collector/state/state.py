@@ -22,6 +22,7 @@ class DateTimeSynchronizer:
         self._password = password
 
     def sync_date_time(self, driver: webdriver.Chrome):
+        self._logger.info("checking collector date and time")
         driver.get(self._url)
         time_delta = self._get_delta_in_minutes(
             datetime.now(), self._get_collector_date(driver, self._logger), self._logger
@@ -34,6 +35,7 @@ class DateTimeSynchronizer:
 
     @staticmethod
     def _set_date(password: str, driver: webdriver.Chrome, logger) -> str:
+        logger.info("updating collector date and time")
         now = datetime.now()
         current_date_time_str = \
             f"{now.year}-{now.month:02d}-{now.day:02d} {now.hour:02d}:{now.minute:02d}:{now.second:02d}"

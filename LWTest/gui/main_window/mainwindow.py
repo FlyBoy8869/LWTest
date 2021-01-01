@@ -28,7 +28,7 @@ from LWTest.constants import lwt
 from LWTest.dialogs.countdown import CountDownDialog
 from LWTest.dialogs.createset import manual_set_entry
 from LWTest.dialogs.persistence import PersistenceBootMonitorDialog
-from LWTest.dialogs.spin import SpinDialog
+from LWTest.dialogs.rssi import RSSIDialog
 from LWTest.dialogs.upgrade import UpgradeDialog
 from LWTest.gui import theme
 from LWTest.gui.main_window import sensortable
@@ -41,6 +41,8 @@ from LWTest.utilities import misc, file_utils
 from LWTest.utilities.oscomp import QSettingsAdapter
 from LWTest.web.interface.page import Page
 from LWTest.workers import upgrade, link
+
+_logger = logging.getLogger(__name__)
 
 style_sheet = "QProgressBar{ max-height: 10px; }"
 
@@ -63,7 +65,6 @@ class MainWindow(QMainWindow):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, *kwargs)
-        self._logger = logging.getLogger(__name__)
         self.settings = QSettings()
         self.resize(1550, 335)
         x_pos = (QApplication.primaryScreen().geometry().width() - self.width()) // 2
@@ -74,8 +75,8 @@ class MainWindow(QMainWindow):
         # self.setStyleSheet(style_sheet)
 
         self.signals = self.Signals()
-        self.thread_pool = QThreadPool.globalInstance()
-        print(f"using max threads: {QThreadPool.globalInstance().maxThreadCount()}")
+        self.threads = []
+        # self.thread_pool = QThreadPool.globalInstance()
         self.sensor_log = sensor.SensorLog()
         self.sensor_log.changed.connect(self._update_table)
         self.firmware_upgrade_in_progress = False
@@ -88,6 +89,7 @@ class MainWindow(QMainWindow):
         self.lock = QReadWriteLock()
 
         self.browser: Optional[webdriver.Chrome] = None
+        self.headless_driver: webdriver.Chrome = self._get_headless_browser()
 
         self.spreadsheet_file_name: str = ""
         self.room_temp: QDoubleSpinBox = QDoubleSpinBox(self)
@@ -117,10 +119,14 @@ class MainWindow(QMainWindow):
 
         self.setCentralWidget(self.panel)
 
+        self.sensor_link_timer = QTimer()
+        self.sensor_link_check_end_time = None
+
         QTimer.singleShot(1500, self._startup)
 
     def _startup(self):
         # check to see if the collector is responsive
+        mb = self._show_information_dialog("Searching for collector", button=False, open_=True)
         power = Power()
         while power.is_off:
             if QMessageBox.question(self,
@@ -133,19 +139,23 @@ class MainWindow(QMainWindow):
                                     "'OK' to try again or\n'Cancel' to exit program.",
                                     QMessageBox.Ok, QMessageBox.Cancel
                                     ) == QMessageBox.Cancel:
+                mb.close()
                 self.close()
                 return
+        mb.close()
 
         # verify data and time on the collector
+        mb = self._show_information_dialog("Synchronizing Date and Time", button=False, open_=True)
         dv = DateTimeSynchronizer(lwt.URL_DATE_TIME, "Q854Xj8X")
-        date = dv.sync_date_time(self._get_headless_browser())
+        date = dv.sync_date_time(self.headless_driver)
         if date:
-            self.statusBar().showMessage(f"Updated the collector date and time to {date}.")
+            self.statusBar().showMessage(f"Updated the collector date and time to {date}.", 5000)
+        mb.close()
 
     def closeEvent(self, closing_event: QCloseEvent):
         if self.changes.can_discard(parent=self):
             self._close_browser()
-            self._logger.debug("program terminated")
+            _logger.debug("program terminated")
             closing_event.accept()
         else:
             closing_event.ignore()
@@ -164,12 +174,12 @@ class MainWindow(QMainWindow):
         if event.mimeData().hasUrls():
             filename = event.mimeData().urls()[0].toLocalFile()
             if filename.lower().endswith(".xlsm"):
-                self._logger.debug(f"dropped file: {filename}")
+                _logger.info(f"dropped file: {filename}")
                 event.setDropAction(Qt.CopyAction)
                 self.signals.file_dropped.emit(filename)
                 event.accept()
             else:
-                self._logger.debug(f"file type not supported: {filename}")
+                _logger.debug(f"file type not supported: {filename}")
                 event.ignore()
         else:
             event.ignore()
@@ -193,7 +203,7 @@ class MainWindow(QMainWindow):
                 self._rename_dropped_file_to_atp_standard_filename(
                     Path(filename),
                     sensor_log.get_serial_numbers_as_tuple(),
-                    self._logger
+                    _logger
                 ).as_posix()
             self.changes.clear_change_flag()
             self.collector_configured = False
@@ -241,7 +251,6 @@ class MainWindow(QMainWindow):
             self._manually_override_fault_current_result,
             rows
         )
-        self._update_table()
 
     @flags(set_=[FlagsEnum.SERIALS])
     def _handle_action_configure_serial_numbers(self, _: bool):
@@ -249,13 +258,13 @@ class MainWindow(QMainWindow):
         configurator = ConfigureSerialNumbers(
             misc.ensure_six_numbers(serial_numbers),
             QSettingsAdapter().value("main/config_password"),
-            self._get_browser(),
+            self.headless_driver,
             lwt.URL_CONFIGURATION
         )
 
         result, error_msg = configurator.configure()
         if result:
-            self._start_serial_update_verifier(serial_numbers)
+            QTimer.singleShot(0, lambda: self._start_serial_update_verifier(serial_numbers))
         else:
             self._handle_serial_number_configuration_failure(error_msg)
 
@@ -264,7 +273,7 @@ class MainWindow(QMainWindow):
         self._show_warning_dialog(error_msg)
 
     def _start_serial_update_verifier(self, serial_numbers):
-        self._logger.info("starting serial number update verification")
+        _logger.info("starting serial number update verification")
         verifier = link.SerialNumberUpdateVerifier(serial_numbers)
         verifier.serial_numbers_updated.connect(
             self._serial_numbers_successfully_updated
@@ -275,35 +284,21 @@ class MainWindow(QMainWindow):
             )
         )
         verifier.verify()
-        self._logger.info("finished serial number update verification")
+        _logger.info("finished serial number update verification")
 
     def _serial_numbers_successfully_updated(self):
         self.statusBar().showMessage("Serial Numbers Updated.", 5000)
-        QTimer.singleShot(1000, self._start_sensor_link_check)
+        QTimer.singleShot(0, self._start_sensor_link_check)
 
     def _start_sensor_link_check(self):
-        self._logger.info("starting sensor link check")
-        dialog = SpinDialog(self, "Collecting startup data...\t\t\t")
-        dialog.show()
-        dialog.raise_()
-        dialog.activateWindow()
+        rssi_dialog = RSSIDialog(self, self.sensor_log)
+        rssi_dialog.signals.update.connect(self._rssi_update)
+        rssi_dialog.signals.finished.connect(lambda: QTimer.singleShot(0, self._get_sensor_link_data))
+        rssi_dialog.open()
 
-        serial_numbers = self.sensor_log.get_serial_numbers_as_list()
-        self._logger.info(f"checking links for {len(serial_numbers)} serial numbers")
-        link_thread = link.LinkWorker(serial_numbers, lwt.URL_MODEM_STATUS)
-        link_thread.signals.successful_link.connect(self.sensor_log.save)
-        link_thread.signals.successful_link.connect(
-            lambda _, _2, serial_number: self._get_sensor_link_data(serial_number)
-        )
-        link_thread.signals.link_timeout.connect(lambda nls: self.sensor_log.record_non_linked_sensors(nls))
-        link_thread.signals.finished.connect(lambda: dialog.done(QDialog.Accepted))
-        # Updating the table is done here, instead of emitting the 'changed' signal
-        # in SensorLog.save(value: str, ...) method for every reading, for performance reasons.
-        link_thread.signals.finished.connect(self._update_table)
-        link_thread.signals.finished.connect(lambda: self._logger.info("sensor link check finished"))
-        self._logger.info("starting link check thread")
-        QThreadPool.globalInstance().start(link_thread)
-        self._logger.info("link check thread started")
+    def _rssi_update(self, value, reading_type, serial_number):
+        self.sensor_log.save(value, reading_type, serial_number)
+        self._update_table()
 
     def _handle_action_upgrade_sensor(self):
         phase = self.sensor_table.currentRow()
@@ -322,7 +317,7 @@ class MainWindow(QMainWindow):
 
             upgrade_dialog = UpgradeDialog(serial_number, phase, worker, self._start_worker, browser, self)
             upgrade_dialog.error.connect(self._handle_upgrade_error_signal)
-            upgrade_dialog.exec_()
+            upgrade_dialog.exec()
 
     def _handle_upgrade_error_signal(self, error_message: str):
         self._show_warning_dialog(
@@ -353,14 +348,17 @@ class MainWindow(QMainWindow):
 
     @flags(read=[FlagsEnum.SERIALS], set_=[FlagsEnum.ADVANCED])
     def _handle_action_advanced_configuration(self, _: bool):
-        driver = self._get_browser()
+        msg_box = self._show_information_dialog("Setting Advanced Config constants", button=False, open_=True)
+
         password = QSettings().value("main/config_password")
         submit_buttons = [
             web.interface.page.Submit.create_submit_button_for_temperature_config(password),
             web.interface.page.Submit.create_submit_button_for_raw_config(password),
             web.interface.page.Submit.create_submit_button_for_voltage_ride_through(password)
         ]
-        raw.do_advanced_configuration(driver, Page, submit_buttons)
+        raw.do_advanced_configuration(self.headless_driver, Page, submit_buttons)
+
+        msg_box.close()
 
     def _handle_action_calibrate(self):
         # just brings you to the calibration page for convenience
@@ -368,17 +366,21 @@ class MainWindow(QMainWindow):
 
     @flags(read=[FlagsEnum.SERIALS, FlagsEnum.ADVANCED], set_=[FlagsEnum.CORRECTION])
     def _handle_action_config_correction_angle(self, _: bool):
+        msg_box = self._show_information_dialog("Setting Correction Angle", button=False, open_=True)
+
         password = QSettings().value("main/config_password")
         submit_button = web.interface.page.Submit.create_submit_button_for_phase_angle(password)
 
         if LWTest.collector.configure.phaseangle.configure_phase_angle(
                 lwt.URL_CONFIGURATION,
-                self._get_browser(),
+                self.headless_driver,
                 Page,
                 submit_button
         ):
+            msg_box.close()
             return
 
+        msg_box.close()
         self._handle_correction_angle_failure()
 
     @flags(clear=[FlagsEnum.CORRECTION])
@@ -405,7 +407,7 @@ class MainWindow(QMainWindow):
                 serial_number=self.sensor_log.get_sensor_by_phase(phase).serial_number
             )
         )
-        self._logger.debug("created reporting reader")
+        _logger.debug("created reporting reader")
         return reporting_reader
 
     def _create_firmware_reader(self):
@@ -417,7 +419,7 @@ class MainWindow(QMainWindow):
                 serial_number=self.sensor_log.get_sensor_by_phase(phase).serial_number
             )
         )
-        self._logger.debug("created firmware reader")
+        _logger.debug("created firmware reader")
         return firmware_reader
 
     def _get_sensor_link_data_readers(self):
@@ -428,14 +430,22 @@ class MainWindow(QMainWindow):
     def _get_sensor_phase(self, serial_number):
         return self.sensor_log[serial_number].phase
 
-    # responds to signal: LinkWorker.successful_link
-    def _get_sensor_link_data(self, serial_number):
-        driver = self._get_browser()
-        phase = self._get_sensor_phase(serial_number)
-        firmware_reader, reporting_reader = self._get_sensor_link_data_readers()
+    def _get_sensor_link_data(self):
+        _logger.info("reading firmware versions and data reporting status")
+        serial_numbers = self.sensor_log.linked
+        driver = self.headless_driver
+        readers = self._get_sensor_link_data_readers()
 
-        firmware_reader.read(phase, driver)
-        reporting_reader.read(phase, driver)
+        for serial_number in serial_numbers:
+            phase = self._get_sensor_phase(serial_number)
+            for reader in readers:
+                self._get_sensor_link_data_actual(phase, reader, driver)
+
+        self._update_table()
+
+    @staticmethod
+    def _get_sensor_link_data_actual(phase: int, reader, driver: webdriver.Chrome):
+        reader.read(phase, driver)
 
     def _handle_action_fault_current(self, _: bool):
         self._get_browser().get(lwt.URL_FAULT_CURRENT)
@@ -477,12 +487,13 @@ class MainWindow(QMainWindow):
             options.add_argument(f"window-size={self.width()},{browser_height}")
             options.add_argument(f"window-position={geometry.x()},{frame_geometry.height() + 25}")
             self.browser = webdriver.Chrome(executable_path=LWTest.constants.CHROMEDRIVER_PATH, options=options)
-            self._logger.debug("created instance of webdriver.Chrome")
+            _logger.debug("created instance of webdriver.Chrome")
 
         return self.browser
 
     @staticmethod
     def _get_headless_browser():
+        _logger.info("created headless driver")
         options = webdriver.ChromeOptions()
         options.add_argument("headless=True")
         return webdriver.Chrome(executable_path=LWTest.constants.CHROMEDRIVER_PATH, options=options)
@@ -539,15 +550,29 @@ class MainWindow(QMainWindow):
     def _start_worker(worker):
         QThreadPool.globalInstance().start(worker)
 
-    def _show_information_dialog(self, message):
-        QMessageBox.information(self, LWTest.app_title, message, QMessageBox.Ok, QMessageBox.Ok)
+    def _show_information_dialog(self, message, button=True, open_=False):
+        # QMessageBox.information(self, LWTest.app_title, message, QMessageBox.Ok, QMessageBox.Ok)
+
+        if button:
+            btn = QMessageBox.Ok
+        else:
+            btn = QMessageBox.NoButton
+
+        msg_box = QMessageBox(QMessageBox.Information, "", message, btn, self)
+
+        if open_:
+            msg_box.open()
+            return msg_box
+        else:
+            msg_box.exec()
+            return None
 
     def _show_warning_dialog(self, message):
         QMessageBox.warning(self, LWTest.app_title, message, QMessageBox.Ok, QMessageBox.Ok)
 
     def _table_item_double_clicked(self, row: int):
         # prevent a calibration cycle from being started for an un-linked sensor
-        if not self.sensor_log.get_sensor_by_phase(row).linked:
+        if not self.sensor_log.get_sensor_by_phase(row).reporting_data:
             return
 
         driver: webdriver.Chrome = self._get_browser()
@@ -576,9 +601,9 @@ class MainWindow(QMainWindow):
         result_map[result]()
 
     def _update_table(self):
-        self._logger.info("updating table")
+        _logger.info("updating table")
         self._table_view_updater.update_from_model(self.sensor_log.get_sensors(), self.sensor_table)
-        self._logger.info("finished updating table")
+        _logger.info("finished updating table")
 
     def _wait_for_collector_to_boot(self):
         pbm = PersistenceBootMonitorDialog(self)

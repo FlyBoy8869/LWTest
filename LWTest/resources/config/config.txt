@@ -10,8 +10,8 @@ main/link_check_time=10
 # time in milli-seconds
 main/webdriver_wait_to_close=3000
 
-# valid levels: debug, info, warning, error, critical
-main/debug_level=debug
+# valid levels: debug, info, warning, error, critical, None
+main/debug_level=info
 
 # used when manually defining a set using Ctrl-S
 save_folder=/Users/charles/Offline Documents/MVSS/Test Results

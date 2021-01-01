@@ -13,7 +13,7 @@ class ChangeTracker:
         if self._unsaved_changes:
             button = QMessageBox.question(parent, "Unsaved Test Results",
                                           "Discard results?\t\t\t\t",
-                                          QMessageBox.Yes | QMessageBox.No,
+                                          QMessageBox.Discard | QMessageBox.No,
                                           QMessageBox.No)
 
             if button == QMessageBox.No:

@@ -39,6 +39,13 @@ class Sensor:
         return self.scale_current, self.scale_voltage, self.correction_angle
 
     @property
+    def linked(self):
+        try:
+            return int(self.rssi) in [-i for i in range(0, 120)]
+        except ValueError:
+            return False
+
+    @property
     def phase(self):
         return self._phase
 
@@ -47,11 +54,8 @@ class Sensor:
         return self._serial_number
 
     @property
-    def linked(self):
-        try:
-            return int(self.rssi) in [-i for i in range(0, 120)]
-        except ValueError:
-            return False
+    def reporting(self):
+        return True if self.reporting_data == "Pass" else False
 
     def __setattr__(self, key, value):
         object.__setattr__(self, key, value)
@@ -100,6 +104,10 @@ class SensorLog(QObject):
         return True
 
     @property
+    def linked(self):
+        return [sensor.serial_number for sensor in self if sensor.linked]
+
+    @property
     def references(self):
         return self._high_voltage_reference, self._low_voltage_reference
 
@@ -118,6 +126,10 @@ class SensorLog(QObject):
         self._room_temperature = f"{value:.1f}"
         self._logger.debug(f"room temperature reference set to: {self._room_temperature}")
 
+    @property
+    def unlinked(self):
+        return [sensor.serial_number for sensor in self if not sensor.linked]
+
     def create_all(self, iterable):
         self._clear()
         for index, number in enumerate(iterable):
@@ -135,8 +147,7 @@ class SensorLog(QObject):
         return tuple([sensor.advance_readings for sensor in self._log_by_serial_number.values()])
 
     def get_sensor_by_phase(self, phase: int) -> Optional[Sensor]:
-        assert phase in [0, 1, 2, 3, 4, 5],\
-            f"'{phase}' is invalid, must be 0 - 5"
+        assert phase in [0, 1, 2, 3, 4, 5], f"'{phase}' is invalid, must be 0 - 5"
         return self._log_by_phase.get(phase, None)
 
     def get_sensors(self) -> Tuple[Sensor]:
@@ -149,11 +160,6 @@ class SensorLog(QObject):
     def record_fault_current_results(self, result: str, index: int):
         self.get_sensor_by_phase(index).fault_current = result
         self.changed.emit()
-
-    def record_non_linked_sensors(self, serial_numbers):
-        for serial_number in serial_numbers:
-            self._log_by_serial_number[serial_number].rssi = lwt.NO_DATA
-        self._logger.info(f"recorded sensors {serial_numbers} as non-linking")
 
     @singledispatchmethod
     def save(self, values, kind, _: str = ""):

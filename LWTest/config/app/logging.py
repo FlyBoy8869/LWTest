@@ -16,7 +16,10 @@ def _get_logging_level_constant(level: str):
 
 def initialize():
     settings = QSettings()
-    print(f"log level from config.txt: {settings.value('main/debug_level')}")
+    level = settings.value('main/debug_level')
+    print(f"log level from config.txt: {level}")
+    if level is None:
+        return
 
     console_handler = logging.StreamHandler()  # defaults to sys.stderr
     console_handler.addFilter(lambda r: False if "selenium" in r.name else True)
@@ -40,8 +43,7 @@ def initialize():
 
     # noinspection PyArgumentList
     logging.basicConfig(
-        level=_get_logging_level_constant(settings.value("main/debug_level")),
+        level=_get_logging_level_constant(level),
         format="".join(logging_format),
-        datefmt="%d-%b-%y %H:%M:%S",
         handlers=[console_handler, file_handler]
     )

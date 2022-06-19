@@ -1,7 +1,7 @@
 import logging
 
 import requests
-from PyQt5.QtCore import QObject
+from PyQt6.QtCore import QObject
 
 
 class PageReachable(QObject):

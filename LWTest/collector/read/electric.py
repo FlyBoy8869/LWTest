@@ -1,8 +1,8 @@
 from functools import partial
 from typing import Union, List
 
-from PyQt5.QtCore import QObject, pyqtSignal
-from PyQt5.QtWidgets import QMessageBox
+from PyQt6.QtCore import QObject, pyqtSignal
+from PyQt6.QtWidgets import QMessageBox
 from selenium import webdriver
 
 import LWTest.utilities.misc as utils_misc

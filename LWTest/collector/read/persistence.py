@@ -1,6 +1,6 @@
 from typing import Tuple
 
-from PyQt5.QtCore import QObject, pyqtSignal
+from PyQt6.QtCore import QObject, pyqtSignal
 from selenium import webdriver
 
 from LWTest.collector.common import helpers
@@ -17,6 +17,7 @@ class PersistenceComparator(QObject):
     def compare(self, saved_readings, url: str, driver: webdriver.Chrome):
         driver.get(url)
         columns = helpers.get_columns(driver)
+        # noinspection PyUnresolvedReferences
         self.persisted.emit(
             self._compare(
                 saved_readings,
@@ -24,6 +25,7 @@ class PersistenceComparator(QObject):
             ),
             ReadingType.PERSISTS
         )
+        # noinspection PyUnresolvedReferences
         self.finished.emit()
 
     def _live_readings(self, sensor_count: int, driver: webdriver.Chrome):

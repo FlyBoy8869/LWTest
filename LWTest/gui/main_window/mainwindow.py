@@ -2,14 +2,15 @@ import logging
 from pathlib import Path
 from typing import Optional, Tuple
 
-from PyQt5 import QtGui
-from PyQt5.QtCore import QThreadPool, QSettings, QSize, Qt, QReadWriteLock, \
+from PyQt6 import QtGui
+from PyQt6.QtCore import QThreadPool, QSettings, QSize, Qt, QReadWriteLock, \
     QObject, pyqtSignal, QTimer, QMutex
-from PyQt5.QtGui import QIcon, QCloseEvent, QBrush
-from PyQt5.QtWidgets import QMainWindow, QVBoxLayout, QWidget, \
+from PyQt6.QtGui import QIcon, QCloseEvent, QBrush
+from PyQt6.QtWidgets import QMainWindow, QVBoxLayout, QWidget, \
     QTableWidgetItem, QMessageBox, QToolBar, \
     QDialog, QDoubleSpinBox, QApplication
 from selenium import webdriver
+from selenium.webdriver.common.by import By
 
 import LWTest
 import LWTest.collector.configure.phaseangle
@@ -53,8 +54,6 @@ _DATA_IN_SPREADSHEET_ORDER = (
     "firmware_version", "reporting_data", "rssi",
     "calibrated", "temperature", "fault_current"
 )
-
-_mutex = QMutex()
 
 
 class MainWindow(QMainWindow):
@@ -110,11 +109,13 @@ class MainWindow(QMainWindow):
         self._setup_sensor_table()
         self._create_toolbar()
 
+        # noinspection PyUnresolvedReferences
         self.signals.file_dropped.connect(
             lambda filename: self._handle_dropped_file(
                 filename, self.sensor_log
             )
         )
+        # noinspection PyUnresolvedReferences
         self.signals.serial_numbers_imported.connect(self.sensor_log.create_all)
 
         self.setCentralWidget(self.panel)
@@ -126,30 +127,36 @@ class MainWindow(QMainWindow):
 
     def _startup(self):
         # check to see if the collector is responsive
+
+        text = """
+        <h3><span style='color: #F40009;'>The collector appears to be offline.</span></h3>
+        Check the following:</br>
+        <ul>
+            <li>collector is plugged in</li>
+            <li>ethernet cable is connected</li>
+        </ul>
+        """
+
         mb = self._show_information_dialog("Searching for collector", button=False, open_=True)
         power = Power()
         while power.is_off:
             if QMessageBox.question(self,
                                     "Searching for collector...",
-                                    "The collector appears to be offline.\n\n"
-                                    "Check the following:\n"
-                                    "  - ethernet cable is connected\n"
-                                    "  - collector is plugged in\n\n"
-                                    "When the collector is ready, click\n"
-                                    "'OK' to try again or\n'Cancel' to exit program.",
-                                    QMessageBox.Ok, QMessageBox.Cancel
-                                    ) == QMessageBox.Cancel:
+                                    text,
+                                    QMessageBox.StandardButton.Retry, QMessageBox.StandardButton.Cancel
+                                    ) == QMessageBox.StandardButton.Cancel:
                 mb.close()
                 self.close()
                 return
         mb.close()
 
-        # verify data and time on the collector
+        # check data and time on the collector
         mb = self._show_information_dialog("Synchronizing Date and Time", button=False, open_=True)
-        dv = DateTimeSynchronizer(lwt.URL_DATE_TIME, "Q854Xj8X")
-        date = dv.sync_date_time(self.headless_driver)
-        if date:
+
+        dv = DateTimeSynchronizer(lwt.URL_DATE_TIME, QSettings().value('main/config_password'))
+        if date := dv.sync_date_time(self.headless_driver):
             self.statusBar().showMessage(f"Updated the collector date and time to {date}.", 5000)
+
         mb.close()
 
     def closeEvent(self, closing_event: QCloseEvent):
@@ -165,7 +172,7 @@ class MainWindow(QMainWindow):
 
     def dragEnterEvent(self, event):
         if event.mimeData().hasUrls:
-            event.setDropAction(Qt.CopyAction)
+            event.setDropAction(Qt.DropAction.CopyAction)
             event.accept()
         else:
             event.ignore()
@@ -175,7 +182,8 @@ class MainWindow(QMainWindow):
             filename = event.mimeData().urls()[0].toLocalFile()
             if filename.lower().endswith(".xlsm"):
                 _logger.info(f"dropped file: {filename}")
-                event.setDropAction(Qt.CopyAction)
+                event.setDropAction(Qt.DropAction.CopyAction)
+                # noinspection PyUnresolvedReferences
                 self.signals.file_dropped.emit(filename)
                 event.accept()
             else:
@@ -185,26 +193,28 @@ class MainWindow(QMainWindow):
             event.ignore()
 
     def keyReleaseEvent(self, evt: QtGui.QKeyEvent) -> None:
-        if evt.key() == Qt.Key_N and evt.modifiers() == Qt.ControlModifier:
+        if evt.key() == Qt.Key.Key_N and evt.modifiers() == Qt.KeyboardModifier.ControlModifier:
             self._handle_action_create_set()
-        elif evt.key() == Qt.Key_R and evt.modifiers() == Qt.ControlModifier:
+        elif evt.key() == Qt.Key.Key_R and evt.modifiers() == Qt.KeyboardModifier.ControlModifier:
             self._handle_action_enter_references()
         else:
             super().keyReleaseEvent(evt)
 
     def _handle_action_create_set(self):
         if path := manual_set_entry(self):
+            # noinspection PyUnresolvedReferences
             self.signals.file_dropped.emit(path)
 
-    # listens for MainWindow().signals.file_dropped
     def _handle_dropped_file(self, filename: str, sensor_log):
+        # listens for MainWindow().signals.file_dropped
         if self._import_serial_numbers_from_spreadsheet(filename, sensor_log):
             self.spreadsheet_file_name =\
-                self._rename_dropped_file_to_atp_standard_filename(
+                file_utils.rename_file_to_atp_standard_filename(
                     Path(filename),
                     sensor_log.get_serial_numbers_as_tuple(),
                     _logger
                 ).as_posix()
+
             self.changes.clear_change_flag()
             self.collector_configured = False
 
@@ -221,16 +231,6 @@ class MainWindow(QMainWindow):
             return True
 
         return False
-
-    @staticmethod
-    def _rename_dropped_file_to_atp_standard_filename(
-            filename: Path, serial_numbers: Tuple[str, ...], logger
-    ) -> Path:
-        logger.debug(f"received file: {filename}")
-        new_path: Path = file_utils.create_atr_path(filename, serial_numbers)
-        logger.debug(f"dropped file renamed to: {new_path}")
-
-        return filename.rename(new_path.as_posix())
 
     def _setup_sensor_table(self, rows=6):
         if self.sensor_table:
@@ -342,7 +342,7 @@ class MainWindow(QMainWindow):
             self,
             LWTest.app_title,
             "Failed to upgrade sensor.",
-            QMessageBox.Ok
+            QMessageBox.StandardButton.Ok
         )
         self.firmware_upgrade_in_progress = False
 
@@ -502,12 +502,13 @@ class MainWindow(QMainWindow):
         menu_help_about_handler(parent=self)
 
     def _handle_action_check_persistence(self):
-        self._show_information_dialog("Unplug the collector.\nClick 'OK' when ready to proceed.")
+        self._show_information_dialog("Unplug the collector.\n\nClick 'OK' when ready to proceed.")
 
         td = CountDownDialog(self, "Persistence",
-                             "Please, wait before powering on the collector.\n" +
+                             "Please, wait before powering on the collector.\n\n" +
                              "'Cancel' will abort test.\t\t",
                              lwt.TimeOut.COLLECTOR_POWER_OFF_TIME.value)
+        # noinspection PyUnresolvedReferences
         td.finished.connect(self._handle_persistence_countdown_dialog_finished_signal)
         td.open()
 
@@ -521,12 +522,12 @@ class MainWindow(QMainWindow):
             self.changes.clear_change_flag()
 
     def _handle_persistence_boot_monitor_finished_signal(self, result_code):
-        if result_code == QDialog.Accepted:
+        if result_code == QDialog.DialogCode.Accepted:
             self._verify_raw_configuration_readings_persist()
 
     def _handle_persistence_countdown_dialog_finished_signal(self, result_code):
-        if result_code == QDialog.Accepted:
-            self._show_information_dialog("Plug in the collector.\nClick 'OK' when ready.")
+        if result_code == QDialog.DialogCode.Accepted:
+            self._show_information_dialog("Plug in the collector.\n\nClick 'OK' when ready.")
             self._wait_for_collector_to_boot()
 
     def _manually_override_calibration_result(self, result, index):
@@ -554,11 +555,11 @@ class MainWindow(QMainWindow):
         # QMessageBox.information(self, LWTest.app_title, message, QMessageBox.Ok, QMessageBox.Ok)
 
         if button:
-            btn = QMessageBox.Ok
+            btn = QMessageBox.StandardButton.Ok
         else:
-            btn = QMessageBox.NoButton
+            btn = QMessageBox.StandardButton.NoButton
 
-        msg_box = QMessageBox(QMessageBox.Information, "", message, btn, self)
+        msg_box = QMessageBox(QMessageBox.Icon.Information, "", message, btn, self)
 
         if open_:
             msg_box.open()
@@ -568,7 +569,12 @@ class MainWindow(QMainWindow):
             return None
 
     def _show_warning_dialog(self, message):
-        QMessageBox.warning(self, LWTest.app_title, message, QMessageBox.Ok, QMessageBox.Ok)
+        QMessageBox.warning(
+            self,
+            LWTest.app_title,
+            message,
+            QMessageBox.StandardButton.Ok,
+            QMessageBox.StandardButton.Ok)
 
     def _table_item_double_clicked(self, row: int):
         # prevent a calibration cycle from being started for an un-linked sensor
@@ -577,26 +583,28 @@ class MainWindow(QMainWindow):
 
         driver: webdriver.Chrome = self._get_browser()
         driver.get(lwt.URL_CALIBRATE)
-        element = driver.find_elements_by_css_selector("option")[row]
+        element = driver.find_elements(by=By.CSS_SELECTOR, value='option')[row]
         phase = element.get_attribute("textContent")
         element.click()
-        driver.find_element_by_css_selector("input[type='password']").send_keys("Q854Xj8X")
-        driver.find_element_by_css_selector("input[type='submit']").click()
+        driver.find_element(by=By.CSS_SELECTOR, value="input[type='password']").send_keys(
+            QSettingsAdapter().value('main/config_password')
+        )
+        driver.find_element(by=By.CSS_SELECTOR, value="input[type='submit']").click()
 
         # ask user to indicate results of calibration cycle
         result = QMessageBox.question(
             self,
             f"{phase} Calibration Result",
             f"Did {phase} pass calibration?",
-            QMessageBox.Yes | QMessageBox.No | QMessageBox.Cancel,
-            QMessageBox.Yes
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No | QMessageBox.StandardButton.Cancel,
+            QMessageBox.StandardButton.Yes
         )
 
         # record that result in the table
         result_map = {
-            QMessageBox.Yes: lambda: self._manually_override_calibration_result("Pass", row),
-            QMessageBox.No: lambda: self._manually_override_calibration_result("Fail", row),
-            QMessageBox.Cancel: lambda: None
+            QMessageBox.StandardButton.Yes: lambda: self._manually_override_calibration_result("Pass", row),
+            QMessageBox.StandardButton.No: lambda: self._manually_override_calibration_result("Fail", row),
+            QMessageBox.StandardButton.Cancel: lambda: None
         }
         result_map[result]()
 
@@ -607,6 +615,7 @@ class MainWindow(QMainWindow):
 
     def _wait_for_collector_to_boot(self):
         pbm = PersistenceBootMonitorDialog(self)
+        # noinspection PyUnresolvedReferences
         pbm.finished.connect(self._handle_persistence_boot_monitor_finished_signal)
         pbm.open()
 
@@ -631,6 +640,8 @@ class MainWindow(QMainWindow):
         self.room_temp.setValue(21.7)
         self.room_temp.setToolTip("Enter room temperature.")
         def set_room_temp(t): self.sensor_log.room_temperature = t
+
+        # noinspection PyUnresolvedReferences
         self.room_temp.valueChanged.connect(lambda v: set_room_temp(v))
         toolbar.addWidget(self.room_temp)
 

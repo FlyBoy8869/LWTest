@@ -1,7 +1,7 @@
 from collections import namedtuple
 
-from PyQt5.QtCore import QTimer
-from PyQt5.QtWidgets import QDialog
+from PyQt6.QtCore import QTimer
+from PyQt6.QtWidgets import QDialog
 
 from LWTest.gui.reference.reference_ui import Ui_Dialog
 

@@ -34,6 +34,14 @@ def create_atr_path(file_name: Path, serial_numbers: Tuple[str, ...], base_name:
     return file_name.parent / Path(new_name + file_name.suffix)
 
 
+def rename_file_to_atp_standard_filename(filename: Path, serial_numbers: Tuple[str, ...], logger) -> Path:
+    logger.debug(f"received file: {filename}")
+    new_path: Path = create_atr_path(filename, serial_numbers)
+    logger.debug(f"dropped file renamed to: {new_path}")
+
+    return filename.rename(new_path.as_posix())
+
+
 if __name__ == '__main__':
     # . filename = r"C:\Users\charles\Temp\ATR-PRD#-SN9800001-SN9800002-SN9800003-SN9800004-SN9800005-SN9800006.xlsm"
     # print(create_log_filename_from_spreadsheet_path(filename).as_posix())

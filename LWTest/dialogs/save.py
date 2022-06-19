@@ -1,7 +1,7 @@
-from PyQt5.QtCore import Qt, QTimer
+from PyQt6.QtCore import Qt, QTimer
 from pathlib import Path
 
-from PyQt5.QtWidgets import QDialog, QVBoxLayout, QLabel, QHBoxLayout, QMessageBox
+from PyQt6.QtWidgets import QDialog, QVBoxLayout, QLabel, QHBoxLayout, QMessageBox
 
 from LWTest.spreadsheet import spreadsheet as spreadsheet
 from LWTest.spreadsheet.constants import PhaseReadingsCells, phases_cells
@@ -16,9 +16,6 @@ class SaveDialog(QDialog):
                                   "firmware_version", "reporting_data", "rssi", "calibrated",
                                   "temperature", "fault_current")
 
-    file_name_prefix = "ATR-PRD#-"
-    file_name_serial_number_template = "-SN{}"
-
     def __init__(self, parent, spreadsheet_path: str, log_file_path: Path, sensors: iter, references):
         super().__init__(parent)
         self.setWindowTitle("LWTest - Saving Sensor Data")
@@ -28,29 +25,31 @@ class SaveDialog(QDialog):
         self._sensors = sensors
         self._references = references
 
-        self.setLayout(QVBoxLayout())
+        layout = QVBoxLayout(self)
 
         self._top_layout = QVBoxLayout()
-        self.layout().addLayout(self._top_layout)
+        layout.addLayout(self._top_layout)
 
         self._main_label = QLabel("Saving sensor data to spreadsheet.", self)
         font = self._main_label.font()
         point_size = 9 if oscomp.os_brand == OSBrand.WINDOWS else 13
         font.setPointSize(point_size)
         self._main_label.setFont(font)
-        self._top_layout.addWidget(self._main_label, alignment=Qt.AlignHCenter)
+        self._top_layout.addWidget(self._main_label, alignment=Qt.AlignmentFlag.AlignHCenter)
 
         horizontal_spacer = QLabel("\t\t\t\t\t", self)
-        self._top_layout.addWidget(horizontal_spacer, alignment=Qt.AlignHCenter)
+        self._top_layout.addWidget(horizontal_spacer, alignment=Qt.AlignmentFlag.AlignHCenter)
 
         self._bottom_layout = QHBoxLayout()
 
         self._sub_label = QLabel("Please, wait...", self)
         self._sub_label.setFont(font)
 
-        self._bottom_layout.addWidget(self._sub_label, alignment=Qt.AlignHCenter)
+        self._bottom_layout.addWidget(self._sub_label, alignment=Qt.AlignmentFlag.AlignHCenter)
 
-        self.layout().addLayout(self._bottom_layout)
+        layout.addLayout(self._bottom_layout)
+
+        self.setLayout(layout)
 
         QTimer().singleShot(500, self._save_data)
 
@@ -92,7 +91,7 @@ class SaveDialog(QDialog):
 
     def _report_failure(self, message, detail_text):
         msg_box = QMessageBox(
-            QMessageBox.Warning, "LWTest - Saving Log Files", message, QMessageBox.Ok, self
+            QMessageBox.warning, "LWTest - Saving Log Files", message, QMessageBox.StandardButton.Ok, self
         )
         msg_box.setDetailedText(detail_text)
         msg_box.exec()

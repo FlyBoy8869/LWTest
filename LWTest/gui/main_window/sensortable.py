@@ -1,6 +1,6 @@
 from typing import Callable
 
-from PyQt5.QtWidgets import QTableWidget, QComboBox, QHeaderView
+from PyQt6.QtWidgets import QTableWidget, QComboBox, QHeaderView
 
 import LWTest.gui.main_window.helper as helper
 from LWTest.constants import lwt
@@ -19,14 +19,14 @@ def setup_table(parent, table: QTableWidget, calibrated_override: Callable,
     table.setRowCount(rows)
     table.setColumnCount(len(headers))
     table.setHorizontalHeaderLabels(headers)
-    table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeToContents)
-    table.verticalHeader().setSectionResizeMode(QHeaderView.ResizeToContents)
+    table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
+    table.verticalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
     table.horizontalHeader().setStretchLastSection(True)
 
     # for index, number in enumerate(serial_numbers):
-    for index in range(0, rows):
+    for index in range(rows):
         item = helper.create_item()
-        item.setFlags(item.flags() | helper.Qt.ItemIsSelectable)
+        item.setFlags(item.flags() | helper.Qt.ItemFlag.ItemIsSelectable)
         table.setItem(index, 0, item)
 
         # Four stock QTableWidgetItems
@@ -37,6 +37,7 @@ def setup_table(parent, table: QTableWidget, calibrated_override: Callable,
         # A "custom" cellWidget
         cal_combo = QComboBox(parent)
         cal_combo.insertItems(0, ["NA", "Pass", "Fail"])
+        # noinspection PyUnresolvedReferences
         cal_combo.currentTextChanged.connect(lambda text, index_=index: calibrated_override(text, index_))
         table.setCellWidget(index, lwt.TableColumn.CALIBRATION.value, cal_combo)
 
@@ -47,6 +48,7 @@ def setup_table(parent, table: QTableWidget, calibrated_override: Callable,
 
         fault_combo = QComboBox(parent)
         fault_combo.insertItems(0, ["NA", "Pass", "Fail"])
+        # noinspection PyUnresolvedReferences
         fault_combo.currentTextChanged.connect(lambda text, index_=index: fault_current_override(text, index_))
         table.setCellWidget(index, lwt.TableColumn.FAULT_CURRENT.value, fault_combo)
 

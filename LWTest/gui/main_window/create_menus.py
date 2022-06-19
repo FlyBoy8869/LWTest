@@ -1,8 +1,8 @@
-from PyQt5.QtCore import Qt
+from PyQt6.QtCore import Qt
 from typing import Optional
 
-from PyQt5.QtGui import QIcon
-from PyQt5.QtWidgets import QMainWindow, QMenu, QAction, QMenuBar
+from PyQt6.QtGui import QAction, QIcon
+from PyQt6.QtWidgets import QMainWindow, QMenu, QMenuBar
 
 
 class MenuHelper:
@@ -34,50 +34,44 @@ class MenuHelper:
         self.menu_help = self._menu_bar.addMenu("&Help")
 
         # create actions
-        self.action_advanced_configuration = QAction(
-            QIcon("LWTest/resources/images/advanced_configuration-01_128.png"), "&Advanced Configuration", window
-        )
+        action_name = [
+            "create_set", "enter_references", "check_persistence",
+            "configure_serial_numbers", "upgrade_sensor",
+            "save", "exit",
+            "about", "take_readings",
+            "config_correction_angle", "fault_current",
+            "calibrate", "advanced_configuration"
+        ]
+        action_icon = [
+            None, None, None,
+            "LWTest/resources/images/serial_config-01_128.png", "LWTest/resources/images/upgrade-01_128.png",
+            "LWTest/resources/images/save-02_128.png", "LWTest/resources/images/exit-01_128.png",
+            "LWTest/resources/images/info-01_128.png", "LWTest/resources/images/multimeter-01_128.png",
+            "LWTest/resources/images/correction_angle.png", "LWTest/resources/images/fault_current-02.png",
+            "LWTest/resources/images/calibrate.png", "LWTest/resources/images/advanced_configuration-01_128.png"
+        ]
+        action_text = [
+            "Create Set", "Enter References", "Check\npersistence",
+            "&Configure Serial Numbers", "&Upgrade firmware",
+            "&Save", "E&xit",
+            "&About", "Take Readings",
+            "Set Correction Angle", "Fault Current",
+            "Calibrate Sensor", "&Advanced Configuration"
+        ]
+        for name, icon, text in zip(action_name, action_icon, action_text):
+            setattr(
+                self,
+                "".join(['action_', name]),
+                QAction(QIcon(icon), text, window) if icon else QAction(text, window)
+            )
 
-        self.action_create_set = QAction("Create Set", window)
-
-        self.action_enter_references = QAction("Enter References", window)
-
-        self.action_configure_serial_numbers = QAction(
-            QIcon("LWTest/resources/images/serial_config-01_128.png"),"&Configure Serial Numbers", window
-        )
-
-        self.action_upgrade_sensor = QAction(
-            QIcon("LWTest/resources/images/upgrade-01_128.png"), "&Upgrade firmware", window
-        )
-
-        self.action_save = QAction(QIcon("LWTest/resources/images/save-02_128.png"), "&Save", window)
-
-        self.action_exit = QAction(QIcon("LWTest/resources/images/exit-01_128.png"), "E&xit", window)
-
-        self.action_about = QAction(QIcon("LWTest/resources/images/info-01_128.png"), "&About", window)
-
-        self.action_take_readings = QAction(
-            QIcon("LWTest/resources/images/multimeter-01_128.png"), "Take Readings", window
-        )
-
-        self.action_config_correction_angle = QAction(
-            QIcon('LWTest/resources/images/correction_angle.png'), "Set Correction Angle", window
-        )
-
-        self.action_fault_current = QAction(
-            QIcon("LWTest/resources/images/fault_current-02.png"), "Fault Current", window
-        )
-
-        self.action_calibrate = QAction(QIcon("LWTest/resources/images/calibrate.png"), "Calibrate Sensor", window)
-
-        self.action_check_persistence = QAction("Check\npersistence", window)
-        self.action_check_persistence.setEnabled(False)
+        getattr(self, "action_check_persistence").setEnabled(False)
 
         # customize actions
-        self.action_create_set.setShortcut(Qt.Key_N | Qt.ControlModifier)
-        self.action_enter_references.setShortcut(Qt.Key_R | Qt.ControlModifier)
-        self.action_save.setShortcut(Qt.Key_S | Qt.ControlModifier)
-        self.action_upgrade_sensor.setShortcut(Qt.Key_U | Qt.ControlModifier)
+        self.action_create_set.setShortcut(Qt.Key.Key_N | Qt.KeyboardModifier.ControlModifier.value)
+        self.action_enter_references.setShortcut(Qt.Key.Key_R | Qt.KeyboardModifier.ControlModifier.value)
+        self.action_save.setShortcut(Qt.Key.Key_S | Qt.KeyboardModifier.ControlModifier.value)
+        self.action_upgrade_sensor.setShortcut(Qt.Key.Key_U | Qt.KeyboardModifier.ControlModifier.value)
 
         # add actions to menu
         self.menu_file.addAction(self.action_create_set)
@@ -91,7 +85,7 @@ class MenuHelper:
         return self
 
     def connect_actions(self):
-        """Automatically connect QAction.triggered signals.
+        """Automatically connect 'QAction.triggered' signals.
 
         For example, given a QAction named 'action_create_set', the parent widget must
         implement a handler of the following format:
@@ -110,6 +104,7 @@ class MenuHelper:
                 # works whether the method or the action is marked as "private"
                 if method.lstrip("_") == "handle_" + action.lstrip("_"):
                     a: QAction = getattr(self, action)
+                    # noinspection PyUnresolvedReferences
                     a.triggered.connect(getattr(self._parent, method))
                     break
 

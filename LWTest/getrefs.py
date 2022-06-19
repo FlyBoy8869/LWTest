@@ -1,4 +1,4 @@
-from PyQt5.QtWidgets import QDialog
+from PyQt6.QtWidgets import QDialog
 
 from LWTest.gui.reference.referencedialog import ReferenceDialog
 
@@ -11,7 +11,7 @@ class GetReferences:
 
     def get_references(self):
         reference_dialog = ReferenceDialog(self._parent, self._high_refs, self._low_refs)
-        if reference_dialog.exec() == QDialog.Accepted:
+        if reference_dialog.exec() == QDialog.DialogCode.Accepted:
             return reference_dialog.high_voltage_reference, reference_dialog.low_voltage_reference
 
         return None, None

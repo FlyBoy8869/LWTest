@@ -1,5 +1,5 @@
-from PyQt5.QtCore import Qt, QTimer
-from PyQt5.QtWidgets import QDialog, QVBoxLayout, QHBoxLayout, QLabel, QProgressBar, QDialogButtonBox
+from PyQt6.QtCore import Qt, QTimer
+from PyQt6.QtWidgets import QDialog, QVBoxLayout, QHBoxLayout, QLabel, QProgressBar, QDialogButtonBox
 
 from LWTest.utilities import time as util_time
 
@@ -27,17 +27,19 @@ class CountDownDialog(QDialog):
 
         self._remaining_time_label = QLabel("")
 
-        self._button_box = QDialogButtonBox(QDialogButtonBox.Cancel)
+        self._button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Cancel)
+        # noinspection PyUnresolvedReferences
         self._button_box.rejected.connect(self.reject)
 
         self._main_layout.addWidget(self._description_label)
         self._main_layout.addWidget(self._progress_bar)
-        self._main_layout.addWidget(self._remaining_time_label, alignment=Qt.AlignHCenter)
+        self._main_layout.addWidget(self._remaining_time_label, alignment=Qt.AlignmentFlag.AlignHCenter)
         self._main_layout.addWidget(self._button_box)
 
         self.setLayout(self._main_layout)
 
         self._timer = QTimer(self)
+        # noinspection PyUnresolvedReferences
         self._timer.timeout.connect(self._handle_timeout)
 
     def showEvent(self, q_show_event):

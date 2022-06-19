@@ -5,7 +5,7 @@ from time import sleep
 from typing import Tuple
 
 import requests
-from PyQt5.QtCore import QObject, pyqtSignal, QMutex
+from PyQt6.QtCore import QObject, pyqtSignal, QMutex
 
 from LWTest.collector.common.constants import ReadingType
 from LWTest.constants import lwt

@@ -1,10 +1,8 @@
-from PyQt5.QtWidgets import QDialog
+from PyQt6.QtWidgets import QDialog
 
 from LWTest.dialogs.save import SaveDialog
 from LWTest.sensor import SensorLog
 from LWTest.utilities import file_utils
-
-import LWTest.getrefs as references
 
 
 class DataSaver:
@@ -34,7 +32,7 @@ class DataSaver:
              high_refs,
              low_refs)
         )
-        if save_data_dialog.exec() == QDialog.Accepted:
+        if save_data_dialog.exec() == QDialog.DialogCode.Accepted:
             return True
 
         return False

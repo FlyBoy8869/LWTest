@@ -1,6 +1,6 @@
 import logging
 
-from PyQt5.QtCore import pyqtSignal, QObject
+from PyQt6.QtCore import pyqtSignal, QObject
 from selenium import webdriver
 from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.common.by import By
@@ -27,6 +27,7 @@ class Reader(QObject):
     def read(self, phase: int, driver: webdriver.Chrome):
         return self._get_data(phase, driver)
 
+    # noinspection PyUnresolvedReferences
     def _emit_signals(self, phase, data):
         self.update.emit(phase, data)
         self.finished.emit()
@@ -34,8 +35,7 @@ class Reader(QObject):
     def _get_data(self, phase: int, driver: webdriver.Chrome):
         try:
             elements = self._get_elements(self.SELECTOR, self.RANGE_, driver)
-            content = elements[phase].get_attribute(self.ATTRIBUTE)
-            return content
+            return elements[phase].get_attribute(self.ATTRIBUTE)
         except TimeoutException:
             return lwt.NO_DATA
 

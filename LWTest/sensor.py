@@ -2,11 +2,10 @@
 import logging
 from dataclasses import dataclass, field
 from functools import singledispatchmethod
-from typing import Optional, List, Tuple, cast
+from typing import List, Optional, Tuple, cast
 
-from PyQt5.QtCore import QObject, pyqtSignal
+from PyQt6.QtCore import QObject, pyqtSignal
 
-import LWTest.constants.lwt_constants as lwt
 from LWTest.collector.common.constants import ReadingType
 
 
@@ -41,7 +40,7 @@ class Sensor:
     @property
     def linked(self):
         try:
-            return int(self.rssi) in [-i for i in range(0, 120)]
+            return int(self.rssi) in [-i for i in range(120)]
         except ValueError:
             return False
 
@@ -55,7 +54,7 @@ class Sensor:
 
     @property
     def reporting(self):
-        return True if self.reporting_data == "Pass" else False
+        return self.reporting_data == "Pass"
 
     def __setattr__(self, key, value):
         object.__setattr__(self, key, value)
@@ -97,11 +96,7 @@ class SensorLog(QObject):
 
     @property
     def have_references(self):
-        if not all(self._high_voltage_reference)\
-         or not all(self._low_voltage_reference):
-            return False
-
-        return True
+        return all(self._high_voltage_reference) and all(self._low_voltage_reference)
 
     @property
     def linked(self):
@@ -147,7 +142,7 @@ class SensorLog(QObject):
         return tuple([sensor.advance_readings for sensor in self._log_by_serial_number.values()])
 
     def get_sensor_by_phase(self, phase: int) -> Optional[Sensor]:
-        assert phase in [0, 1, 2, 3, 4, 5], f"'{phase}' is invalid, must be 0 - 5"
+        assert phase in {0, 1, 2, 3, 4, 5}, f"'{phase}' is invalid, must be 0 - 5"
         return self._log_by_phase.get(phase, None)
 
     def get_sensors(self) -> Tuple[Sensor]:
@@ -155,10 +150,12 @@ class SensorLog(QObject):
 
     def record_calibration_results(self, result: str, index: int):
         self.get_sensor_by_phase(index).calibrated = result
+        # noinspection PyUnresolvedReferences
         self.changed.emit()
 
     def record_fault_current_results(self, result: str, index: int):
         self.get_sensor_by_phase(index).fault_current = result
+        # noinspection PyUnresolvedReferences
         self.changed.emit()
 
     @singledispatchmethod
@@ -183,6 +180,7 @@ class SensorLog(QObject):
             if unit.linked:
                 setattr(unit, attribute, values[index])
                 self._logger.debug(f"set sensor({unit.serial_number}).{attribute} = {values[index]}")
+        # noinspection PyUnresolvedReferences
         self.changed.emit()
 
     # "private" interface

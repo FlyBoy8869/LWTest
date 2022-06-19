@@ -1,5 +1,5 @@
-from PyQt5.QtCore import pyqtSignal, Qt, QTimer, QSettings
-from PyQt5.QtWidgets import QDialog, QVBoxLayout, QLabel, QProgressBar
+from PyQt6.QtCore import pyqtSignal, Qt, QTimer, QSettings
+from PyQt6.QtWidgets import QDialog, QVBoxLayout, QLabel, QProgressBar
 from selenium.common.exceptions import WebDriverException
 from typing import Callable
 

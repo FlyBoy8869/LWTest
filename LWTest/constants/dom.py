@@ -1,5 +1,5 @@
 # config.dom.dom.py
-from PyQt5.QtCore import QSettings
+from PyQt6.QtCore import QSettings
 
 
 TESTING = True if QSettings().value("DEBUG") == 'true' else False

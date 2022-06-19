@@ -2,11 +2,11 @@ from pathlib import Path
 
 import shutil
 
-from PyQt5.QtCore import Qt, QSettings
+from PyQt6.QtCore import Qt, QSettings
 from typing import cast, Optional
 
-from PyQt5 import QtCore, QtGui
-from PyQt5.QtWidgets import QDialog, QLineEdit, QFileDialog
+from PyQt6 import QtCore, QtGui
+from PyQt6.QtWidgets import QDialog, QLineEdit, QFileDialog
 
 from LWTest.dialogs.createset_ui import Ui_Dialog
 from LWTest.spreadsheet import spreadsheet
@@ -53,25 +53,25 @@ class CreateSetDialog(QDialog, Ui_Dialog):
         return self._get_serial_numbers()
 
     def eventFilter(self, widget: QtCore.QObject, event: QtCore.QEvent) -> bool:
-        if isinstance(widget, (QLineEdit,)) and event.type() == QtCore.QEvent.KeyPress:
+        if isinstance(widget, (QLineEdit,)) and event.type() == QtCore.QEvent.Type.KeyPress:
             key_event: QtGui.QKeyEvent = cast(QtGui.QKeyEvent, event)
             key = key_event.key()
-            if key == Qt.Key_Up or key == Qt.Key_Down:
+            if key in [Qt.Key.Key_Up, Qt.Key.Key_Down]:
                 self.keyPressEvent(key_event)
                 return True
 
         return False
 
     def keyPressEvent(self, key_event: QtGui.QKeyEvent) -> None:
-        if key_event.key() == Qt.Key_Tab and key_event.modifiers() == Qt.AltModifier:
+        if key_event.key() == Qt.Key.Key_Tab and key_event.modifiers() == Qt.KeyboardModifier.AltModifier:
             self._move_to_previous_field()
-        elif key_event.key() == Qt.Key_Tab:
+        elif key_event.key() == Qt.Key.Key_Tab:
             self._add_input_field()
-        elif key_event.key() == Qt.Key_R and key_event.modifiers() == Qt.ControlModifier:
+        elif key_event.key() == Qt.Key.Key_R and key_event.modifiers() == Qt.KeyboardModifier.ControlModifier:
             self._remove_input_field()
-        elif key_event.key() == Qt.Key_Up:
+        elif key_event.key() == Qt.Key.Key_Up:
             self._move_to_previous_field()
-        elif key_event.key() == Qt.Key_Down:
+        elif key_event.key() == Qt.Key.Key_Down:
             self._move_to_next_field()
         else:
             super().keyPressEvent(key_event)
@@ -125,12 +125,10 @@ class CreateSetDialog(QDialog, Ui_Dialog):
 
     def _get_serial_numbers(self):
         # never mind
-        if self.result() == QDialog.Rejected:
+        if self.result() == QDialog.DialogCode.Rejected:
             return None
 
-        serial_numbers = []
-        for index in range(0, self._field_index + 1):
-            serial_numbers.append(self._input_fields[index].text())
+        serial_numbers = [self._input_fields[index].text() for index in range(self._field_index + 1)]
 
         # user just decided to hit 'Ok' instead of 'Cancel' after opening dialog
         if "980" in serial_numbers:
@@ -160,15 +158,12 @@ def _put_serial_numbers_in_test_record(serial_numbers, path):
 
 
 def manual_set_entry(parent) -> Optional[str]:
-    serial_numbers = _enter_set_serial_numbers(parent)
-
-    if serial_numbers:
+    if serial_numbers := _enter_set_serial_numbers(parent):
         save_folder = QSettings().value("save_folder")
         if not Path(save_folder).exists():
             save_folder = '.'
 
-        directory = QFileDialog.getExistingDirectory(parent, "Save to...", save_folder)
-        if directory:
+        if directory := QFileDialog.getExistingDirectory(parent, "Save to...", save_folder):
             path = _copy_test_record_to_folder(directory)
             _put_serial_numbers_in_test_record(serial_numbers, path)
             return path

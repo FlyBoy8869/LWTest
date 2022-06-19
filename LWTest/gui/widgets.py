@@ -1,6 +1,6 @@
-from PyQt5 import QtGui
-from PyQt5.QtCore import Qt, pyqtSignal, QObject, QModelIndex
-from PyQt5.QtWidgets import QTableWidget
+from PyQt6 import QtGui
+from PyQt6.QtCore import QObject, Qt, pyqtSignal
+from PyQt6.QtWidgets import QTableWidget
 
 
 class LWTTableWidget(QTableWidget):
@@ -12,7 +12,7 @@ class LWTTableWidget(QTableWidget):
         self.signals = self.Signals()
 
     def mouseDoubleClickEvent(self, e: QtGui.QMouseEvent) -> None:
-        if e.button() == Qt.LeftButton:
+        if e.button() == Qt.MouseButton.LeftButton:
             if (item := self.indexAt(e.pos())) and item.column() == 0:
                 self.signals.double_clicked.emit(item.row())
 

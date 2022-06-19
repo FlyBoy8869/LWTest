@@ -1,9 +1,9 @@
-from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import QTableWidgetItem
+from PyQt6.QtCore import Qt
+from PyQt6.QtWidgets import QTableWidgetItem
 
 
 def create_item(text=""):
     item = QTableWidgetItem(text)
-    item.setFlags(Qt.ItemIsEnabled)
-    item.setTextAlignment(Qt.AlignHCenter | Qt.AlignVCenter)
+    item.setFlags(Qt.ItemFlag.ItemIsEnabled)
+    item.setTextAlignment(Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignVCenter)
     return item

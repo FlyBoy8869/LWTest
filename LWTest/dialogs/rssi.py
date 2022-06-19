@@ -2,9 +2,9 @@ import logging
 import time
 from typing import List
 
-from PyQt5 import QtGui
-from PyQt5.QtCore import QTimer, QObject, pyqtSignal, QThread, Qt
-from PyQt5.QtWidgets import QDialog, QVBoxLayout, QLabel, QProgressBar, QApplication, QPushButton
+from PyQt6 import QtGui
+from PyQt6.QtCore import QObject, QThread, QTimer, Qt, pyqtSignal
+from PyQt6.QtWidgets import QDialog, QLabel, QProgressBar, QPushButton, QVBoxLayout
 
 from LWTest.collector.common.constants import ReadingType
 from LWTest.constants import lwt_constants
@@ -24,11 +24,8 @@ class Worker(QObject):
 
     def do_work(self, serial_number: str, checker: LinkChecker):
         _logger.info(f"checking sensor {serial_number} link status")
-        value = "NA"
-
-        if rssi := checker.check(serial_number):
-            value = rssi
-
+        value = rssi if (rssi := checker.check(serial_number)) else "NA"
+        # noinspection PyUnresolvedReferences
         self.update.emit(value, ReadingType.RSSI, serial_number)
 
 
@@ -54,7 +51,7 @@ class RSSIDialog(QDialog):
         self.main_layout = QVBoxLayout()
 
         self.description_label = QLabel("Collecting RSSI values.\t\t")
-        self.description_label.setAlignment(Qt.AlignCenter)
+        self.description_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         self.progress_bar = QProgressBar()
         self.progress_bar.setStyleSheet("QProgressBar {min-height: 10px; max-height: 10px}")
@@ -63,6 +60,7 @@ class RSSIDialog(QDialog):
         self.progress_bar.setTextVisible(False)
 
         self._cancel_button = QPushButton("cancel")
+        # noinspection PyUnresolvedReferences
         self._cancel_button.clicked.connect(self._close)
 
         self.main_layout.addWidget(self.description_label)
@@ -72,6 +70,7 @@ class RSSIDialog(QDialog):
         self.setLayout(self.main_layout)
 
         self.timer = QTimer()
+        # noinspection PyUnresolvedReferences
         self.timer.timeout.connect(self._check_link_status)
         self.timer.start(1000)
 
@@ -93,14 +92,19 @@ class RSSIDialog(QDialog):
         thread = QThread()
         worker = Worker()
         worker.moveToThread(thread)
+        # noinspection PyUnresolvedReferences
         thread.started.connect(
             lambda: worker.do_work(
                 serial_number, LinkChecker(lwt_constants.URL_MODEM_STATUS)
             )
         )
+        # noinspection PyUnresolvedReferences
         worker.update.connect(self._update)
+        # noinspection PyUnresolvedReferences
         worker.finished.connect(thread.quit)
+        # noinspection PyUnresolvedReferences
         worker.finished.connect(worker.deleteLater)
+        # noinspection PyUnresolvedReferences
         thread.finished.connect(thread.deleteLater)
         return thread
 
@@ -117,6 +121,7 @@ class RSSIDialog(QDialog):
                 self._start_threads(serial_numbers)
         else:
             self.timer.stop()
+            # noinspection PyUnresolvedReferences
             self.signals.finished.emit()
             self.close()
 
@@ -131,4 +136,5 @@ class RSSIDialog(QDialog):
         return False
 
     def _update(self, value: str, reading_type: ReadingType, serial_number: str):
+        # noinspection PyUnresolvedReferences
         self.signals.update.emit(value, reading_type, serial_number)

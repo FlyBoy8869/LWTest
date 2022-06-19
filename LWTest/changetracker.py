@@ -1,4 +1,4 @@
-from PyQt5.QtWidgets import QMessageBox
+from PyQt6.QtWidgets import QMessageBox
 
 
 class ChangeTracker:
@@ -13,10 +13,10 @@ class ChangeTracker:
         if self._unsaved_changes:
             button = QMessageBox.question(parent, "Unsaved Test Results",
                                           "Discard results?\t\t\t\t",
-                                          QMessageBox.Discard | QMessageBox.No,
-                                          QMessageBox.No)
+                                          QMessageBox.StandardButton.Discard | QMessageBox.StandardButton.No,
+                                          QMessageBox.StandardButton.No)
 
-            if button == QMessageBox.No:
+            if button == QMessageBox.StandardButton.No:
                 return False
 
         if clear_flag:

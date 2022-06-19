@@ -1,7 +1,7 @@
 # settings.py
 import re
 
-from PyQt5.QtCore import QSettings, QCoreApplication
+from PyQt6.QtCore import QSettings, QCoreApplication
 
 
 org_name = "Medium Voltage Sensors"
@@ -27,13 +27,12 @@ def _load_settings(path: str, settings: QSettings):
 
 
 def _process_command_line_args(args: list, settings: QSettings):
-    debug = True if "DEBUG" in args else False
+    debug = "DEBUG" in args
     settings.setValue("DEBUG", debug)
 
     server = "127.0.0.1"
     pattern = re.compile(r"server=(\d+.\d+.\d+.\d+)")
     for arg in args:
-        match = pattern.match(arg)
-        if match:
+        if match := pattern.match(arg):
             server = match[1]
     settings.setValue("server", server)

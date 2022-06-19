@@ -1,7 +1,7 @@
 # logging.py
 import logging
 
-from PyQt5.QtCore import QSettings
+from PyQt6.QtCore import QSettings
 
 
 def _get_logging_level_constant(level: str):
@@ -22,14 +22,14 @@ def initialize():
         return
 
     console_handler = logging.StreamHandler()  # defaults to sys.stderr
-    console_handler.addFilter(lambda r: False if "selenium" in r.name else True)
-    console_handler.addFilter(lambda r: False if "urllib3" in r.name else True)
-    console_handler.addFilter(lambda r: False if "test _log" in r.name else True)
+    console_handler.addFilter(lambda r: "selenium" not in r.name)
+    console_handler.addFilter(lambda r: "urllib3" not in r.name)
+    console_handler.addFilter(lambda r: "test _log" not in r.name)
 
     file_handler = logging.FileHandler('app.log', mode='w')
-    file_handler.addFilter(lambda r: False if "selenium" in r.name else True)
-    file_handler.addFilter(lambda r: False if "urllib3" in r.name else True)
-    file_handler.addFilter(lambda r: False if "test _log" in r.name else True)
+    file_handler.addFilter(lambda r: "selenium" not in r.name)
+    file_handler.addFilter(lambda r: "urllib3" not in r.name)
+    file_handler.addFilter(lambda r: "test _log" not in r.name)
 
     logging_format = [
         "%(levelname)s: ",

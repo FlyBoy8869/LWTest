@@ -1,7 +1,7 @@
 import logging
 from time import sleep
 
-from PyQt5.QtCore import QRunnable, QObject, pyqtSignal
+from PyQt6.QtCore import QRunnable, QObject, pyqtSignal
 
 from LWTest.constants import lwt
 

@@ -1,7 +1,7 @@
 import time
 
-from PyQt5.QtCore import QTimer
-from PyQt5.QtWidgets import QDialog, QVBoxLayout, QLabel, QProgressBar
+from PyQt6.QtCore import QTimer
+from PyQt6.QtWidgets import QDialog, QVBoxLayout, QLabel, QProgressBar
 
 from LWTest.collector.state.reachable import PageReachable
 from LWTest.constants import lwt_constants

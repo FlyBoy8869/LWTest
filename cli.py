@@ -1,7 +1,7 @@
 import sys
 
-from PyQt5.QtCore import QSettings
-from PyQt5.QtWidgets import QApplication
+from PyQt6.QtCore import QSettings
+from PyQt6.QtWidgets import QApplication
 
 import LWTest.patchexceptionhook as patch
 from LWTest.__main__ import main

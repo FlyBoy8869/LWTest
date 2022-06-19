@@ -2,8 +2,8 @@ import logging
 from collections import namedtuple
 from typing import Tuple, Callable, Union
 
-from PyQt5.QtGui import QBrush
-from PyQt5.QtWidgets import QTableWidgetItem, QApplication
+from PyQt6.QtGui import QBrush
+from PyQt6.QtWidgets import QTableWidgetItem, QApplication
 
 import LWTest.gui.brushes as brushes
 from LWTest.constants import lwt_constants as lwt

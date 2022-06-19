@@ -1,8 +1,8 @@
 import io
 import sys
 
-from PyQt5.QtGui import QFont
-from PyQt5.QtWidgets import QMessageBox
+from PyQt6.QtGui import QFont
+from PyQt6.QtWidgets import QMessageBox
 
 _original_hook = sys.excepthook
 _original_stderr = sys.stderr

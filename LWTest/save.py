@@ -1,4 +1,5 @@
 from PyQt6.QtWidgets import QDialog
+from icecream import ic
 
 from LWTest.dialogs.save import SaveDialog
 from LWTest.sensor import SensorLog
@@ -21,8 +22,8 @@ class DataSaver:
         if not self._sensor_log.have_references:
             high_refs, low_refs = self._refs.get_references()
 
-            if high_refs is None:
-                return
+            # if high_refs is None:
+            #     return
 
         save_data_dialog = SaveDialog(
             self._parent,
@@ -32,6 +33,7 @@ class DataSaver:
              high_refs,
              low_refs)
         )
+        ic("testing the outcome of SaveDialog")
         if save_data_dialog.exec() == QDialog.DialogCode.Accepted:
             return True
 

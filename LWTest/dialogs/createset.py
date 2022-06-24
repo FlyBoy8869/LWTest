@@ -163,8 +163,8 @@ def manual_set_entry(parent) -> Optional[str]:
         if not Path(save_folder).exists():
             save_folder = '.'
 
-        if directory := QFileDialog.getExistingDirectory(parent, "Save to...", save_folder):
-            path = _copy_test_record_to_folder(directory)
+        if folder := QFileDialog.getExistingDirectory(parent, "Save to...", save_folder):
+            path = _copy_test_record_to_folder(folder)
             _put_serial_numbers_in_test_record(serial_numbers, path)
             return path
 

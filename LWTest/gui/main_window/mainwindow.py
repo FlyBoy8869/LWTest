@@ -1,21 +1,19 @@
 import logging
 from pathlib import Path
-from typing import Optional, Tuple
+from typing import Optional
 
 from PyQt6 import QtGui
-from PyQt6.QtCore import QThreadPool, QSettings, QSize, Qt, QReadWriteLock, \
-    QObject, pyqtSignal, QTimer, QMutex
-from PyQt6.QtGui import QIcon, QCloseEvent, QBrush
-from PyQt6.QtWidgets import QMainWindow, QVBoxLayout, QWidget, \
-    QTableWidgetItem, QMessageBox, QToolBar, \
-    QDialog, QDoubleSpinBox, QApplication
+from PyQt6.QtCore import QObject, QReadWriteLock, QSettings, QSize, QThreadPool, QTimer, Qt, pyqtSignal
+from PyQt6.QtGui import QBrush, QCloseEvent, QIcon
+from PyQt6.QtWidgets import QApplication, QDialog, QDoubleSpinBox, QMainWindow, QMessageBox, QTableWidgetItem, \
+    QToolBar, QVBoxLayout, QWidget
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 
 import LWTest
 import LWTest.collector.configure.phaseangle
-from LWTest import changetracker
-from LWTest import sensor, save, getrefs, web
+from LWTest import document
+from LWTest import getrefs, save, sensor, web
 from LWTest.collector.common.constants import ReadingType
 from LWTest.collector.configure import raw
 from LWTest.collector.configure.serial import ConfigureSerialNumbers
@@ -24,7 +22,7 @@ from LWTest.collector.read.operational import FirmwareVersionReader, \
     ReportingDataReader
 from LWTest.collector.read.persistence import PersistenceComparator
 from LWTest.collector.state.state import DateTimeSynchronizer, Power
-from LWTest.common.flags.flags import flags, FlagsEnum
+from LWTest.common.flags.flags import FlagsEnum, flags
 from LWTest.constants import lwt
 from LWTest.dialogs.countdown import CountDownDialog
 from LWTest.dialogs.createset import manual_set_entry
@@ -38,10 +36,10 @@ from LWTest.gui.main_window.menu_help_handlers import menu_help_about_handler
 from LWTest.gui.main_window.tablemodelview import SensorTableViewUpdater
 from LWTest.gui.widgets import LWTTableWidget
 from LWTest.spreadsheet import spreadsheet
-from LWTest.utilities import misc, file_utils
+from LWTest.utilities import file_utils, misc
 from LWTest.utilities.oscomp import QSettingsAdapter
 from LWTest.web.interface.page import Page
-from LWTest.workers import upgrade, link
+from LWTest.workers import link, upgrade
 
 _logger = logging.getLogger(__name__)
 
@@ -93,7 +91,7 @@ class MainWindow(QMainWindow):
         self.spreadsheet_file_name: str = ""
         self.room_temp: QDoubleSpinBox = QDoubleSpinBox(self)
 
-        self.changes = changetracker.ChangeTracker()
+        self.document = document.Document()
 
         self.panel = QWidget(self)
         self.panel_layout = QVBoxLayout(self.panel)
@@ -160,7 +158,7 @@ class MainWindow(QMainWindow):
         mb.close()
 
     def closeEvent(self, closing_event: QCloseEvent):
-        if self.changes.can_discard(parent=self):
+        if self.document.can_discard(parent=self):
             self._close_browser()
             _logger.debug("program terminated")
             closing_event.accept()
@@ -215,7 +213,7 @@ class MainWindow(QMainWindow):
                     _logger
                 ).as_posix()
 
-            self.changes.clear_change_flag()
+            self.document(document.DocumentState.DIRTY)
             self.collector_configured = False
 
     def _handle_action_enter_references(self):
@@ -223,7 +221,7 @@ class MainWindow(QMainWindow):
         self.sensor_log.references = ref_getter.get_references()
 
     def _import_serial_numbers_from_spreadsheet(self, filename: str, sensor_log) -> bool:
-        if self.changes.can_discard(parent=self):
+        if self.document.can_discard(parent=self):
             serial_numbers = spreadsheet.get_serial_numbers(filename)
             sensor_log.create_all(serial_numbers)
             self._setup_sensor_table(rows=len(serial_numbers))
@@ -458,7 +456,7 @@ class MainWindow(QMainWindow):
         data_reader.page_load_error.connect(self._handle_take_readings_page_load_error)
         data_reader.read(self._get_browser())
 
-        self.changes.set_change_flag()
+        self.document(document.DocumentState.DIRTY)
 
     def _handle_take_readings_page_load_error(self):
         self._show_information_dialog("Unable to retrieve readings. Check the collector.")
@@ -473,8 +471,8 @@ class MainWindow(QMainWindow):
             self.browser = None
 
     @staticmethod
-    def _can_save(changes: changetracker.ChangeTracker):
-        return changes.is_changes
+    def _can_save(changes: document.Document):
+        return changes.is_dirty
 
     def _get_browser(self):
         if self.browser is None:
@@ -513,13 +511,13 @@ class MainWindow(QMainWindow):
         td.open()
 
     def _handle_action_save(self):
-        if not self._can_save(self.changes):
+        if not self._can_save(self.document):
             return
 
         refs = getrefs.GetReferences(self, *self.sensor_log.references)
         action = save.DataSaver(self, self.spreadsheet_file_name, self.sensor_log, refs)
         if action.save():
-            self.changes.clear_change_flag()
+            self.document(document.DocumentState.CLEAN)
 
     def _handle_persistence_boot_monitor_finished_signal(self, result_code):
         if result_code == QDialog.DialogCode.Accepted:
@@ -574,7 +572,8 @@ class MainWindow(QMainWindow):
             LWTest.app_title,
             message,
             QMessageBox.StandardButton.Ok,
-            QMessageBox.StandardButton.Ok)
+            QMessageBox.StandardButton.Ok
+        )
 
     def _table_item_double_clicked(self, row: int):
         # prevent a calibration cycle from being started for an un-linked sensor

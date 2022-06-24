@@ -139,14 +139,14 @@ class SensorLog(QObject):
         return [sensor.serial_number for sensor in self._log_by_serial_number.values()]
 
     def get_advanced_readings(self) -> Tuple[Tuple[str], ...]:
-        return tuple([sensor.advance_readings for sensor in self._log_by_serial_number.values()])
+        return tuple(sensor.advance_readings for sensor in self._log_by_serial_number.values())
 
     def get_sensor_by_phase(self, phase: int) -> Optional[Sensor]:
         assert phase in {0, 1, 2, 3, 4, 5}, f"'{phase}' is invalid, must be 0 - 5"
         return self._log_by_phase.get(phase, None)
 
     def get_sensors(self) -> Tuple[Sensor]:
-        return tuple([cast(Sensor, sensor) for sensor in self._log_by_serial_number.values()])
+        return tuple(cast(Sensor, sensor) for sensor in self._log_by_serial_number.values())
 
     def record_calibration_results(self, result: str, index: int):
         self.get_sensor_by_phase(index).calibrated = result

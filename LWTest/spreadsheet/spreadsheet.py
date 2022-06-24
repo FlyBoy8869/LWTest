@@ -1,4 +1,5 @@
 # spreadsheet.py
+import contextlib
 import datetime
 import logging
 import sys
@@ -77,10 +78,8 @@ _workbook: Optional[Workbook]
 
 
 def _convert_reading_for_spreadsheet(reading, conversion):
-    try:
+    with contextlib.suppress(ValueError):
         return conversion(LWTest.utilities.misc.normalize_reading(reading))
-    except ValueError:
-        pass
 
 
 def _enter_serial_numbers_in_worksheet(serial_numbers, worksheet: openpyxlWorksheet, path: str):
@@ -168,9 +167,11 @@ def _save_reference_data(worksheet, temperature_reference, high_references, low_
 
     worksheet[constants.temperature_reference] = _convert_reading_for_spreadsheet(temperature_reference, float)
 
-    for references, data_cells\
-            in [(high_references, constants.high_reference_cells), (low_references, constants.low_reference_cells)]:
-        _save_references(references, data_cells)
+    for references, cells in \
+            ((high_references, constants.high_reference_cells), (low_references, constants.low_reference_cells)):
+        if references:
+            for values, data_cells in [(references, cells)]:
+                _save_references(values, data_cells)
 
 
 def _save_test_data(data_sets, worksheet):

@@ -70,7 +70,7 @@ class SaveDialog(QDialog):
     def _save_data(self):
         if self._do_save():
             self._main_label.setText("Downloading log files from the collector.")
-            QTimer.singleShot(1000, self._download_log_files)
+            QTimer.singleShot(1000, self._save_log_files)
         else:
             self.reject()
 
@@ -81,7 +81,7 @@ class SaveDialog(QDialog):
             return False
         return True
 
-    def _download_log_files(self):
+    def _save_log_files(self):
         if not (result := file_utils.download_log_files(self._log_file_path)).success:
             self._report_failure("An error occurred trying to download the log files.", result.error)
             self.reject()

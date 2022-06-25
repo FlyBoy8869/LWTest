@@ -18,10 +18,9 @@ from LWTest.utilities import returns
 
 def rssi_conversion(value: str):
     try:
-        int_value = int(value)
-        return int_value
+        return int(value)
     except ValueError:
-        return str(value)
+        return value
 
 
 _CONVERSIONS = [float, float, float, int,
@@ -50,15 +49,15 @@ def get_serial_numbers(path: str) -> Tuple[str]:
     return _extract_serial_numbers_from_worksheet(_get_worksheet_from_workbook(path))
 
 
-def save_test_results(workbook_path, data_sets, references) -> returns.Result:
-    worksheet = _get_worksheet_from_workbook(workbook_path)
+def save_test_results(path, data_sets, references) -> returns.Result:
+    worksheet = _get_worksheet_from_workbook(path)
     temperature_reference, high_references, low_references = references
 
     _save_reference_data(worksheet, temperature_reference, high_references, low_references)
     _save_test_data(data_sets, worksheet)
     _save_admin_data(worksheet)
     _protect_worksheet(worksheet)
-    _save_workbook(workbook_path)
+    _save_workbook(path)
 
     return returns.Result(True, True)
 
@@ -74,7 +73,7 @@ def record_log_files_attached(workbook_path: str):
 # -------------------
 # private interface -
 # -------------------
-_workbook: Optional[Workbook]
+_workbook: Optional[Workbook] = None
 
 
 def _convert_reading_for_spreadsheet(reading, conversion):
@@ -114,9 +113,9 @@ def _open_workbook(filename: str):
         logger.debug("spreadsheet not found")
         LWTest.utilities.misc.print_exception_info()
         sys.exit(1)
-    except RuntimeError:
+    except RuntimeError as e:
         LWTest.utilities.misc.print_exception_info()
-        raise RuntimeError
+        raise RuntimeError from e
 
 
 def _get_worksheet_from_workbook(path) -> openpyxlWorksheet:
@@ -125,8 +124,7 @@ def _get_worksheet_from_workbook(path) -> openpyxlWorksheet:
 
     try:
         _open_workbook(path)
-        worksheet = _workbook[constants.WORKSHEET_NAME]
-        return worksheet
+        return _workbook[constants.WORKSHEET_NAME]
     except KeyError:
         logger.debug(f"Worksheet '{constants.WORKSHEET_NAME}' does not exist. Check the spelling in config.txt.")
         sys.exit(1)
@@ -161,42 +159,35 @@ def _save_admin_data(worksheet):
 def _save_reference_data(worksheet, temperature_reference, high_references, low_references):
     conversions = [float, float, float, int]
 
-    def _save_references(refs, cells):
+    def _save_data(refs, cells_):
         for i, r in enumerate(refs):
-            worksheet[cells[i]].value = _convert_reading_for_spreadsheet(r, conversions[i])
+            _save_data_to_cell(_convert_reading_for_spreadsheet(r, conversions[i]), cells_[i], worksheet)
 
-    worksheet[constants.temperature_reference] = _convert_reading_for_spreadsheet(temperature_reference, float)
+    _save_data_to_cell(
+        _convert_reading_for_spreadsheet(temperature_reference, float),
+        constants.temperature_reference,
+        worksheet
+    )
 
-    for references, cells in \
+    for reference_values, cells in \
             ((high_references, constants.high_reference_cells), (low_references, constants.low_reference_cells)):
-        if references:
-            for values, data_cells in [(references, cells)]:
-                _save_references(values, data_cells)
+        if reference_values:
+            for values, data_cells in [(reference_values, cells)]:
+                _save_data(values, data_cells)
 
 
 def _save_test_data(data_sets, worksheet):
     for data_set in data_sets:
         for index, (location, reading) in enumerate(data_set):
-            if not reading:
+            if not reading or reading == 'NA':
                 continue
 
-            if reading != 'NA':
-                reading = _convert_reading_for_spreadsheet(reading, _CONVERSIONS[index])
-                worksheet[location].value = reading
+            _save_data_to_cell(
+                _convert_reading_for_spreadsheet(reading, _CONVERSIONS[index]),
+                location,
+                worksheet
+            )
 
 
-class Spreadsheet:
-    def __init__(self, path: Path, worksheet: Worksheet):
-        self._path = path
-        self._worksheet: Worksheet = worksheet
-
-    def get_serial_numbers(self) -> list:
-        raise NotImplementedError("Not yet.")
-
-    def _extract_serial_numbers_from_worksheet(self, serial_locations: tuple) -> Tuple[str]:
-        serial_numbers = [str(self._worksheet[serial_location].value) for serial_location in serial_locations
-                          if str(self._worksheet[serial_location].value) != 'None']
-
-        _close_workbook()
-
-        return tuple(serial_numbers)
+def _save_data_to_cell(data, cell, worksheet) -> None:
+    worksheet[cell].value = data

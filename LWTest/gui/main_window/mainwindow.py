@@ -577,7 +577,7 @@ class MainWindow(QMainWindow):
 
     def _table_item_double_clicked(self, row: int):
         # prevent a calibration cycle from being started for an un-linked sensor
-        if not self.sensor_log.get_sensor_by_phase(row).reporting_data:
+        if not (sensor := self.sensor_log.get_sensor_by_phase(row)).reporting_data:
             return
 
         driver: webdriver.Chrome = self._get_browser()
@@ -594,7 +594,7 @@ class MainWindow(QMainWindow):
         result = QMessageBox.question(
             self,
             f"{phase} Calibration Result",
-            f"Did {phase} pass calibration?",
+            f"Did {phase} ({sensor.serial_number}) pass calibration?",
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No | QMessageBox.StandardButton.Cancel,
             QMessageBox.StandardButton.Yes
         )

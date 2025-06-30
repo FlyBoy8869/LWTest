@@ -1,5 +1,5 @@
 # LWTest
-Test Medium Voltage Power Line Sensors.
+Test QinetiQ Inc. Medium Voltage Power Line Sensors.
 
 
 ### Change List
